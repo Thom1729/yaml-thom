@@ -322,7 +322,7 @@ class AstToSerializationTreeOperation {
       }
       case 'block-literal-scalar':
       case 'block-folded-scalar':
-        return new SerializationScalar(NonSpecificTag.question, this.blockScalarContent(node));
+        return new SerializationScalar(NonSpecificTag.exclamation, this.blockScalarContent(node));
 
       case 'flow-sequence':
         return new SerializationSequence(NonSpecificTag.question, this.flowSequenceContent(node));
