@@ -1,0 +1,7 @@
+%YAML 1.2
+# foo
+---
+- - foo
+  - bar
+- foo: 1
+  bar: 1

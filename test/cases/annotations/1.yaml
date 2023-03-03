@@ -1,0 +1,6 @@
+context:
+  foo: Hello, World!
+---
+@var( default: 42, x: 1 ) foo
+---
+Hello, World!

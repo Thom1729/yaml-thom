@@ -1,0 +1,9 @@
+%YAML 1.2
+# foo
+%TAG ! tag:yamlmacros.org,2020:
+---
+- - !foo &bar 42
+  
+- a: 1
+- 'b''c'
+- "b\"c"
