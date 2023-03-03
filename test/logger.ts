@@ -1,5 +1,5 @@
 import { inspect } from 'util';
-import { repeat } from '../src/util';
+import { repeat } from '@/util';
 import chalk from 'chalk';
 
 export class Logger {

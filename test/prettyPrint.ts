@@ -1,4 +1,4 @@
-import type { SerializationNode as Node }  from '../src/common/nodes';
+import type { SerializationNode as Node }  from '@/common/nodes';
 
 import chalk from 'chalk';
 

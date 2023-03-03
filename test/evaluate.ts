@@ -1,14 +1,14 @@
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { parseStream } from '../src/parser';
-import { compose } from '../src/composer';
+import { parseStream } from '@/parser';
+import { compose } from '@/composer';
 import {
   RepresentationMapping,
   type RepresentationNode,
-} from '../src/common/nodes';
+} from '@/common/nodes';
 
-import { isStr, isMap, isNull } from '../src/evaluator/helpers';
+import { isStr, isMap, isNull } from '@/evaluator/helpers';
 
 function parseMeta(meta: RepresentationNode) {
   let context = null;
@@ -52,9 +52,9 @@ function loadAnnotationTest(name: string) {
 
 //////////
 
-import { evaluate } from '../src/evaluator';
+import { evaluate } from '@/evaluator';
 import { prettyPrint } from './prettyPrint';
-import { diffSerializations } from '../src/common/diff';
+import { diffSerializations } from '@/common/diff';
 
 const [, , testName] = process.argv;
 

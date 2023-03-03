@@ -2,7 +2,7 @@ import {
   sorted,
   assertCodePoint,
   charUtf16Width,
-} from "../util";
+} from "@/util";
 
 function normalizeChar(char: number | string) {
   if (typeof char === 'number') {

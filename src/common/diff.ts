@@ -7,9 +7,9 @@ import type {
   SerializationValueNode,
 }  from './nodes';
 
-import { PresentOperation } from '../presenter';
+import { PresentOperation } from '@/presenter';
 
-import { zip } from '../util';
+import { zip } from '@/util';
 
 type PathEntry =
 | number

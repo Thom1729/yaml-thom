@@ -12,10 +12,10 @@ logger.indented(() => logger.logCode(inputText));
 
 /////////
 
-import { GRAMMAR } from '../src/parser/grammar';
-import { ParseOperation } from '../src/parser/parser';
-import { astToSerializationTree } from '../src/parser/astToSerializationTree';
-import { serialize } from '../src/serializer';
+import { GRAMMAR } from '@/parser/grammar';
+import { ParseOperation } from '@/parser/parser';
+import { astToSerializationTree } from '@/parser/astToSerializationTree';
+import { serialize } from '@/serializer';
 
 const ast = new ParseOperation(GRAMMAR, inputText).parseAll('yaml-stream');
 
@@ -23,7 +23,7 @@ const serializationTree = Array.from(astToSerializationTree(inputText, ast))[0];
 
 //////////
 
-import { compose } from '../src/composer';
+import { compose } from '@/composer';
 
 const representationGraph = compose(serializationTree);
 
@@ -31,7 +31,7 @@ const representationGraph = compose(serializationTree);
 
 const serialized = serialize(representationGraph);
 
-import { PresentOperation } from '../src/presenter';
+import { PresentOperation } from '@/presenter';
 
 const op = new PresentOperation();
 

@@ -9,7 +9,7 @@ import {
   Alias,
   // SerializationTag,
   // SerializationValueNode,
-} from "../common/nodes";
+} from "@/common/nodes";
 
 import {
   single,
@@ -19,7 +19,7 @@ import {
   toCamel,
   type FromSnake,
   type ToCamel,
-} from "../util";
+} from "@/util";
 
 import {
   handlePlainScalarContent,

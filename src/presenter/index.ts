@@ -6,9 +6,9 @@ import {
   type SerializationMapping,
   type SerializationTag,
   NonSpecificTag,
-} from "../common/nodes";
+} from "@/common/nodes";
 
-import { repeat } from '../util';
+import { repeat } from '@/util';
 
 export class PresentOperation {
   level = 0;

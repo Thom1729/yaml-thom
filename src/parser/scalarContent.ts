@@ -5,7 +5,7 @@ import {
   charForCodePoint,
   combineSurrogates,
   parseHex,
-} from "../util";
+} from "@/util";
 
 function countEmptyLines(lines: string[]) {
   const ret = [];

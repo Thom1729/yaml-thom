@@ -1,19 +1,16 @@
 import path from 'path';
 import chalk from 'chalk';
-// import { inspect } from 'util';
 
 import { parseStream } from '../src';
-import { cloneSerializationTree } from '../src/common/clone';
-import { compose } from '../src/composer';
-import { zip } from '../src/util';
+import { zip } from '@/util';
 
-import { diffSerializations, pathToString, type Difference } from '../src/common/diff';
+import { diffSerializations, pathToString, type Difference } from '@/common/diff';
 
 import {
   DirectoryTestLoader,
   eventsToSerializationTree,
   type TestCase,
-} from '../src/testSuite';
+} from '@/testSuite';
 import { Logger } from './logger';
 
 const logger = new Logger(process.stdout);

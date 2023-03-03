@@ -1,4 +1,4 @@
-import { NonSpecificTag, SerializationValueNode } from "../common/nodes";
+import { NonSpecificTag, type SerializationValueNode } from "@/common/nodes";
 
 export type UnresolvedNode = SerializationValueNode & { tag: NonSpecificTag };
 

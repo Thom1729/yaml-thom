@@ -5,10 +5,10 @@ import type {
 
 import { CharSet } from './charSet';
 import { AstNode, Parameters } from './ast';
-import { safeAccessProxy } from '../util/safeAccessProxy';
-import { single, charUtf16Width } from '../util';
+import { safeAccessProxy } from '@/util/safeAccessProxy';
+import { single, charUtf16Width } from '@/util';
 
-import { EventEmitter } from '../util/EventEmitter';
+import { EventEmitter } from '@/util/EventEmitter';
 
 type ParseResult = readonly [readonly AstNode[], number] | null;
 

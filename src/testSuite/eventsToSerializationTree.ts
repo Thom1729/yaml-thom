@@ -1,10 +1,10 @@
-import { handleDoubleEscapes } from '../parser/scalarContent';
+import { handleDoubleEscapes } from '@/parser/scalarContent';
 
-import { NonSpecificTag, type SerializationNode, type SerializationTag } from '../common/nodes';
+import { NonSpecificTag, type SerializationNode, type SerializationTag } from '@/common/nodes';
 
 import {
   Alias, SerializationScalar, SerializationSequence, SerializationMapping,
-} from '../common/nodes';
+} from '@/common/nodes';
 
 const EVENT_REGEXP = new RegExp(
   [

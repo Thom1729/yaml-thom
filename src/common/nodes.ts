@@ -1,4 +1,4 @@
-import { zip } from "../util";
+import { zip } from "@/util";
 
 export class Alias {
   readonly kind = 'alias';
