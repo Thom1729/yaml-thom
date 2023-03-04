@@ -1,11 +1,9 @@
-import { NonSpecificTag, type SerializationValueNode } from "@/nodes";
-
-export type UnresolvedNode = SerializationValueNode & { tag: NonSpecificTag };
+import { NonSpecificTag, type UnresolvedSerializationNode } from "@/nodes";
 
 type Rule = RegExp | string;
 
 export interface Schema {
-  resolveNode(node: UnresolvedNode): string | null;
+  resolveNode(node: UnresolvedSerializationNode): string | null;
 }
 
 export class PredicateSchema {
@@ -25,7 +23,7 @@ export class PredicateSchema {
     }
   }
 
-  resolveNode(node: UnresolvedNode) {
+  resolveNode(node: UnresolvedSerializationNode) {
     switch (node.kind) {
       case 'sequence': return 'tag:yaml.org,2002:seq';
       case 'mapping': return 'tag:yaml.org,2002:map';

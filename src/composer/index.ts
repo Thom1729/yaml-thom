@@ -5,12 +5,12 @@ import {
   type SerializationNode,
   type SerializationValueNode,
   type RepresentationNode,
+  type UnresolvedSerializationNode,
 } from '@/nodes';
 
 import {
   coreSchema,
   type Schema,
-  type UnresolvedNode,
 } from './schema';
 
 import {
@@ -39,7 +39,7 @@ class CompositionOperation {
     if (typeof node.tag === 'string') {
      return node.tag;
     } else {
-      const resolved = this.schema.resolveNode(node as UnresolvedNode);
+      const resolved = this.schema.resolveNode(node as UnresolvedSerializationNode);
       if (resolved !== null) {
         return resolved;
       } else {

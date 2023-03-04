@@ -33,12 +33,12 @@ export class Alias {
 
 export type SerializationTag = string | NonSpecificTag;
 
-export class SerializationScalar extends ValueNode<SerializationTag, string> {
+export class SerializationScalar<TagType extends SerializationTag = SerializationTag> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
   anchor?: string;
 }
 
-export class SerializationSequence extends ValueNode<SerializationTag, SerializationNode[]> {
+export class SerializationSequence<TagType extends SerializationTag = SerializationTag> extends ValueNode<TagType, SerializationNode[]> {
   readonly kind = 'sequence';
   anchor?: string;
 
@@ -49,12 +49,12 @@ export class SerializationSequence extends ValueNode<SerializationTag, Serializa
   get size() { return this.content.length; }
 }
 
-export class SerializationMapping extends ValueNode<SerializationTag, (readonly [SerializationNode, SerializationNode])[]> {
+export class SerializationMapping<TagType extends SerializationTag = SerializationTag> extends ValueNode<TagType, (readonly [SerializationNode, SerializationNode])[]> {
   readonly kind = 'mapping';
 
   anchor?: string;
 
-  constructor(tag: SerializationTag, content: Iterable<readonly [SerializationNode, SerializationNode]>) {
+  constructor(tag: TagType, content: Iterable<readonly [SerializationNode, SerializationNode]>) {
     super(tag, Array.from(content));
   }
 
@@ -65,12 +65,14 @@ export class SerializationMapping extends ValueNode<SerializationTag, (readonly 
   get size() { return this.content.length; }
 }
 
-export type SerializationValueNode =
-  | SerializationScalar
-  | SerializationSequence
-  | SerializationMapping;
+export type SerializationValueNode<TagType extends SerializationTag = SerializationTag> =
+  | SerializationScalar<TagType>
+  | SerializationSequence<TagType>
+  | SerializationMapping<TagType>;
 
 export type SerializationNode = SerializationValueNode | Alias;
+
+export type UnresolvedSerializationNode = SerializationValueNode<NonSpecificTag>;
 
 //////////
 
