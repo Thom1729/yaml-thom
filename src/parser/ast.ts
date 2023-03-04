@@ -30,16 +30,3 @@ export const ChompingBehavior = {
   KEEP: 'KEEP',
 } as const;
 export type ChompingBehavior = typeof ChompingBehavior[keyof typeof ChompingBehavior];
-
-export function printParseTree(text: string, node: AstNode, depth: number = 0) {
-  process.stdout.write(new Array(depth + 1).join('  '));
-  const params = [node.parameters.n, node.parameters.c].filter(p => p !== undefined);
-  console.log(
-    node.name + (params.length ? `(${params.join(',')})` : ''),
-    node.range,
-    JSON.stringify(text.slice(...node.range)),
-  );
-  for (const child of node.content) {
-    printParseTree(text, child, depth + 1);
-  }
-}
