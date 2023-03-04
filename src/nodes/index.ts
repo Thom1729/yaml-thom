@@ -1,4 +1,26 @@
-import { zip } from "@/util";
+const QUESTION: unique symbol = Symbol.for('?');
+const EXCLAMATION: unique symbol = Symbol.for('!');
+
+export const NonSpecificTag = {
+  question: QUESTION,
+  exclamation: EXCLAMATION,
+} as const;
+
+export type NonSpecificTag = (typeof NonSpecificTag)[keyof typeof NonSpecificTag];
+
+//////////
+
+abstract class ValueNode<TagType, ContentType> {
+  tag: TagType;
+  content: ContentType;
+
+  constructor(tag: TagType, content: ContentType) {
+    this.tag = tag;
+    this.content = content;
+  }
+}
+
+//////////
 
 export class Alias {
   readonly kind = 'alias';
@@ -9,32 +31,16 @@ export class Alias {
   }
 }
 
-abstract class ValueNode<TagType> {
-  tag: TagType;
+export type SerializationTag = string | NonSpecificTag;
 
-  constructor(tag: TagType) {
-    this.tag = tag;
-  }
-}
-
-abstract class Scalar<TagType> extends ValueNode<TagType> {
+export class SerializationScalar extends ValueNode<SerializationTag, string> {
   readonly kind = 'scalar';
-  content: string;
-
-  constructor(tag: TagType, content: string) {
-    super(tag);
-    this.content = content;
-  }
+  anchor?: string;
 }
 
-abstract class Sequence<TagType, NodeType> extends ValueNode<TagType> {
+export class SerializationSequence extends ValueNode<SerializationTag, SerializationNode[]> {
   readonly kind = 'sequence';
-  content: NodeType[];
-
-  constructor(tag: TagType, content: Iterable<NodeType>) {
-    super(tag);
-    this.content = Array.from(content);
-  }
+  anchor?: string;
 
   *[Symbol.iterator]() {
     yield* this.content;
@@ -43,15 +49,13 @@ abstract class Sequence<TagType, NodeType> extends ValueNode<TagType> {
   get size() { return this.content.length; }
 }
 
-export class SerializationMapping extends ValueNode<SerializationTag> {
+export class SerializationMapping extends ValueNode<SerializationTag, (readonly [SerializationNode, SerializationNode])[]> {
   readonly kind = 'mapping';
-  content: (readonly [SerializationNode, SerializationNode])[];
 
   anchor?: string;
 
   constructor(tag: SerializationTag, content: Iterable<readonly [SerializationNode, SerializationNode]>) {
-    super(tag);
-    this.content = Array.from(content);
+    super(tag, Array.from(content));
   }
 
   *[Symbol.iterator]() {
@@ -59,13 +63,6 @@ export class SerializationMapping extends ValueNode<SerializationTag> {
   }
 
   get size() { return this.content.length; }
-}
-
-export class SerializationScalar extends Scalar<SerializationTag> {
-  anchor?: string;
-}
-export class SerializationSequence extends Sequence<SerializationTag, SerializationNode> {
-  anchor?: string;
 }
 
 export type SerializationValueNode =
@@ -75,27 +72,29 @@ export type SerializationValueNode =
 
 export type SerializationNode = SerializationValueNode | Alias;
 
-const QUESTION: unique symbol = Symbol.for('?');
-const EXCLAMATION: unique symbol = Symbol.for('!');
+//////////
 
-export const NonSpecificTag = {
-  question: QUESTION,
-  exclamation: EXCLAMATION,
-} as const;
+import { equals } from "./equality";
 
-export type NonSpecificTag = (typeof NonSpecificTag)[keyof typeof NonSpecificTag];
-export type SerializationTag = string | NonSpecificTag;
+export class RepresentationScalar extends ValueNode<string, string> {
+  readonly kind = 'scalar';
+}
 
-export class RepresentationScalar extends Scalar<string> {}
-export class RepresentationSequence extends Sequence<string, RepresentationNode> {}
+export class RepresentationSequence extends ValueNode<string, RepresentationNode[]> {
+  readonly kind = 'sequence';
 
-export class RepresentationMapping extends ValueNode<string> {
+  *[Symbol.iterator]() {
+    yield* this.content;
+  }
+
+  get size() { return this.content.length; }
+}
+
+export class RepresentationMapping extends ValueNode<string, (readonly [RepresentationNode, RepresentationNode])[]> {
   readonly kind = 'mapping';
-  content: (readonly [RepresentationNode, RepresentationNode])[];
 
   constructor(tag: string, content: Iterable<readonly [RepresentationNode, RepresentationNode]>) {
-    super(tag);
-    this.content = Array.from(content);
+    super(tag, Array.from(content));
   }
 
   *[Symbol.iterator]() {
@@ -109,7 +108,6 @@ export class RepresentationMapping extends ValueNode<string> {
       if (equals(k, key)) { return value; }
     }
     return null;
-    // throw new Error(`key not found`);
   }
 
   merge(other: Iterable<[RepresentationNode, RepresentationNode]>) {
@@ -122,31 +120,3 @@ export type RepresentationNode =
   | RepresentationScalar
   | RepresentationSequence
   | RepresentationMapping;
-
-export function equals(a: RepresentationNode, b: RepresentationNode) {
-  if (a === b) return true;
-
-  if (a.tag !== b.tag) return false;
-
-  if (a.kind === "scalar") {
-    if (b.kind !== "scalar") return false;
-    if (a.content !== b.content) return false;
-  } else if (a.kind === "sequence") {
-    if (b.kind !== "sequence") return false;
-    if (a.size !== b.size) return false;
-
-    for (const [x, y] of zip(a, b)) {
-      if (!equals(x, y)) return false;
-    }
-  } else if (a.kind === "mapping") {
-    if (b.kind !== "mapping") return false;
-    if (a.size !== b.size) return false;
-
-    for (const [[aKey, aValue], [bKey, bValue]] of zip(a, b)) {
-      if (!equals(aKey, bKey)) return false;
-      if (!equals(aValue, bValue)) return false;
-    }
-  }
-
-  return true;
-}
