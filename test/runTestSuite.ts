@@ -1,7 +1,7 @@
 import path from 'path';
 import chalk from 'chalk';
 
-import { parseStream } from '../src';
+import { parseStream } from '@/parser';
 import { zip } from '@/util';
 
 import { diffSerializations, pathToString, type Difference } from '@/nodes/diff';
@@ -10,7 +10,8 @@ import {
   DirectoryTestLoader,
   eventsToSerializationTree,
   type TestCase,
-} from '@/testSuite';
+} from './testSuite';
+
 import { Logger } from './logger';
 
 const logger = new Logger(process.stdout);
@@ -40,10 +41,6 @@ function runTest(test: TestCase) {
   try {
     const expectedTree = eventsToSerializationTree(test.tree);
     const actualTree = Array.from(parseStream(test.yaml));
-    // for (const doc of actualTree) {
-    //   compose(cloneSerializationTree(doc));
-    //   console.log(doc, cloneSerializationTree(doc))
-    // }
 
     const inequal = [] as Difference[];
     for (const [expectedDocument, actualDocument] of zip(

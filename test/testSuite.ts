@@ -1,13 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 
-// import { parse } from 'yaml';
-// import {
-//   assertString, assertArray, assertObject,
-//   assertObjectShape,
-// } from '../util';
-
-export { eventsToSerializationTree } from './eventsToSerializationTree';
+export { eventsToSerializationTree } from '@/events';
 
 export interface TestCase {
   id: string;
@@ -106,53 +100,3 @@ export class DirectoryTestLoader {
       .filter(filename => filename === filename.toUpperCase());
   }
 }
-
-// export class TestLoader {
-//   readonly basePath: string;
-
-//   constructor(basePath: string) {
-//     this.basePath = basePath;
-//   }
-
-//   loadTest(name: string): TestCase[] {
-//     const testPath = path.join(this.basePath, 'src', `${name}.yaml`);
-//     const test = fs.readFileSync(testPath, { encoding: 'utf-8' });
-//     const data = parse(test);
-//     return assertArray(data).map(makeTest);
-//   }
-
-//   listTests() {
-//     return fs.readdirSync(path.join(this.basePath, 'src'))
-//       .map(s => path.basename(s, '.yaml'));
-//   }
-// }
-
-// function makeTest(data: unknown): TestCase {
-//   const x = assertObjectShape(
-//     assertObject(data),
-//     [],
-//     [
-//       'name', 'from', 'tags', 'yaml', 'tree', 'json', 'dump', 'fail', 'emit', 'skip',
-//       'toke', 'also', 'note', // TODO: WTF?
-//     ],
-//   );
-
-//   return {
-//     name: x.name ? assertString(x.name) : undefined,
-//     from: x.from ? assertString(x.from) : undefined,
-//     tags: x.tags ? new Set(assertString(x.tags).split(' ')) : undefined,
-//     fail: Boolean(x.fail),
-//     skip: Boolean(x.skip),
-
-//     yaml: assertString(x.yaml)
-//       .replace(/␣/g, ' ')
-//       .replace(/∎.*/gm, '')
-//       .replace(/—*»/g, '\t') // TODO
-//       // .replace(/↵/g, '\n'), 
-//       .replace(/↵/g, ''), 
-//     tree: x.tree ? assertString(x.tree) : undefined,
-//     json: x.json ? assertString(x.json) : undefined,
-//     dump: x.dump ? assertString(x.dump) : undefined,
-//     emit: x.emit ? assertString(x.emit) : undefined,
-//   };
-// }
