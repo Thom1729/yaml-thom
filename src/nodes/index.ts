@@ -78,11 +78,11 @@ export type UnresolvedSerializationNode = SerializationValueNode<NonSpecificTag>
 
 import { equals } from "./equality";
 
-export class RepresentationScalar extends ValueNode<string, string> {
+export class RepresentationScalar<TagType extends string = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
 }
 
-export class RepresentationSequence extends ValueNode<string, RepresentationNode[]> {
+export class RepresentationSequence<TagType extends string = string> extends ValueNode<TagType, RepresentationNode[]> {
   readonly kind = 'sequence';
 
   *[Symbol.iterator]() {
@@ -92,10 +92,10 @@ export class RepresentationSequence extends ValueNode<string, RepresentationNode
   get size() { return this.content.length; }
 }
 
-export class RepresentationMapping extends ValueNode<string, (readonly [RepresentationNode, RepresentationNode])[]> {
+export class RepresentationMapping<TagType extends string = string> extends ValueNode<TagType, (readonly [RepresentationNode, RepresentationNode])[]> {
   readonly kind = 'mapping';
 
-  constructor(tag: string, content: Iterable<readonly [RepresentationNode, RepresentationNode]>) {
+  constructor(tag: TagType, content: Iterable<readonly [RepresentationNode, RepresentationNode]>) {
     super(tag, Array.from(content));
   }
 
@@ -118,7 +118,7 @@ export class RepresentationMapping extends ValueNode<string, (readonly [Represen
   }
 }
 
-export type RepresentationNode =
-  | RepresentationScalar
-  | RepresentationSequence
-  | RepresentationMapping;
+export type RepresentationNode<TagType extends string = string> =
+  | RepresentationScalar<TagType>
+  | RepresentationSequence<TagType>
+  | RepresentationMapping<TagType>;
