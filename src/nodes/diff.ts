@@ -7,7 +7,7 @@ import type {
   SerializationValueNode,
 }  from '.';
 
-import { PresentOperation } from '@/presenter';
+import { present } from '@/presenter';
 
 import { zip } from '@/util';
 
@@ -74,9 +74,7 @@ export function pathToString(path: PathEntry[]) {
       } else if (typeof entry === 'number') {
         return entry;
       } else {
-        const p = new PresentOperation();
-        p.presentNode(entry);
-        return p.result.join('');
+        return present(entry);
       }
     })
     .join('/');

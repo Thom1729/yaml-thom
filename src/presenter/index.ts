@@ -10,7 +10,13 @@ import {
 
 import { repeat } from '@/util';
 
-export class PresentOperation {
+export function present(document: SerializationNode) {
+  const operation = new PresentOperation();
+  operation.presentDocument(document);
+  return operation.result.join('');
+}
+
+class PresentOperation {
   level = 0;
   result: string[] = [];
   needSpace = false;

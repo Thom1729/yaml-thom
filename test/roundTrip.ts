@@ -31,11 +31,9 @@ const representationGraph = compose(serializationTree);
 
 const serialized = serialize(representationGraph);
 
-import { PresentOperation } from '@/presenter';
+import { present } from '@/presenter';
 
-const op = new PresentOperation();
-
-op.presentDocument(serialized);
+const result = present(serialized);
 
 logger.log('Presented:')
-logger.indented(() => logger.log(op.result.join('')));
+logger.indented(() => logger.log(result));
