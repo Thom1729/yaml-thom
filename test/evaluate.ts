@@ -6,7 +6,7 @@ import { compose } from '@/composer';
 import {
   RepresentationMapping,
   type RepresentationNode,
-} from '@/common/nodes';
+} from '@/nodes';
 
 import { isStr, isMap, isNull } from '@/evaluator/helpers';
 

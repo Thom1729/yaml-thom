@@ -5,7 +5,7 @@ import {
   type SerializationNode,
   type SerializationValueNode,
   type RepresentationNode,
-} from '@/common/nodes';
+} from '@/nodes';
 
 import {
   coreSchema,

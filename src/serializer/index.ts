@@ -6,7 +6,7 @@ import {
   type SerializationNode,
   type SerializationValueNode,
   type RepresentationNode,
-} from '@/common/nodes';
+} from '@/nodes';
 
 export function serialize(doc: RepresentationNode) {
   const cache = new Map<RepresentationNode, SerializationValueNode>();

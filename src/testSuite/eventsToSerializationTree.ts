@@ -1,10 +1,10 @@
 import { handleDoubleEscapes } from '@/parser/scalarContent';
 
-import { NonSpecificTag, type SerializationNode, type SerializationTag } from '@/common/nodes';
+import { NonSpecificTag, type SerializationNode, type SerializationTag } from '@/nodes';
 
 import {
   Alias, SerializationScalar, SerializationSequence, SerializationMapping,
-} from '@/common/nodes';
+} from '@/nodes';
 
 const EVENT_REGEXP = new RegExp(
   [
@@ -52,7 +52,7 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
       t = NonSpecificTag.exclamation;
     } else if (tag !== undefined) {
       t = tag;
-    } else if (valueStyle === '\'' || valueStyle === '"') {
+    } else if (valueStyle === '\'' || valueStyle === '"' || valueStyle === '|' || valueStyle === '>') {
       t = NonSpecificTag.exclamation;
     } else {
       t = NonSpecificTag.question;

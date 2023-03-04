@@ -3,7 +3,7 @@ import {
   RepresentationScalar,
   RepresentationMapping,
   RepresentationSequence,
-} from "@/common/nodes";
+} from "@/nodes";
 
 import { isStr, isSeq, isMap, isAnnotation } from './helpers';
 

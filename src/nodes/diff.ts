@@ -5,7 +5,7 @@ import type {
   SerializationScalar,
   SerializationSequence,
   SerializationValueNode,
-}  from './nodes';
+}  from '.';
 
 import { PresentOperation } from '@/presenter';
 

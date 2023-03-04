@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { parseStream } from '../src';
 import { zip } from '@/util';
 
-import { diffSerializations, pathToString, type Difference } from '@/common/diff';
+import { diffSerializations, pathToString, type Difference } from '@/nodes/diff';
 
 import {
   DirectoryTestLoader,
