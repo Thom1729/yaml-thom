@@ -99,6 +99,7 @@ const DEFAULT_TAG_HANDLES = [
 class AstToSerializationTreeOperation {
   readonly text: string;
   readonly tagHandles = new Map<string, string>(DEFAULT_TAG_HANDLES);
+  hasYamlDirective = false;
 
   constructor(text: string) {
     this.text = text;
@@ -113,6 +114,11 @@ class AstToSerializationTreeOperation {
     const [name, ...args] = text.split(/[ \t]+/g);
 
     if (name === 'YAML') {
+      if (this.hasYamlDirective) {
+        throw new Error(`Multiple %YAML directives`);
+      } else {
+        this.hasYamlDirective = true;
+      }
       if (args.length !== 1) throw new Error(`Expect one arg for %YAML directive`);
       const versionString = args[0];
 
