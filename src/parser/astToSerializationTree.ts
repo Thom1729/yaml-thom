@@ -91,14 +91,14 @@ const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
 const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
 const TAG_PREFIX_EXPR = /^(?:[-A-Za-z0-9#;/?:@&=+$_.!~*'()]|%\p{Hex_Digit}{2})(?:[-A-Za-z0-9#;/?:@&=+$,_.!~*'()[\]]|%\p{Hex_Digit}{2})*$/u;
 
-const DEFAULT_TAG_HANDLES = [
-  ['!', '!'],
-  ['!!', 'tag:yaml.org,2002:'],
-] as const;
+const DEFAULT_TAG_HANDLES = {
+  '!': '!',
+  '!!': 'tag:yaml.org,2002:',
+} as Partial<Record<string, string>>;
 
 class AstToSerializationTreeOperation {
   readonly text: string;
-  readonly tagHandles = new Map<string, string>(DEFAULT_TAG_HANDLES);
+  readonly tagHandles = new Map<string, string>();
   hasYamlDirective = false;
 
   constructor(text: string) {
@@ -141,7 +141,9 @@ class AstToSerializationTreeOperation {
       const [handle, prefix] = args;
 
       if (TAG_HANDLE_EXPR.exec(handle) === null) throw new Error(`Invalid tag handle ${handle}`);
-      if (TAG_PREFIX_EXPR.exec(handle) === null) throw new Error(`Invalid tag handle ${handle}`);
+      if (TAG_PREFIX_EXPR.exec(prefix) === null) throw new Error(`Invalid tag prefix ${prefix}`);
+
+      if (this.tagHandles.has(handle)) throw new Error(`Duplicate %TAG directive for handle ${handle}`);
 
       this.tagHandles.set(handle, prefix);
     } else {
@@ -294,7 +296,7 @@ class AstToSerializationTreeOperation {
         const handle = text.slice(0, i);
         const suffix = decodeURIComponent(text.slice(i));
 
-        const prefix = this.tagHandles.get(handle);
+        const prefix = this.tagHandles.get(handle) ?? DEFAULT_TAG_HANDLES[handle];
         if (prefix === undefined) {
           throw new Error(`Unknown tag handle ${handle}`);
         } else {
