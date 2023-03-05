@@ -57,20 +57,12 @@ export function *astToSerializationTree(text: string, nodes: AstNode<'yaml-strea
   let op = new AstToSerializationTreeOperation(text);
 
   for (const node of nodeStream) {
-    // switchNodeType(node, {
-    //   'tag-directive-line': node => op.handleTagDirective(node),
-    //   'reserved-directive-line': node => {
-    //     console.warn(`Reserved directive line: %${text.slice(...node.range)}`);
-    //   }
-    // });
     switch (node.name) {
-      case 'tag-directive-line': {
-        op.handleTagDirective(node);
-        break;
-      }
-
+      case 'yaml-directive-line':
+      case 'tag-directive-line':
       case 'reserved-directive-line': {
-        // console.warn(`Reserved directive line: %${text.slice(...node.range)}`);
+        // For better error reporting, ignore node type and look at directive name.
+        op.handleDirective(node);
         break;
       }
 
@@ -95,19 +87,9 @@ export function *astToSerializationTree(text: string, nodes: AstNode<'yaml-strea
   }
 }
 
-// function switchNodeType<T extends string, R>(
-//   // node: AstNode<T>,
-//   node: AstNode,
-//   types: {
-//     [K in T]: (node: AstNode<K>) => R
-//   }
-// ) {
-//   if (Object.prototype.hasOwnProperty.call(types, node.name)) {
-//     return types[node.name as T](node as AstNode<T>);
-//   } else {
-//     throw new TypeError(`Unexpected node type ${node.name}`);
-//   }
-// }
+const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
+const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
+const TAG_PREFIX_EXPR = /^(?:[-A-Za-z0-9#;/?:@&=+$_.!~*'()]|%\p{Hex_Digit}{2})(?:[-A-Za-z0-9#;/?:@&=+$,_.!~*'()[\]]|%\p{Hex_Digit}{2})*$/u;
 
 const DEFAULT_TAG_HANDLES = [
   ['!', '!'],
@@ -126,18 +108,39 @@ class AstToSerializationTreeOperation {
     return this.text.slice(...node.range);
   }
 
-  handleTagDirective(node: AstNode) {
-    const {
-      tagHandle, tagPrefix
-    } = groupNodes(node.content, {
-      return: ['tag-handle', 'tag-prefix'],
-      ignore: ['separation-blanks'],
-    });
+  handleDirective(node: AstNode) {
+    const text = this.nodeText(node);
+    const [name, ...args] = text.split(/[ \t]+/g);
 
-    this.tagHandles.set(
-      this.nodeText(single(tagHandle)),
-      this.nodeText(single(tagPrefix)),
-    );
+    if (name === 'YAML') {
+      if (args.length !== 1) throw new Error(`Expect one arg for %YAML directive`);
+      const versionString = args[0];
+
+      const versionMatch = YAML_VERSION_EXPR.exec(versionString);
+      if (versionMatch === null) throw new Error(`Invalid YAML version ${versionString}`);
+
+      const major = Number(versionMatch[1]);
+      const minor = Number(versionMatch[2]);
+
+      if (major !== 1) {
+        throw new Error(`Can't handle version ${versionString}`);
+      } else if (minor === 1) { // %YAML 1.1
+        // TODO: treat next line (x85), line separator (x2028) and paragraph separator (x2029) as line breaks.
+        // See https://yaml.org/spec/1.2.2/#line-break-characters
+      } else if (minor > 2) {
+        // console.warn(`Warning: Future version ${versionString}. Treating as 1.2`);
+      }
+    } else if (name === 'TAG') {
+      if (args.length !== 2) throw new Error(`Expected two args for %TAG directive`);
+      const [handle, prefix] = args;
+
+      if (TAG_HANDLE_EXPR.exec(handle) === null) throw new Error(`Invalid tag handle ${handle}`);
+      if (TAG_PREFIX_EXPR.exec(handle) === null) throw new Error(`Invalid tag handle ${handle}`);
+
+      this.tagHandles.set(handle, prefix);
+    } else {
+      // console.warn(`Warning: Reserved directive ${text}`);
+    }
   }
 
   buildNode(node: AstNode): SerializationNode {
