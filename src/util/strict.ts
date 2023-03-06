@@ -8,3 +8,5 @@ type FromEntries<T extends BaseEntries> = T extends Iterable<infer Pair>
 
 export const strictFromEntries = Object.fromEntries as
   <T extends BaseEntries>(entries: T) => FromEntries<T>;
+
+export const objectHasOwn = Object.hasOwn as <T extends object, K extends BaseKey>(o: T, v: K) => v is K & keyof T;

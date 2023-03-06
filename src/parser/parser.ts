@@ -55,10 +55,7 @@ export class ParseOperation extends EventEmitter<{
     } else if (Array.isArray(node)) {
       return this.parseSequence(index, parameters, node);
     } else if (typeof node === 'function') {
-      return this.parse(index, parameters, node(safeAccessProxy(
-        parameters,
-        ['n', 'c', 't'],
-      )));
+      return this.parse(index, parameters, node(safeAccessProxy(parameters)));
     } else if (node instanceof CharSet) {
       const codePoint = this.text.codePointAt(index);
 
@@ -141,7 +138,7 @@ export class ParseOperation extends EventEmitter<{
       }
 
       this.emit('node.in', { displayName, index });
-      const result = this.parse(index, parameters, this.grammar[name]);
+      const result = this.parse(index, parameters, this.grammar[name]!);
       this.emit('node.out', { displayName, index, result });
 
       if (result) {

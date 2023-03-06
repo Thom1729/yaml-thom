@@ -20,7 +20,7 @@ export type GrammarNode =
   // | { type: 'DETECT_BLOCK_SCALAR_INDENTATION', min: number, child: (m: number) => GrammarNode }
 ;
 
-export type Grammar = { [K in string]: GrammarNode };
+export type Grammar = { [K in string]?: GrammarNode };
 
 export function named(name: string, child: GrammarNode) {
   return { type: 'NAMED', name, child } as const;

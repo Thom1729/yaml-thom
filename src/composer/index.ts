@@ -14,8 +14,12 @@ import {
 } from './schema';
 
 import {
-  CORE_TAGS
+  CORE_TAGS,
 } from './tags';
+
+import {
+  objectHasOwn,
+} from '@/util';
 
 export function compose(document: SerializationNode): RepresentationNode {
   return new CompositionOperation(coreSchema).composeNode(document);
@@ -59,9 +63,9 @@ class CompositionOperation {
     const tag = this.getTag(node);
 
     if (node.kind === 'scalar') {
-      if (!CORE_TAGS.hasOwnProperty(tag)) throw new TypeError(`Unrecognized tag ${tag}`);
-      const canonicalContent = CORE_TAGS[tag as keyof typeof CORE_TAGS].canonicalForm(node.content);
-      if (canonicalContent === null) throw new Error(`Can't canonicalize ${tag} ${node.content}`);;
+      if (!objectHasOwn(CORE_TAGS, tag)) throw new TypeError(`Unrecognized tag ${tag}`);
+      const canonicalContent = CORE_TAGS[tag].canonicalForm(node.content);
+      if (canonicalContent === null) throw new Error(`Can't canonicalize ${tag} ${node.content}`);
       
       const ret = new RepresentationScalar(tag, canonicalContent);
       this.setAnchor(node, ret);
