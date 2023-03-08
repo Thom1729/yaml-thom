@@ -110,7 +110,7 @@ export class ParseOperation extends EventEmitter<{
     } else if (node.type === 'LOOKAHEAD') {
       return this.parseLookahead(index, parameters, node.child, node.positive);
     } else if (node.type === 'LOOKBEHIND') {
-      return this.parseLookbehind(index, parameters, node.charSet);
+      return this.parseLookbehind(index, node.charSet);
     } else if (node.type === 'DETECT_INDENTATION') {
       return this.parseDetectIndentation(index, parameters, node.min, node.child);
     // } else if (node.type === 'DETECT_BLOCK_SCALAR_INDENTATION') {
@@ -249,7 +249,6 @@ export class ParseOperation extends EventEmitter<{
 
   parseLookbehind(
     index: number,
-    _parameters: Parameters,
     charSet: CharSet,
   ) {
     // TODO handle prev char is astral
