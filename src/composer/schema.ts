@@ -1,4 +1,4 @@
-import { NonSpecificTag, type UnresolvedSerializationNode } from "@/nodes";
+import { NonSpecificTag, type UnresolvedSerializationNode } from '@/nodes';
 
 type Rule = RegExp | string;
 

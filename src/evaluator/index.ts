@@ -3,7 +3,7 @@ import {
   RepresentationScalar,
   RepresentationMapping,
   RepresentationSequence,
-} from "@/nodes";
+} from '@/nodes';
 
 import { isStr, isSeq, isMap, isAnnotation } from './helpers';
 
@@ -68,7 +68,7 @@ export function evaluate(
       node.content.map(
         ([key, value]) => [evaluate(key, context), evaluate(value, context)]
       )
-    )
+    );
   }
 }
 

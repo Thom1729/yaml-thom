@@ -44,7 +44,7 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
     const { type, anchor, tag, valueStyle, value } = parsedEvents[index++];
 
     if (type === '=ALI') {
-      return new Alias(value!);
+      return new Alias(value as string);
     }
 
     let t: SerializationTag;
@@ -60,7 +60,7 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
 
     let node: SerializationNode;
     if (type === '=VAL') {
-      node = new SerializationScalar(t, handleDoubleEscapes(value!.replace(/␣/g, ' ')));
+      node = new SerializationScalar(t, handleDoubleEscapes((value as string).replace(/␣/g, ' ')));
     } else if (type === '+SEQ') {
       const items: SerializationNode[] = [];
       while (parsedEvents[index].type !== '-SEQ') {

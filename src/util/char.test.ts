@@ -3,7 +3,7 @@ import {
   charForCodePoint,
   charUtf16Width,
   combineSurrogates,
-} from "./char";
+} from './char';
 
 describe(assertCodePoint, () => {
   test('Valid', () => {

@@ -7,10 +7,10 @@ type BaseEventTypes = Record<string, object>;
 type _GetEventType<EventTypes extends BaseEventTypes, EventName extends string> =
 & (Split<EventName, '.'> extends [...(infer Rest extends [string, ...string[]]), unknown]
   ? _GetEventType<EventTypes, Join<Rest, '.'>>
-  : {})
+  : object)
 & (EventName extends keyof EventTypes
   ? EventTypes[EventName]
-  : {});
+  : object);
 
 type OutRec<EventTypes extends BaseEventTypes, EventName extends string> = {
   [K in string & keyof EventTypes]: { type: K } & _GetEventType<EventTypes, K>

@@ -1,1 +1,1 @@
-export { parseStream } from "./parser";
+export { parseStream } from './parser';

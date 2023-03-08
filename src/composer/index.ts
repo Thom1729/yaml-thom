@@ -41,7 +41,7 @@ class CompositionOperation {
 
   getTag(node: SerializationValueNode) {
     if (typeof node.tag === 'string') {
-     return node.tag;
+      return node.tag;
     } else {
       const resolved = this.schema.resolveNode(node as UnresolvedSerializationNode);
       if (resolved !== null) {

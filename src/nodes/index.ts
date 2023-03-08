@@ -76,7 +76,7 @@ export type UnresolvedSerializationNode = SerializationValueNode<NonSpecificTag>
 
 //////////
 
-import { equals } from "./equality";
+import { equals } from './equality';
 
 export class RepresentationScalar<TagType extends string = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';

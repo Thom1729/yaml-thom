@@ -1,4 +1,4 @@
-import { AstNode } from "./ast";
+import { AstNode, ChompingBehavior } from './ast';
 
 import {
   SerializationScalar,
@@ -7,7 +7,7 @@ import {
   NonSpecificTag,
   type SerializationNode,
   Alias,
-} from "@/nodes";
+} from '@/nodes';
 
 import {
   single,
@@ -17,14 +17,14 @@ import {
   toCamel,
   type FromSnake,
   type ToCamel,
-} from "@/util";
+} from '@/util';
 
 import {
   handlePlainScalarContent,
   handleSingleQuotedScalarContent,
   handleDoubleQuotedScalarContent,
   handleBlockScalarContent,
-} from "./scalarContent";
+} from './scalarContent';
 
 export function *astToSerializationTree(text: string, nodes: AstNode<'yaml-stream'>): Generator<SerializationNode> {
   const nodeStream = iterateAst(nodes.content, {
@@ -78,7 +78,6 @@ export function *astToSerializationTree(text: string, nodes: AstNode<'yaml-strea
         break;
       }
 
-      case 'yaml-directive-line': break;
       case 'document-start-indicator': break;
       case 'document-end-indicator': break;
 
@@ -203,7 +202,7 @@ class AstToSerializationTreeOperation {
 
     const content = single(children.filter(node => node.name !== 'node-properties' && node.name !== 'block-collection-node-properties'));
 
-    let ret = this.nodeValue(content);
+    const ret = this.nodeValue(content);
 
     const nodePropertiesParent = singleOrNull(children.filter(node => node.name === 'node-properties' || node.name === 'block-collection-node-properties'));
     const nodeProperties = Array.from(iterateAst(nodePropertiesParent?.content ?? [], {
@@ -302,7 +301,7 @@ class AstToSerializationTreeOperation {
         } else {
           return prefix + suffix;
         }
-      };
+      }
       case 'non-specific-tag': return NonSpecificTag.exclamation;
 
       default: throw new TypeError(tagContentNode.name);
@@ -382,8 +381,8 @@ class AstToSerializationTreeOperation {
     return handleBlockScalarContent(
       content,
       node.name === 'block-folded-scalar',
-      node.parameters.n!,
-      contentNode.parameters.t!,
+      node.parameters.n as number,
+      contentNode.parameters.t as ChompingBehavior,
       indentationIndicator === '' ? null : Number(indentationIndicator),
     );
   }

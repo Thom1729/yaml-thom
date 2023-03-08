@@ -6,7 +6,7 @@ import type {
 import { CharSet } from './charSet';
 import { AstNode, Parameters } from './ast';
 import { safeAccessProxy } from '@/util/safeAccessProxy';
-import { single, charUtf16Width } from '@/util';
+import { single, charUtf16Width, objectHasOwn } from '@/util';
 
 import { EventEmitter } from '@/util/EventEmitter';
 
@@ -14,7 +14,7 @@ type ParseResult = readonly [readonly AstNode[], number] | null;
 
 export class ParseOperation extends EventEmitter<{
   'node': { displayName: string, index: number, },
-  'node.in': {},
+  'node.in': object,
   'node.out': { result: ParseResult },
 }> {
   readonly grammar: Grammar;
@@ -125,10 +125,10 @@ export class ParseOperation extends EventEmitter<{
   ) {
     this.stack.push(name);
     try {
-      if (!this.grammar.hasOwnProperty(name)) throw new TypeError(`No production ${name}`);
+      if (!objectHasOwn(this.grammar, name)) throw new TypeError(`No production ${name}`);
 
       const params = [parameters.n, parameters.c, parameters.t].filter(p => p !== undefined);
-      const displayName = name + (params.length ? `(${params.join(',')})` : '')
+      const displayName = name + (params.length ? `(${params.join(',')})` : '');
 
       const backtrackCacheKey = `${index}:${displayName}`;
       if (this.backtrackCache.has(backtrackCacheKey)) {
@@ -136,7 +136,7 @@ export class ParseOperation extends EventEmitter<{
       }
 
       this.emit('node.in', { displayName, index });
-      const result = this.parse(index, parameters, this.grammar[name]!);
+      const result = this.parse(index, parameters, this.grammar[name] as GrammarNode);
       this.emit('node.out', { displayName, index, result });
 
       if (result) {

@@ -11,7 +11,7 @@ export interface Parameters {
   n?: number,
   c?: ContextType,
   t?: ChompingBehavior,
-};
+}
 
 const ContextType = {
   'BLOCK-IN': 'BLOCK-IN',

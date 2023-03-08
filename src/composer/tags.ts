@@ -28,7 +28,7 @@ export const CORE_TAGS = {
     canonicalForm(content: string) { return content; }
   },
   'tag:yaml.org,2002:null': {
-    canonicalForm(content: string) { return 'null'; }
+    canonicalForm() { return 'null'; }
   },
   'tag:yaml.org,2002:bool': {
     canonicalForm(content: string) { return BOOL_CANONICAL_FORM.get(content) ?? null; }
@@ -93,7 +93,7 @@ export const CORE_TAGS = {
           i++;
         }
 
-        result += content.slice(start, end)
+        result += content.slice(start, end);
       } else {
         result += content[i++];
 

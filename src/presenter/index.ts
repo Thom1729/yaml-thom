@@ -6,7 +6,7 @@ import {
   type SerializationMapping,
   type SerializationTag,
   NonSpecificTag,
-} from "@/nodes";
+} from '@/nodes';
 
 import { repeat } from '@/util';
 

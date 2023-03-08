@@ -85,6 +85,6 @@ export function context<T extends string>(
   if (result === undefined) {
     throw new TypeError(`Unexpected context type ${c}`);
   } else {
-    return result!;
+    return result as GrammarNode;
   }
 }

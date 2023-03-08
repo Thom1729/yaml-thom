@@ -1,6 +1,6 @@
 import { ParseOperation } from './parser';
 import { GRAMMAR } from './grammar';
-import { astToSerializationTree } from './astToSerializationTree'
+import { astToSerializationTree } from './astToSerializationTree';
 
 export { type AstNode } from './ast';
 

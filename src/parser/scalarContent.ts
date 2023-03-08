@@ -1,11 +1,11 @@
-import { ChompingBehavior } from "./ast";
+import { ChompingBehavior } from './ast';
 
 import {
   repeat,
   charForCodePoint,
   combineSurrogates,
   parseHex,
-} from "@/util";
+} from '@/util';
 
 function countEmptyLines(lines: string[]) {
   const ret = [];

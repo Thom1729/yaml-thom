@@ -791,7 +791,7 @@ const BASE_GRAMMAR: Grammar = {
   /* 95 */ 'non-break-single-quoted-character': first(
     'single-quoted-escaped-single-quote',
     [
-      negativeLookahead(str("'")),
+      negativeLookahead(str('\'')),
       'json-character',
     ]
   ),
@@ -950,7 +950,7 @@ const BASE_GRAMMAR: Grammar = {
   ),
 
   /* 125 */ 'yaml-directive-line': [
-    str("YAML"),
+    str('YAML'),
     'separation-blanks',
     'yaml-version-number',
   ],
@@ -978,7 +978,7 @@ const BASE_GRAMMAR: Grammar = {
   ],
 
   /* 130 */ 'tag-directive-line': [
-    str("TAG"),
+    str('TAG'),
     'separation-blanks',
     'tag-handle',
     'separation-blanks',
