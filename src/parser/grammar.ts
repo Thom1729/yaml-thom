@@ -837,7 +837,6 @@ const BASE_GRAMMAR: Grammar = {
     ],
   ),
 
-  // TODO this is a mess
   /* 103 */ 'plain-scalar-characters': ({ c }) => first(
     [
       negativeLookahead(new CharSet(':', '#')),
@@ -1210,6 +1209,33 @@ const PATCHES: Grammar = {
 //   ],
 // };
 
+const NO_LOOKBEHIND: Grammar = {
+  /* 100 */ 'plain-scalar-next-line': ({ n, c }) => [
+    ref('flow-folded-whitespace', { n }),
+    negativeLookahead('forbidden-content'), // TODO
+    negativeLookahead(str('#')),
+    ref('plain-scalar-characters', { c }),
+    ref('plain-scalar-line-characters', { c }),
+  ],
+
+  /* 101 */ 'plain-scalar-line-characters': ({ c }) =>
+    star([
+      optional([plus('blank-character'), negativeLookahead(str('#'))]),
+      ref('plain-scalar-characters', { c }),
+    ]),
+
+  /* 103 */ 'plain-scalar-characters': ({ c }) => first(
+    [
+      negativeLookahead(new CharSet(':')),
+      ref('non-space-plain-scalar-character', { c }),
+    ],
+    [
+      str(':'),
+      lookahead(ref('non-space-plain-scalar-character', { c }))
+    ],
+  ),
+};
+
 const ANNOTATION_INDICATORS = new CharSet('(', ')');
 
 const ANNOTATIONS: Grammar = {
@@ -1278,7 +1304,7 @@ const ANNOTATIONS: Grammar = {
 
   'annotation-name': plus(ANCHOR_CHARACTER.minus(new CharSet('(', ')'))),
 
-  'annotation-arguments': ({ n, c }) => [
+  'annotation-arguments': ({ n }) => [
     str('('),
     optional('separation-characters'),
     optional(ref('flow-sequence-context', { n, c: 'ANNOTATION-IN' })),
@@ -1289,5 +1315,6 @@ const ANNOTATIONS: Grammar = {
 export const GRAMMAR = {
   ...BASE_GRAMMAR,
   ...PATCHES,
+  ...NO_LOOKBEHIND,
   ...ANNOTATIONS,
 };

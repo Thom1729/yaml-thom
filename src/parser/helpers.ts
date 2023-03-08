@@ -17,7 +17,6 @@ export type GrammarNode =
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', charSet: CharSet }
   | { type: 'DETECT_INDENTATION', min: number, child: (m: number) => GrammarNode }
-  // | { type: 'DETECT_BLOCK_SCALAR_INDENTATION', min: number, child: (m: number) => GrammarNode }
 ;
 
 export type Grammar = { [K in string]?: GrammarNode };
@@ -75,10 +74,6 @@ export function lookbehind(charSet: CharSet) {
 export function detectIndentation(min: number, child: (m: number) => GrammarNode) {
   return { type: 'DETECT_INDENTATION', min, child } as const;
 }
-
-// export function detectBlockScalarIndentation(min: number, child: (m: number) => GrammarNode) {
-//   return { type: 'DETECT_BLOCK_SCALAR_INDENTATION', min, child } as const;
-// }
 
 //////////
 
