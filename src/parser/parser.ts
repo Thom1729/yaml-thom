@@ -113,8 +113,6 @@ export class ParseOperation extends EventEmitter<{
       return this.parseLookbehind(index, node.charSet);
     } else if (node.type === 'DETECT_INDENTATION') {
       return this.parseDetectIndentation(index, parameters, node.min, node.child);
-    // } else if (node.type === 'DETECT_BLOCK_SCALAR_INDENTATION') {
-    //   return this.parseDetectBlockScalarIndentation(index, parameters, node.min, node.child);
     }
 
     throw new TypeError(node);
