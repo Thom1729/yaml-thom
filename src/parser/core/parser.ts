@@ -58,7 +58,7 @@ export class ParseOperation extends EventEmitter<{
       const codePoint = this.text.codePointAt(index);
 
       if (codePoint !== undefined && node.has(codePoint)) {
-        return [[], index + charUtf16Width(codePoint)] as const;
+        return [[], index + charUtf16Width(codePoint)];
       } else {
         return null;
       }
@@ -74,7 +74,7 @@ export class ParseOperation extends EventEmitter<{
             range: [index, j]
           }],
           j,
-        ] as const;
+        ];
       } else {
         return null;
       }
@@ -95,7 +95,7 @@ export class ParseOperation extends EventEmitter<{
     } else if (node.type === 'STRING') {
       const j = index + node.string.length;
       if (this.text.slice(index, j) === node.string) {
-        return [[], j] as const;
+        return [[], j];
       } else {
         return null;
       }
