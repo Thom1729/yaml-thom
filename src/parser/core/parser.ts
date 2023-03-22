@@ -12,6 +12,10 @@ import { EventEmitter } from '@/util/EventEmitter';
 
 type ParseResult = readonly [readonly AstNode[], number] | null;
 
+function isArray<T>(value: T): value is T & readonly any[] {
+  return Array.isArray(value);
+}
+
 export class ParseOperation extends EventEmitter<{
   'node': { displayName: string, index: number, },
   'node.in': object,
@@ -52,7 +56,7 @@ export class ParseOperation extends EventEmitter<{
   ): ParseResult {
     if (typeof node === 'string') {
       return this.parseRef(index, parameters, node);
-    } else if (Array.isArray(node)) {
+    } else if (isArray(node)) {
       return this.parseSequence(index, parameters, node);
     } else if (typeof node === 'function') {
       return this.parse(index, parameters, node(safeAccessProxy(parameters)));
@@ -162,7 +166,7 @@ export class ParseOperation extends EventEmitter<{
   parseSequence(
     index: number,
     parameters: Parameters,
-    children: GrammarNode[],
+    children: readonly GrammarNode[],
   ) {
     const ret = [];
     let j = index;
@@ -184,7 +188,7 @@ export class ParseOperation extends EventEmitter<{
   parseFirst(
     index: number,
     parameters: Parameters,
-    children: GrammarNode[],
+    children: readonly GrammarNode[],
   ) {
     for (const child of children) {
       const result = this.parse(index, parameters, child);

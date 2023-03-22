@@ -1,4 +1,4 @@
-import { AstNode, ChompingBehavior } from './ast';
+import { AstNode, ChompingBehavior } from '../core/ast';
 
 import {
   SerializationScalar,
@@ -24,7 +24,7 @@ import {
   handleSingleQuotedScalarContent,
   handleDoubleQuotedScalarContent,
   handleBlockScalarContent,
-} from './scalarContent';
+} from '../core/scalarContent';
 
 export function *astToSerializationTree(text: string, nodes: AstNode<'yaml-stream'>): Generator<SerializationNode> {
   const nodeStream = iterateAst(nodes.content, {

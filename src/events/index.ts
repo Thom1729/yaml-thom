@@ -1,4 +1,4 @@
-import { handleDoubleEscapes } from '@/parser/scalarContent';
+import { handleDoubleEscapes } from '@/parser/core/scalarContent';
 
 import { NonSpecificTag, type SerializationNode, type SerializationTag } from '@/nodes';
 

@@ -2,6 +2,11 @@ import { loadTestCase } from './cases';
 
 const [, , testName] = process.argv;
 
+if (testName === undefined) {
+  console.error('No test name given');
+  process.exit(1);
+}
+
 import { Logger } from './logger';
 const logger = new Logger(process.stdout);
 
@@ -12,9 +17,9 @@ logger.indented(() => logger.logCode(inputText));
 
 /////////
 
-import { GRAMMAR } from '@/parser/grammar';
-import { ParseOperation } from '@/parser/parser';
-import { astToSerializationTree } from '@/parser/astToSerializationTree';
+import { GRAMMAR } from '@/parser/1.3/grammar';
+import { ParseOperation } from '@/parser/core/parser';
+import { astToSerializationTree } from '@/parser/1.3/astToSerializationTree';
 import { serialize } from '@/serializer';
 
 const ast = new ParseOperation(GRAMMAR, inputText).parseAll('yaml-stream');
