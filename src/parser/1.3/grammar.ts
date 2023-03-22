@@ -17,11 +17,11 @@ import {
 
   type Grammar,
   // named,
-} from './helpers';
+} from '../core/helpers';
 
-import { ChompingBehavior } from './ast';
+import { ChompingBehavior } from '../core/ast';
 
-import { CharSet } from './charSet';
+import { CharSet } from '../core/charSet';
 
 const YAML_CHARACTER = new CharSet(
   0x09, // Tab
@@ -1220,8 +1220,9 @@ const NO_LOOKBEHIND: Grammar = {
 
   /* 101 */ 'plain-scalar-line-characters': ({ c }) =>
     star([
-      optional([plus('blank-character'), negativeLookahead(str('#'))]),
-      ref('plain-scalar-characters', { c }),
+      star('blank-character'),
+      negativeLookahead(str('#')),
+      plus(ref('plain-scalar-characters', { c })),
     ]),
 
   /* 103 */ 'plain-scalar-characters': ({ c }) => first(

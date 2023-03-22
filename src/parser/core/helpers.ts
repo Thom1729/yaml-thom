@@ -4,7 +4,7 @@ import { type Parameters } from './ast';
 export type GrammarNode =
   | string
   | ((p: Required<Parameters>) => GrammarNode)
-  | GrammarNode[]
+  | readonly GrammarNode[]
   | CharSet
   | { type: 'NAMED', name: string, child: GrammarNode }
   | { type: 'EMPTY' }
@@ -12,7 +12,7 @@ export type GrammarNode =
   | { type: 'END_OF_INPUT' }
   | { type: 'STRING', string: string }
   | { type: 'REF', name: string, parameters: Parameters }
-  | { type: 'FIRST', children: GrammarNode[] }
+  | { type: 'FIRST', children: readonly GrammarNode[] }
   | { type: 'REPEAT', child: GrammarNode, min: number, max: number }
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', charSet: CharSet }
@@ -31,39 +31,39 @@ export const endOfInput = { type: 'END_OF_INPUT' } as const;
 
 //////////
 
-export function str(string: string) {
+export function str<T extends string>(string: T) {
   return { type: 'STRING', string } as const;
 }
 
-export function ref(name: string, parameters: Parameters) {
+export function ref<const Name extends string>(name: Name, parameters: Parameters) {
   return { type: 'REF', name, parameters } as const;
 }
 
-export function first(...children: GrammarNode[]) {
+export function first<const Children extends readonly GrammarNode[]>(...children: Children) {
   return { type: 'FIRST', children } as const;
 }
 
-export function optional(child: GrammarNode) {
+export function optional<const Child extends GrammarNode>(child: Child) {
   return repeat(child, 0, 1);
 }
 
-export function star(child: GrammarNode) {
+export function star<const Child extends GrammarNode>(child: Child) {
   return repeat(child, 0, Infinity);
 }
 
-export function plus(child: GrammarNode) {
+export function plus<const Child extends GrammarNode>(child: Child) {
   return repeat(child, 1, Infinity);
 }
 
-export function repeat(child: GrammarNode, min: number, max: number) {
+export function repeat<const Child extends GrammarNode>(child: Child, min: number, max: number) {
   return { type: 'REPEAT', child, min, max } as const;
 }
 
-export function lookahead(child: GrammarNode) {
+export function lookahead<const Child extends GrammarNode>(child: Child) {
   return { type: 'LOOKAHEAD', child, positive: true } as const;
 }
 
-export function negativeLookahead(child: GrammarNode) {
+export function negativeLookahead<const Child extends GrammarNode>(child: Child) {
   return { type: 'LOOKAHEAD', child, positive: false } as const;
 }
 
@@ -71,8 +71,12 @@ export function lookbehind(charSet: CharSet) {
   return { type: 'LOOKBEHIND', charSet } as const;
 }
 
-export function detectIndentation(min: number, child: (m: number) => GrammarNode) {
+export function detectIndentation<const Child extends GrammarNode>(min: number, child: (m: number) => Child) {
   return { type: 'DETECT_INDENTATION', min, child } as const;
+}
+
+export function minus<Child extends GrammarNode>(p: Child, ...rest: readonly GrammarNode[]) {
+  return [negativeLookahead(first(...rest)), p];
 }
 
 //////////
