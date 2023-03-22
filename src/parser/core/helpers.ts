@@ -4,7 +4,6 @@ import { type Parameters } from './ast';
 export type GrammarNode =
   | string
   | ((p: Required<Parameters>) => GrammarNode)
-  | readonly GrammarNode[]
   | CharSet
   | { type: 'NAMED', name: string, child: GrammarNode }
   | { type: 'EMPTY' }
@@ -12,6 +11,7 @@ export type GrammarNode =
   | { type: 'END_OF_INPUT' }
   | { type: 'STRING', string: string }
   | { type: 'REF', name: string, parameters: Parameters }
+  | { type: 'SEQUENCE', children: readonly GrammarNode[] }
   | { type: 'FIRST', children: readonly GrammarNode[] }
   | { type: 'REPEAT', child: GrammarNode, min: number, max: number }
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
@@ -37,6 +37,10 @@ export function str<T extends string>(string: T) {
 
 export function ref<const Name extends string>(name: Name, parameters: Parameters) {
   return { type: 'REF', name, parameters } as const;
+}
+
+export function sequence<const Children extends readonly GrammarNode[]>(...children: Children) {
+  return { type: 'SEQUENCE', children } as const;
 }
 
 export function first<const Children extends readonly GrammarNode[]>(...children: Children) {

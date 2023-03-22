@@ -4,6 +4,7 @@ import {
   endOfInput,
   str,
   ref,
+  sequence,
   first,
   optional,
   plus,
@@ -94,26 +95,26 @@ const x = new CharSet(
 const PLAIN_SCALAR_FIRST_CHARACTER = NON_SPACE_CHARACTER.minus(x);
 
 const BASE_GRAMMAR: Grammar = {
-  /* 1 */ 'yaml-stream': [
+  /* 1 */ 'yaml-stream': sequence(
     star('document-prefix'),
     optional('any-document'),
     star(first(
-      [plus('document-suffix'), star('document-prefix'), optional('any-document')],
+      sequence(plus('document-suffix'), star('document-prefix'), optional('any-document')),
       'byte-order-mark',
       'comment-line',
       'start-indicator-and-document',
     ))
-  ],
+  ),
 
-  /* 2 */ 'document-prefix': [
+  /* 2 */ 'document-prefix': sequence(
     optional('byte-order-mark'),
     star('blanks-and-comment-line'),
-  ],
+  ),
 
-  /* 3 */ 'document-suffix': [
+  /* 3 */ 'document-suffix': sequence(
     'document-end-indicator',
     'comment-lines',
-  ],
+  ),
 
   /* 4 */ 'document-start-indicator': str('---'),
 
@@ -125,22 +126,22 @@ const BASE_GRAMMAR: Grammar = {
     'bare-document',
   ),
 
-  /* 7 */ 'directives-and-document': [
+  /* 7 */ 'directives-and-document': sequence(
     plus('directive-line'),
     'start-indicator-and-document',
-  ],
+  ),
 
-  /* 8 */ 'start-indicator-and-document': [
+  /* 8 */ 'start-indicator-and-document': sequence(
     'document-start-indicator',
     first(
       'bare-document',
-      ['empty-node', 'comment-lines'],
+      sequence('empty-node', 'comment-lines'),
     )
-  ],
+  ),
 
   /* 9 */ 'bare-document': ref('block-node', { n: -1, c: 'BLOCK-IN' }),
 
-  /* 10 */ 'directive-line': [
+  /* 10 */ 'directive-line': sequence(
     str('%'),
     first(
       'yaml-directive-line',
@@ -148,9 +149,9 @@ const BASE_GRAMMAR: Grammar = {
       'reserved-directive-line',
     ),
     'comment-lines',
-  ],
+  ),
 
-  /* 11 */ 'forbidden-content': [
+  /* 11 */ 'forbidden-content': sequence(
     startOfLine,
     first(
       'document-start-indicator',
@@ -160,7 +161,7 @@ const BASE_GRAMMAR: Grammar = {
       'line-ending',
       'blank-character',
     ),
-  ],
+  ),
 
   /* 12 */ 'block-node': ({ n, c }) => first(
     ref('block-node-in-a-block-node', { n, c }),
@@ -172,117 +173,117 @@ const BASE_GRAMMAR: Grammar = {
     ref('block-collection', { n, c }),
   ),
 
-  /* 14 */ 'flow-node-in-a-block-node': ({ n }) => [
+  /* 14 */ 'flow-node-in-a-block-node': ({ n }) => sequence(
     ref('separation-characters', { n: n + 1, c: 'FLOW-OUT' }),
     ref('flow-node', { n: n + 1, c: 'FLOW-OUT' }),
     'comment-lines',
-  ],
+  ),
 
-  /* 15 */ 'block-collection': ({ n, c }) => [
-    optional([
+  /* 15 */ 'block-collection': ({ n, c }) => sequence(
+    optional(sequence(
       ref('separation-characters', { n: n + 1, c }),
       ref('node-properties', { n: n + 1, c }),
-    ]),
+    )),
     'comment-lines',
     first(
       ref('block-sequence-context', { n, c }),
       ref('block-mapping', { n }),
     ),
-  ],
+  ),
 
   /* 16 */ 'block-sequence-context': ({ n, c }) => context(c, {
     'BLOCK-OUT': ref('block-sequence', { n: n - 1 }),
     'BLOCK-IN': ref('block-sequence', { n: n }),
   }),
 
-  /* 17 */ 'block-scalar': ({ n, c }) => [
+  /* 17 */ 'block-scalar': ({ n, c }) => sequence(
     ref('separation-characters', { n: n + 1, c }),
-    optional([
+    optional(sequence(
       ref('node-properties', { n: n + 1, c }),
       ref('separation-characters', { n: n + 1, c }),
-    ]),
+    )),
     first(
       ref('block-literal-scalar', { n }),
       ref('block-folded-scalar', { n }),
     ),
-  ],
+  ),
 
   /* 18 */ 'block-mapping': ({ n }) =>
-    detectIndentation(n + 1, n => plus([
+    detectIndentation(n + 1, n => plus(sequence(
       ref('indentation-spaces', { n }),
       ref('block-mapping-entry', { n }),
-    ])),
+    ))),
 
   /* 19 */ 'block-mapping-entry': ({ n }) => first(
     ref('block-mapping-explicit-entry', { n }),
     ref('block-mapping-implicit-entry', { n }),
   ),
 
-  /* 20 */ 'block-mapping-explicit-entry': ({ n }) => [
+  /* 20 */ 'block-mapping-explicit-entry': ({ n }) => sequence(
     ref('block-mapping-explicit-key', { n }),
     first(
       ref('block-mapping-explicit-value', { n }),
       'empty-node',
     ),
-  ],
+  ),
 
-  /* 21 */ 'block-mapping-explicit-key': ({ n }) => [
+  /* 21 */ 'block-mapping-explicit-key': ({ n }) => sequence(
     str('?'),
     ref('block-indented-node', { n, c: 'BLOCK-OUT' }),
-  ],
+  ),
 
-  /* 22 */ 'block-mapping-explicit-value': ({ n }) => [
+  /* 22 */ 'block-mapping-explicit-value': ({ n }) => sequence(
     ref('indentation-spaces', { n }),
     str(':'),
     ref('block-indented-node', { n, c: 'BLOCK-OUT' }),
-  ],
+  ),
 
-  /* 23 */ 'block-mapping-implicit-entry': ({ n }) => [
+  /* 23 */ 'block-mapping-implicit-entry': ({ n }) => sequence(
     first(
       'block-mapping-implicit-key',
       'empty-node',
     ),
     ref('block-mapping-implicit-value', { n }),
-  ],
+  ),
 
   /* 24 */ 'block-mapping-implicit-key': first(
     ref('implicit-json-key', { c: 'BLOCK-KEY' }),
     ref('implicit-yaml-key', { c: 'BLOCK-KEY' }),
   ),
 
-  /* 25 */ 'block-mapping-implicit-value': ({ n }) => [
+  /* 25 */ 'block-mapping-implicit-value': ({ n }) => sequence(
     str(':'),
     first(
       ref('block-node', { n, c: 'BLOCK-OUT' }),
-      [
+      sequence(
         'empty-node',
         'comment-lines',
-      ],
+      ),
     ),
-  ],
+  ),
 
-  /* 26 */ 'compact-mapping': ({ n }) => [
+  /* 26 */ 'compact-mapping': ({ n }) => sequence(
     ref('block-mapping-entry', { n }),
-    star([
+    star(sequence(
       ref('indentation-spaces', { n }),
       ref('block-mapping-entry', { n }),
-    ]),
-  ],
+    )),
+  ),
 
   /* 27 */ 'block-sequence': ({ n }) =>
-    detectIndentation(n + 1, n => plus([
+    detectIndentation(n + 1, n => plus(sequence(
       ref('indentation-spaces', { n }),
       ref('block-sequence-entry', { n }),
-    ])),
+    ))),
 
-  /* 28 */ 'block-sequence-entry': ({ n }) => [
+  /* 28 */ 'block-sequence-entry': ({ n }) => sequence(
     str('-'),
     negativeLookahead('non-space-character'),
     ref('block-indented-node', { n, c: 'BLOCK-IN' }),
-  ],
+  ),
 
   /* 29 */ 'block-indented-node': ({ n, c }) => first(
-    detectIndentation(1, m => [
+    detectIndentation(1, m => sequence(
       ref('indentation-spaces', { n: m }),
       first(
         // ref('compact-sequence', { n: m }),
@@ -290,141 +291,141 @@ const BASE_GRAMMAR: Grammar = {
         ref('compact-sequence', { n: n + m + 1 }),
         ref('compact-mapping', { n: n + m + 1 }),
       ),
-    ]),
+    )),
     ref('block-node', { n, c }),
-    [
+    sequence(
       'empty-node',
       'comment-lines',
-    ],
+    ),
   ),
 
-  /* 30 */ 'compact-sequence': ({ n }) => [
+  /* 30 */ 'compact-sequence': ({ n }) => sequence(
     ref('block-sequence-entry', { n }),
-    star([
+    star(sequence(
       ref('indentation-spaces', { n }),
       ref('block-sequence-entry', { n }),
-    ]),
-  ],
+    )),
+  ),
 
   /* 31 */ 'block-literal-scalar': ({ n }) => first(
-    ...Object.values(ChompingBehavior).map(t => [
+    ...Object.values(ChompingBehavior).map(t => sequence(
       str('|'),
       ref('block-scalar-indicators', { t }),
       // detectIndentation(0, m => ref('literal-scalar-content', { n: n + m, t })),
       // detectIndentation(n, m => ref('literal-scalar-content', { n: m, t })),
       ref('literal-scalar-content', { n: n+1, t }),
-    ])
+    ))
   ),
 
-  /* 32 */ 'literal-scalar-content': ({ n, t }) => [
-    optional([
+  /* 32 */ 'literal-scalar-content': ({ n, t }) => sequence(
+    optional(sequence(
       ref('literal-scalar-line-content', { n }),
       star(ref('literal-scalar-next-line', { n })),
       ref('block-scalar-chomp-last', { t }),
-    ]),
+    )),
     ref('block-scalar-chomp-empty', { n, t }),
-  ],
+  ),
 
-  /* 33 */ 'literal-scalar-line-content': ({ n }) => [
+  /* 33 */ 'literal-scalar-line-content': ({ n }) => sequence(
     star(ref('empty-line', { n, c: 'BLOCK-IN' })),
     negativeLookahead('forbidden-content'), // TODO
     ref('indentation-spaces', { n }),
     plus('non-break-character'),
-  ],
+  ),
 
-  /* 34 */ 'literal-scalar-next-line': ({ n }) => [
+  /* 34 */ 'literal-scalar-next-line': ({ n }) => sequence(
     'break-as-line-feed',
     ref('literal-scalar-line-content', { n }),
-  ],
+  ),
 
   /* 35 */ 'block-folded-scalar': ({ n }) => first(
-    ...Object.values(ChompingBehavior).map(t => [
+    ...Object.values(ChompingBehavior).map(t => sequence(
       str('>'),
       ref('block-scalar-indicators', { t }),
       // detectIndentation(0, m => ref('folded-scalar-content', { n: n + m, t })),
       ref('folded-scalar-content', { n: n+1, t }),
-    ])
+    ))
   ),
 
   // /* 35 */ 'block-folded-scalar': ({ n }) => first(
-  //   ...Object.values(ChompingBehavior).map(t => [
+  //   ...Object.values(ChompingBehavior).map(t => sequence(
   //     str('>'),
   //     optional(ref('block-scalar-indicators', { t })),
   //     detectIndentation(0, m => ref('folded-scalar-content', { n: n + m, t })),
-  //   ])
+  //   ))
   // ),
 
-  /* 36 */ 'folded-scalar-content': ({ n, t }) => [
-    optional([
+  /* 36 */ 'folded-scalar-content': ({ n, t }) => sequence(
+    optional(sequence(
       ref('folded-scalar-lines-different-indentation', { n }),
       ref('block-scalar-chomp-last', { t }),
-    ]),
+    )),
     ref('block-scalar-chomp-empty', { n, t }),
-  ],
+  ),
 
-  /* 37 */ 'folded-scalar-lines-different-indentation': ({ n }) => [
+  /* 37 */ 'folded-scalar-lines-different-indentation': ({ n }) => sequence(
     ref('folded-scalar-lines-same-indentation', { n }),
-    star([
+    star(sequence(
       'break-as-line-feed',
       ref('folded-scalar-lines-same-indentation', { n }),
-    ]),
-  ],
+    )),
+  ),
 
-  /* 38 */ 'folded-scalar-lines-same-indentation': ({ n }) => [
+  /* 38 */ 'folded-scalar-lines-same-indentation': ({ n }) => sequence(
     star(ref('empty-line', { n, c: 'BLOCK-IN' })),
     first(
       ref('folded-scalar-lines', { n }),
       ref('folded-scalar-spaced-lines', { n }),
     ),
-  ],
+  ),
 
-  /* 39 */ 'folded-scalar-lines': ({ n }) => [
+  /* 39 */ 'folded-scalar-lines': ({ n }) => sequence(
     ref('folded-scalar-text', { n }),
-    star([
+    star(sequence(
       ref('folded-whitespace', { n, c: 'BLOCK-IN' }),
       ref('folded-scalar-text', { n }),
-    ]),
-  ],
+    )),
+  ),
 
-  /* 40 */ 'folded-scalar-spaced-lines': ({ n }) => [
+  /* 40 */ 'folded-scalar-spaced-lines': ({ n }) => sequence(
     ref('folded-scalar-spaced-text', { n }),
-    star([
+    star(sequence(
       ref('line-break-and-empty-lines', { n }),
       ref('folded-scalar-spaced-text', { n }),
-    ]),
-  ],
+    )),
+  ),
 
-  /* 41 */ 'folded-scalar-text': ({ n }) => [
+  /* 41 */ 'folded-scalar-text': ({ n }) => sequence(
     negativeLookahead('forbidden-content'), // TODO
     ref('indentation-spaces', { n }),
     'non-space-character',
     star('non-break-character'),
-  ],
+  ),
 
-  /* 42 */ 'line-break-and-empty-lines': ({ n }) => [
+  /* 42 */ 'line-break-and-empty-lines': ({ n }) => sequence(
     'break-as-line-feed',
     star(ref('empty-line', { n, c: 'BLOCK-IN' })),
-  ],
+  ),
 
-  /* 43 */ 'folded-scalar-spaced-text': ({ n }) => [
+  /* 43 */ 'folded-scalar-spaced-text': ({ n }) => sequence(
     ref('indentation-spaces', { n }),
     'blank-character',
     star('non-break-character'),
-  ],
+  ),
 
-  /* 44 */ 'block-scalar-indicators': ({ t }) => [
+  /* 44 */ 'block-scalar-indicators': ({ t }) => sequence(
     first(
-      [
+      sequence(
         'block-scalar-indentation-indicator',
         ref('block-scalar-chomping-indicator', { t }),
-      ],
-      [
+      ),
+      sequence(
         ref('block-scalar-chomping-indicator', { t }),
         'block-scalar-indentation-indicator',
-      ],
+      ),
     ),
     'comment-line',
-  ],
+  ),
 
   /* 45 */ 'block-scalar-indentation-indicator': 'decimal-digit-1-9',
 
@@ -446,39 +447,39 @@ const BASE_GRAMMAR: Grammar = {
     'KEEP': ref('line-keep-empty', { n }),
   }),
 
-  /* 49 */ 'line-strip-empty': ({ n }) => [
-    star([
+  /* 49 */ 'line-strip-empty': ({ n }) => sequence(
+    star(sequence(
       ref('indentation-spaces-less-than-or-equal', { n }),
       'line-break',
-    ]),
+    )),
     optional(ref('line-trail-comments', { n })),
-  ],
+  ),
 
-  /* 50 */ 'line-keep-empty': ({ n }) => [
+  /* 50 */ 'line-keep-empty': ({ n }) => sequence(
     star(ref('empty-line', { n, c: 'BLOCK-IN' })),
     optional(ref('line-trail-comments', { n })),
-  ],
+  ),
 
-  /* 51 */ 'line-trail-comments': ({ n }) => [
+  /* 51 */ 'line-trail-comments': ({ n }) => sequence(
     ref('indentation-spaces-less-than', { n }),
     'comment-content',
     'line-ending',
     star('comment-line'),
-  ],
+  ),
 
   /* 52 */ 'flow-node': ({ n, c }) => first(
     'alias-node',
     ref('flow-content', { n, c }),
-    [
+    sequence(
       ref('node-properties', { n, c }),
       first(
-        [
+        sequence(
           ref('separation-characters', { n, c }),
           ref('flow-content', { n, c }),
-        ],
+        ),
         'empty-node',
       ),
-    ],
+    ),
   ),
 
   /* 53 */ 'flow-content': ({ n, c }) => first(
@@ -495,35 +496,35 @@ const BASE_GRAMMAR: Grammar = {
     ref('double-quoted-scalar', { n, c }),
   ),
 
-  /* 56 */ 'flow-mapping': ({ n, c }) => [
+  /* 56 */ 'flow-mapping': ({ n, c }) => sequence(
     str('{'),
     optional(ref('separation-characters', { n, c })),
     optional(ref('flow-mapping-context', { n, c })),
     str('}'),
-  ],
+  ),
 
-  /* 57 */ 'flow-mapping-entries': ({ n, c }) => [
+  /* 57 */ 'flow-mapping-entries': ({ n, c }) => sequence(
     ref('flow-mapping-entry', { n, c }),
     optional(ref('separation-characters', { n, c })),
-    optional([
+    optional(sequence(
       str(','),
       optional(ref('separation-characters', { n, c })),
       optional(ref('flow-mapping-entries', { n, c })),
-    ])
-  ],
+    ))
+  ),
 
   /* 58 */ 'flow-mapping-entry': ({ n, c }) => first(
-    [
+    sequence(
       str('?'),
       ref('separation-characters', { n, c }),
       ref('flow-mapping-explicit-entry', { n, c }),
-    ],
+    ),
     ref('flow-mapping-implicit-entry', { n, c }),
   ),
 
   /* 59 */ 'flow-mapping-explicit-entry': ({ n, c }) => first(
     ref('flow-mapping-implicit-entry', { n, c }),
-    ['empty-node', 'empty-node'],
+    sequence('empty-node', 'empty-node'),
   ),
 
   /* 60 */ 'flow-mapping-implicit-entry': ({ n, c }) => first(
@@ -532,62 +533,62 @@ const BASE_GRAMMAR: Grammar = {
     ref('flow-mapping-json-key-entry', { n, c }),
   ),
 
-  /* 61 */ 'flow-mapping-yaml-key-entry': ({ n, c }) => [
+  /* 61 */ 'flow-mapping-yaml-key-entry': ({ n, c }) => sequence(
     ref('flow-yaml-node', { n, c }),
     first(
-      [
+      sequence(
         optional(ref('separation-characters', { n, c })),
         ref('flow-mapping-separate-value', { n, c }),
-      ],
+      ),
       'empty-node',
     ),
-  ],
+  ),
 
-  /* 62 */ 'flow-mapping-empty-key-entry': ({ n, c }) => [
+  /* 62 */ 'flow-mapping-empty-key-entry': ({ n, c }) => sequence(
     'empty-node',
     ref('flow-mapping-separate-value', { n, c }),
-  ],
+  ),
 
-  /* 63 */ 'flow-mapping-separate-value': ({ n, c }) => [
+  /* 63 */ 'flow-mapping-separate-value': ({ n, c }) => sequence(
     str(':'),
     negativeLookahead(ref('non-space-plain-scalar-character', { c })),
     first(
-      [
+      sequence(
         ref('separation-characters', { n, c }),
         ref('flow-node', { n, c }),
-      ],
+      ),
       'empty-node',
     ),
-  ],
+  ),
 
-  /* 64 */ 'flow-mapping-json-key-entry': ({ n, c }) => [
+  /* 64 */ 'flow-mapping-json-key-entry': ({ n, c }) => sequence(
     ref('flow-json-node', { n, c }),
     first(
-      [
+      sequence(
         optional(ref('separation-characters', { n, c })),
         ref('flow-mapping-adjacent-value', { n, c }),
-      ],
+      ),
       'empty-node',
     ),
-  ],
+  ),
 
-  /* 65 */ 'flow-mapping-adjacent-value': ({ n, c }) => [
+  /* 65 */ 'flow-mapping-adjacent-value': ({ n, c }) => sequence(
     str(':'),
     first(
-      [
+      sequence(
         optional(ref('separation-characters', { n, c })),
         ref('flow-node', { n, c }),
-      ],
+      ),
       'empty-node',
     ),
-  ],
+  ),
 
   /* 66 */ 'flow-pair': ({ n, c }) => first(
-    [
+    sequence(
       str('?'),
       ref('separation-characters', { n, c }),
       ref('flow-mapping-explicit-entry', { n, c }),
-    ],
+    ),
     ref('flow-pair-entry', { n, c }),
   ),
 
@@ -597,78 +598,78 @@ const BASE_GRAMMAR: Grammar = {
     ref('flow-pair-json-key-entry', { n, c }),
   ),
 
-  /* 68 */ 'flow-pair-yaml-key-entry': ({ n, c }) => [
+  /* 68 */ 'flow-pair-yaml-key-entry': ({ n, c }) => sequence(
     ref('implicit-yaml-key', { c: 'FLOW-KEY' }),
     ref('flow-mapping-separate-value', { n, c }),
-  ],
+  ),
 
-  /* 69 */ 'flow-pair-json-key-entry': ({ n, c }) => [
+  /* 69 */ 'flow-pair-json-key-entry': ({ n, c }) => sequence(
     ref('implicit-json-key', { c: 'FLOW-KEY' }),
     ref('flow-mapping-adjacent-value', { n, c }),
-  ],
+  ),
 
-  /* 70 */ 'implicit-yaml-key': ({ c }) => [
+  /* 70 */ 'implicit-yaml-key': ({ c }) => sequence(
     ref('flow-yaml-node', { n: 0, c }),
     optional('separation-blanks'),
     // TODO: 1024 limit
-  ],
+  ),
 
-  /* 71 */ 'implicit-json-key': ({ c }) => [
+  /* 71 */ 'implicit-json-key': ({ c }) => sequence(
     ref('flow-json-node', { n: 0, c }),
     optional('separation-blanks'),
     // TODO: 1024 limit
-  ],
+  ),
 
   /* 72 */ 'flow-yaml-node': ({ n, c }) => first(
     'alias-node',
     ref('flow-yaml-content', { n, c }),
-    [
+    sequence(
       ref('node-properties', { n, c }),
       first(
-        [
+        sequence(
           ref('separation-characters', { n, c }),
           ref('flow-yaml-content', { n, c }),
-        ],
+        ),
         'empty-node',
       ),
-    ],
+    ),
   ),
 
-  /* 73 */ 'flow-json-node': ({ n, c }) => [
-    optional([
+  /* 73 */ 'flow-json-node': ({ n, c }) => sequence(
+    optional(sequence(
       ref('node-properties', { n, c }),
       ref('separation-characters', { n, c }),
-    ]),
+    )),
     ref('flow-json-content', { n, c }),
-  ],
+  ),
 
-  /* 74 */ 'flow-sequence': ({ n, c }) => [
+  /* 74 */ 'flow-sequence': ({ n, c }) => sequence(
     str('['),
     optional(ref('separation-characters', { n, c })),
     optional(ref('flow-sequence-context', { n, c })),
     str(']'),
-  ],
+  ),
 
-  /* 75 */ 'flow-sequence-entries': ({ n, c }) => [
+  /* 75 */ 'flow-sequence-entries': ({ n, c }) => sequence(
     ref('flow-sequence-entry', { n, c }),
     optional(ref('separation-characters', { n, c })),
-    optional([
+    optional(sequence(
       str(','),
       optional(ref('separation-characters', { n, c })),
       optional(ref('flow-sequence-entries', { n, c })),
-    ]),
-  ],
+    )),
+  ),
 
   /* 76 */ 'flow-sequence-entry': ({ n, c }) => first(
     ref('flow-pair', { n, c }),
     ref('flow-node', { n, c }),
   ),
 
-  /* 77 */ 'double-quoted-scalar': ({ n, c }) => [
+  /* 77 */ 'double-quoted-scalar': ({ n, c }) => sequence(
     str('"'),
     ref('double-quoted-text', { n, c }),
     str('"'),
-  ],
+  ),
 
   /* 78 */ 'double-quoted-text': ({ n, c }) => context(c, {
     'BLOCK-KEY': 'double-quoted-one-line',
@@ -677,57 +678,57 @@ const BASE_GRAMMAR: Grammar = {
     'FLOW-IN': ref('double-quoted-multi-line', { n }),
   }),
 
-  /* 79 */ 'double-quoted-multi-line': ({ n }) => [
+  /* 79 */ 'double-quoted-multi-line': ({ n }) => sequence(
     'double-quoted-first-line',
     first(
       ref('double-quoted-next-line', { n }),
       star('blank-character'),
     ),
-  ],
+  ),
 
   /* 80 */ 'double-quoted-one-line': star('non-break-double-quoted-character'),
   
-  /* 81 */ 'double-quoted-first-line': star([
+  /* 81 */ 'double-quoted-first-line': star(sequence(
     star('blank-character'),
     'non-space-double-quoted-character',
-  ]),
+  )),
 
-  /* 82 */ 'double-quoted-next-line': ({ n }) => [
+  /* 82 */ 'double-quoted-next-line': ({ n }) => sequence(
     first(
       ref('double-quoted-line-continuation', { n }),
       ref('flow-folded-whitespace', { n }),
     ),
-    optional([
+    optional(sequence(
       'non-space-double-quoted-character',
       'double-quoted-first-line',
       first(
         ref('double-quoted-next-line', { n }),
         star('blank-character'),
       )
-    ]),
-  ],
+    )),
+  ),
 
-  /* 83 */ 'non-space-double-quoted-character': [
+  /* 83 */ 'non-space-double-quoted-character': sequence(
     negativeLookahead('blank-character'),
     'non-break-double-quoted-character',
-  ],
+  ),
 
   /* 84 */ 'non-break-double-quoted-character': first(
     'double-quoted-scalar-escape-character',
-    [
+    sequence(
       negativeLookahead(str('\\')),
       negativeLookahead(str('"')),
       'json-character',
-    ]
+    )
   ),
 
-  /* 85 */ 'double-quoted-line-continuation': ({ n }) => [
+  /* 85 */ 'double-quoted-line-continuation': ({ n }) => sequence(
     star('blank-character'),
     str('\\'),
     'line-break',
     star(ref('empty-line', { n, c: 'FLOW-IN'})),
     ref('indentation-spaces-plus-maybe-more', { n }),
-  ],
+  ),
 
   /* 86 */ 'flow-mapping-context': ({ n, c }) => context(c, {
     'FLOW-OUT': ref('flow-mapping-entries', { n, c: 'FLOW-IN' }),
@@ -743,11 +744,11 @@ const BASE_GRAMMAR: Grammar = {
     'FLOW-KEY' : ref('flow-sequence-entries', { n, c: 'FLOW-KEY' }),
   }),
 
-  /* 88 */ 'single-quoted-scalar': ({ n, c }) => [
+  /* 88 */ 'single-quoted-scalar': ({ n, c }) => sequence(
     str('\''),
     ref('single-quoted-text', { n, c}),
     str('\''),
-  ],
+  ),
 
   /* 89 */ 'single-quoted-text': ({ n, c }) => context(c, {
     'BLOCK-KEY': 'single-quoted-one-line',
@@ -756,44 +757,44 @@ const BASE_GRAMMAR: Grammar = {
     'FLOW-IN': ref('single-quoted-multi-line', { n }),
   }),
 
-  /* 90 */ 'single-quoted-multi-line': ({ n }) => [
+  /* 90 */ 'single-quoted-multi-line': ({ n }) => sequence(
     'single-quoted-first-line',
     first(
       ref('single-quoted-next-line', { n }),
       star('blank-character'),
     ),
-  ],
+  ),
 
   /* 91 */ 'single-quoted-one-line': star('non-break-single-quoted-character'),
   
-  /* 92 */ 'single-quoted-first-line': star([
+  /* 92 */ 'single-quoted-first-line': star(sequence(
     star('blank-character'),
     'non-break-single-quoted-character',
-  ]),
+  )),
 
-  /* 93 */ 'single-quoted-next-line': ({ n }) => [
+  /* 93 */ 'single-quoted-next-line': ({ n }) => sequence(
     ref('flow-folded-whitespace', { n }),
-    optional([
+    optional(sequence(
       'non-space-single-quoted-character',
       'single-quoted-first-line',
       first(
         ref('single-quoted-next-line', { n }),
         star('blank-character'),
       ),
-    ]),
-  ],
+    )),
+  ),
 
-  /* 94 */ 'non-space-single-quoted-character': [
+  /* 94 */ 'non-space-single-quoted-character': sequence(
     negativeLookahead('blank-character'),
     'non-break-single-quoted-character',
-  ],
+  ),
 
   /* 95 */ 'non-break-single-quoted-character': first(
     'single-quoted-escaped-single-quote',
-    [
+    sequence(
       negativeLookahead(str('\'')),
       'json-character',
-    ]
+    )
   ),
 
   /* 96 */ 'single-quoted-escaped-single-quote': str('\'\''),
@@ -805,51 +806,51 @@ const BASE_GRAMMAR: Grammar = {
     'FLOW-KEY': ref('plain-scalar-single-line', { c: 'FLOW-KEY' }),
   }),
 
-  /* 98 */ 'plain-scalar-multi-line': ({ n, c }) => [
+  /* 98 */ 'plain-scalar-multi-line': ({ n, c }) => sequence(
     ref('plain-scalar-single-line', { c }),
     star(ref('plain-scalar-next-line', { n, c })),
-  ],
+  ),
 
-  /* 99 */ 'plain-scalar-single-line': ({ c }) => [
+  /* 99 */ 'plain-scalar-single-line': ({ c }) => sequence(
     negativeLookahead('forbidden-content'), // TODO
     ref('plain-scalar-first-character', { c }),
     ref('plain-scalar-line-characters', { c }),
-  ],
+  ),
 
-  /* 100 */ 'plain-scalar-next-line': ({ n, c }) => [
+  /* 100 */ 'plain-scalar-next-line': ({ n, c }) => sequence(
     ref('flow-folded-whitespace', { n }),
     negativeLookahead('forbidden-content'), // TODO
     ref('plain-scalar-characters', { c }),
     ref('plain-scalar-line-characters', { c }),
-  ],
+  ),
 
   /* 101 */ 'plain-scalar-line-characters': ({ c }) =>
-    star([
+    star(sequence(
       star('blank-character'),
       ref('plain-scalar-characters', { c }),
-    ]),
+    )),
 
   /* 102 */ 'plain-scalar-first-character': ({ c }) => first(
     PLAIN_SCALAR_FIRST_CHARACTER,
-    [
+    sequence(
       new CharSet('?', ':', '-'),
       lookahead(ref('non-space-plain-scalar-character', { c })),
-    ],
+    ),
   ),
 
   /* 103 */ 'plain-scalar-characters': ({ c }) => first(
-    [
+    sequence(
       negativeLookahead(new CharSet(':', '#')),
       ref('non-space-plain-scalar-character', { c }),
-    ],
-    [
+    ),
+    sequence(
       lookbehind(NON_SPACE_CHARACTER),
       str('#'),
-    ],
-    [
+    ),
+    sequence(
       str(':'),
       lookahead(ref('non-space-plain-scalar-character', { c }))
-    ],
+    ),
   ),
 
   /* 104 */ 'non-space-plain-scalar-character': ({ c }) => context(c, {
@@ -863,10 +864,10 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 105 */ 'flow-plain-scalar-character': NON_SPACE_CHARACTER.minus(FLOW_COLLECTION_INDICATORS),
   
-  /* 107 */ 'alias-node': [
+  /* 107 */ 'alias-node': sequence(
     str('*'),
     'anchor-name',
-  ],
+  ),
 
   /* 108 */ 'empty-node': empty,
 
@@ -885,47 +886,47 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 113 */ 'indentation-spaces-exact': ({ n }) => ref('indentation-spaces', { n }),
 
-  /* 114 */ 'indentation-spaces-plus-maybe-more': ({ n }) => [
+  /* 114 */ 'indentation-spaces-plus-maybe-more': ({ n }) => sequence(
     ref('indentation-spaces', { n }),
     optional('separation-blanks'),
-  ],
+  ),
 
-  /* 115 */ 'flow-folded-whitespace': ({ n }) => [
+  /* 115 */ 'flow-folded-whitespace': ({ n }) => sequence(
     optional('separation-blanks'),
     ref('folded-whitespace', { n, c: 'FLOW-IN' }),
     ref('indentation-spaces-plus-maybe-more', { n }),
-  ],
+  ),
 
   /* 116 */ 'folded-whitespace': ({ n, c }) => first(
-    [ 'line-break', plus(ref('empty-line', { n, c })) ],
+    sequence( 'line-break', plus(ref('empty-line', { n, c })) ),
     'break-as-space',
   ),
 
-  /* 117 */ 'comment-lines': [
+  /* 117 */ 'comment-lines': sequence(
     first('comment-line', startOfLine),
     star('blanks-and-comment-line'),
-  ],
+  ),
 
-  /* 118 */ 'comment-line': [
-    optional(['separation-blanks', optional('comment-content')]),
+  /* 118 */ 'comment-line': sequence(
+    optional(sequence('separation-blanks', optional('comment-content'))),
     'line-ending',
-  ],
+  ),
 
-  /* 119 */ 'blanks-and-comment-line': [
+  /* 119 */ 'blanks-and-comment-line': sequence(
     'separation-blanks',
     optional('comment-content'),
     'line-ending',
-  ],
+  ),
 
-  /* 120 */ 'comment-content': [str('#'), star('non-break-character')],
+  /* 120 */ 'comment-content': sequence(str('#'), star('non-break-character')),
 
-  /* 121 */ 'empty-line': ({ n, c }) => [
+  /* 121 */ 'empty-line': ({ n, c }) => sequence(
     first(
       ref('line-prefix-spaces', { n, c }),
       ref('indentation-spaces-less-than', { n }),
     ),
     'break-as-line-feed',
-  ],
+  ),
 
   /* 122 */ 'separation-characters': ({ n, c }) => context(c, {
     'BLOCK-OUT': ref('separation-lines', { n }),
@@ -937,10 +938,10 @@ const BASE_GRAMMAR: Grammar = {
   }),
 
   /* 123 */ 'separation-lines': ({ n }) => first(
-    [
+    sequence(
       'comment-lines',
       ref('indentation-spaces-plus-maybe-more', { n }),
-    ],
+    ),
     'separation-blanks',
   ),
 
@@ -949,41 +950,41 @@ const BASE_GRAMMAR: Grammar = {
     startOfLine,
   ),
 
-  /* 125 */ 'yaml-directive-line': [
+  /* 125 */ 'yaml-directive-line': sequence(
     str('YAML'),
     'separation-blanks',
     'yaml-version-number',
-  ],
+  ),
 
-  /* 126 */ 'yaml-version-number': [
+  /* 126 */ 'yaml-version-number': sequence(
     plus('decimal-digit'),
     str('.'),
     plus('decimal-digit'),
-  ],
+  ),
 
-  /* 127 */ 'reserved-directive-line': [
+  /* 127 */ 'reserved-directive-line': sequence(
     'directive-name',
-    star([
+    star(sequence(
       'separation-blanks',
       'directive-parameter',
-    ]),
-  ],
+    )),
+  ),
 
-  /* 128 */ 'directive-name': [
+  /* 128 */ 'directive-name': sequence(
     plus('non-space-character'),
-  ],
+  ),
 
-  /* 129 */ 'directive-parameter': [
+  /* 129 */ 'directive-parameter': sequence(
     plus('non-space-character'),
-  ],
+  ),
 
-  /* 130 */ 'tag-directive-line': [
+  /* 130 */ 'tag-directive-line': sequence(
     str('TAG'),
     'separation-blanks',
     'tag-handle',
     'separation-blanks',
     'tag-prefix',
-  ],
+  ),
 
   /* 131 */ 'tag-handle': first(
     'named-tag-handle',
@@ -991,11 +992,11 @@ const BASE_GRAMMAR: Grammar = {
     'primary-tag-handle',
   ),
 
-  /* 132 */ 'named-tag-handle': [
+  /* 132 */ 'named-tag-handle': sequence(
     str('!'),
     plus('word-character'),
     str('!'),
-  ],
+  ),
 
   /* 133 */ 'secondary-tag-handle': str('!!'),
 
@@ -1006,37 +1007,37 @@ const BASE_GRAMMAR: Grammar = {
     'global-tag-prefix',
   ),
 
-  /* 136 */ 'local-tag-prefix': [
+  /* 136 */ 'local-tag-prefix': sequence(
     str('!'),
     star('uri-character'),
-  ],
-
-  /* 137 */ 'global-tag-prefix': [
-    'tag-character',
-    star('uri-character'),
-  ],
-
-  /* 138 */ 'node-properties': ({ n, c }) => first(
-    [
-      'anchor-property',
-      optional([
-        ref('separation-characters', { n, c }),
-        'tag-property',
-      ]),
-    ],
-    [
-      'tag-property',
-      optional([
-        ref('separation-characters', { n, c }),
-        'anchor-property',
-      ]),
-    ],
   ),
 
-  /* 139 */ 'anchor-property': [
+  /* 137 */ 'global-tag-prefix': sequence(
+    'tag-character',
+    star('uri-character'),
+  ),
+
+  /* 138 */ 'node-properties': ({ n, c }) => first(
+    sequence(
+      'anchor-property',
+      optional(sequence(
+        ref('separation-characters', { n, c }),
+        'tag-property',
+      )),
+    ),
+    sequence(
+      'tag-property',
+      optional(sequence(
+        ref('separation-characters', { n, c }),
+        'anchor-property',
+      )),
+    ),
+  ),
+
+  /* 139 */ 'anchor-property': sequence(
     str('&'),
     'anchor-name',
-  ],
+  ),
 
   /* 140 */ 'anchor-name': plus('anchor-character'),
 
@@ -1048,16 +1049,16 @@ const BASE_GRAMMAR: Grammar = {
     'non-specific-tag',
   ),
 
-  /* 143 */ 'verbatim-tag': [
+  /* 143 */ 'verbatim-tag': sequence(
     str('!<'),
     plus('uri-character'),
     str('>'),
-  ],
+  ),
 
-  /* 144 */ 'shorthand-tag': [
+  /* 144 */ 'shorthand-tag': sequence(
     'tag-handle',
     plus('tag-character'),
-  ],
+  ),
 
   /* 145 */ 'non-specific-tag': str('!'),
 
@@ -1092,7 +1093,7 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 157 */ 'flow-collection-indicators': new CharSet(',', '{', '}', '[', ']'),
 
-  /* 158 */ 'double-quoted-scalar-escape-character': [
+  /* 158 */ 'double-quoted-scalar-escape-character': sequence(
     str('\\'),
     first(
       str('0'),
@@ -1113,20 +1114,20 @@ const BASE_GRAMMAR: Grammar = {
       str('_'),
       str('L'),
       str('P'),
-      [ str('x'), repeat('hexadecimal-digit', 2, 2) ],
-      [ str('u'), repeat('hexadecimal-digit', 4, 4) ],
-      [ str('U'), repeat('hexadecimal-digit', 8, 8) ],
+      sequence( str('x'), repeat('hexadecimal-digit', 2, 2) ),
+      sequence( str('u'), repeat('hexadecimal-digit', 4, 4) ),
+      sequence( str('U'), repeat('hexadecimal-digit', 8, 8) ),
     ),
-  ],
+  ),
 
-  /* 159 */ 'tag-character': [
+  /* 159 */ 'tag-character': sequence(
     negativeLookahead(str('!')),
     negativeLookahead('flow-collection-indicators'),
     'uri-character',
-  ],
+  ),
 
   /* 160 */ 'uri-character': first(
-    [ str('%'), repeat('hexadecimal-digit', 2, 2)],
+    sequence( str('%'), repeat('hexadecimal-digit', 2, 2)),
     'word-character',
     new CharSet(
       '#', ';', '/', '?', ':', '@', '&', '=', '+', '$',
@@ -1153,42 +1154,42 @@ const PATCHES: Grammar = {
   // Avoid unbounded repetition
   /* 2 */ 'document-prefix': first('byte-order-mark', 'blanks-and-comment-line'),
 
-  /* 15 */ 'block-collection': ({ n, c }) => [
-    optional([
+  /* 15 */ 'block-collection': ({ n, c }) => sequence(
+    optional(sequence(
       ref('separation-characters', { n: n + 1, c }),
       ref('block-collection-node-properties', { n: n + 1, c }),
-    ]),
+    )),
     'comment-lines',
     first(
       ref('block-sequence-context', { n, c }),
       ref('block-mapping', { n }),
     ),
-  ],
+  ),
 
-  'block-collection-node-properties': ({ n, c }) => [
+  'block-collection-node-properties': ({ n, c }) => sequence(
     first('anchor-property', 'tag-property'),
     first(
-      [
+      sequence(
         ref('separation-characters', { n, c }),
         ref('block-collection-node-properties', { n, c }),
-      ],
+      ),
       lookahead('comment-line'),
     ),
-  ],
+  ),
 
-  /* 44 */ 'block-scalar-indicators': ({ t }) => [
+  /* 44 */ 'block-scalar-indicators': ({ t }) => sequence(
     first(
-      [
+      sequence(
         'block-scalar-indentation-indicator',
         ref('block-scalar-chomping-indicator', { t }),
-      ],
-      [
+      ),
+      sequence(
         ref('block-scalar-chomping-indicator', { t }),
         optional('block-scalar-indentation-indicator'),
-      ],
+      ),
     ),
     'comment-line',
-  ],
+  ),
 
   /* 60 */ 'flow-mapping-implicit-entry': ({ n, c }) => first(
     ref('flow-mapping-json-key-entry', { n, c }),
@@ -1198,58 +1199,58 @@ const PATCHES: Grammar = {
 };
 
 // const SIMPLE_DIRECTIVES: Grammar = {
-//   /* 10 */ 'directive-line': [
+//   /* 10 */ 'directive-line': sequence(
 //     str('%'),
 //     'directive-name',
-//     star([
+//     star(sequence(
 //       'separation-blanks',
 //       'directive-parameter',
-//     ]),
+//     )),
 //     'comment-lines',
-//   ],
+//   ),
 // };
 
 const NO_LOOKBEHIND: Grammar = {
-  /* 100 */ 'plain-scalar-next-line': ({ n, c }) => [
+  /* 100 */ 'plain-scalar-next-line': ({ n, c }) => sequence(
     ref('flow-folded-whitespace', { n }),
     negativeLookahead('forbidden-content'), // TODO
     negativeLookahead(str('#')),
     ref('plain-scalar-characters', { c }),
     ref('plain-scalar-line-characters', { c }),
-  ],
+  ),
 
   /* 101 */ 'plain-scalar-line-characters': ({ c }) =>
-    star([
+    star(sequence(
       star('blank-character'),
       negativeLookahead(str('#')),
       plus(ref('plain-scalar-characters', { c })),
-    ]),
+    )),
 
   /* 103 */ 'plain-scalar-characters': ({ c }) => first(
-    [
+    sequence(
       negativeLookahead(new CharSet(':')),
       ref('non-space-plain-scalar-character', { c }),
-    ],
-    [
+    ),
+    sequence(
       str(':'),
       lookahead(ref('non-space-plain-scalar-character', { c }))
-    ],
+    ),
   ),
 };
 
 const ANNOTATION_INDICATORS = new CharSet('(', ')');
 
 const ANNOTATIONS: Grammar = {
-  'block-collection-node-properties': ({ n, c }) => [
+  'block-collection-node-properties': ({ n, c }) => sequence(
     first(ref('annotation-property', { n, c }), 'anchor-property', 'tag-property'),
     first(
-      [
+      sequence(
         ref('separation-characters', { n, c }),
         ref('block-collection-node-properties', { n, c }),
-      ],
+      ),
       lookahead('comment-line'),
     ),
-  ],
+  ),
 
   /* 87 */ 'flow-sequence-context': ({ n, c }) => context(c, {
     'FLOW-OUT': ref('flow-sequence-entries', { n, c: 'FLOW-IN' }),
@@ -1289,28 +1290,28 @@ const ANNOTATIONS: Grammar = {
     .minus(FLOW_COLLECTION_INDICATORS)
     .minus(ANNOTATION_INDICATORS),
 
-  'node-properties': ({ n, c }) => [
+  'node-properties': ({ n, c }) => sequence(
     first(ref('annotation-property', { n, c }), 'anchor-property', 'tag-property'),
-    optional([
+    optional(sequence(
       ref('separation-characters', { n, c }),
       ref('node-properties', { n, c }),
-    ]),
-  ],
+    )),
+  ),
 
-  'annotation-property': ({ n, c}) => [
+  'annotation-property': ({ n, c}) => sequence(
     str('@'),
     'annotation-name',
     optional(ref('annotation-arguments', { n, c })),
-  ],
+  ),
 
   'annotation-name': plus(ANCHOR_CHARACTER.minus(new CharSet('(', ')'))),
 
-  'annotation-arguments': ({ n }) => [
+  'annotation-arguments': ({ n }) => sequence(
     str('('),
     optional('separation-characters'),
     optional(ref('flow-sequence-context', { n, c: 'ANNOTATION-IN' })),
     str(')'),
-  ],
+  ),
 };
 
 export const GRAMMAR = {
