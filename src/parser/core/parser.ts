@@ -6,7 +6,7 @@ import type {
 import { CharSet } from './charSet';
 import { AstNode, Parameters } from './ast';
 import { safeAccessProxy } from '@/util/safeAccessProxy';
-import { single, charUtf16Width, objectHasOwn } from '@/util';
+import { single, charUtf16Width } from '@/util';
 
 import { EventEmitter } from '@/util/EventEmitter';
 
@@ -52,8 +52,6 @@ export class ParseOperation extends EventEmitter<{
   ): ParseResult {
     if (typeof node === 'string') {
       return this.parseRef(index, parameters, node);
-    } else if (typeof node === 'function') {
-      return this.parse(index, parameters, node(safeAccessProxy(parameters)));
     } else if (node instanceof CharSet) {
       const codePoint = this.text.codePointAt(index);
 
@@ -125,8 +123,6 @@ export class ParseOperation extends EventEmitter<{
   ) {
     this.stack.push(name);
     try {
-      if (!objectHasOwn(this.grammar, name)) throw new TypeError(`No production ${name}`);
-
       const params = [parameters.n, parameters.c, parameters.t].filter(p => p !== undefined);
       const displayName = name + (params.length ? `(${params.join(',')})` : '');
 
@@ -135,8 +131,15 @@ export class ParseOperation extends EventEmitter<{
         return null;
       }
 
+      const productionBody = this.grammar[name];
+      if (productionBody === undefined) throw new TypeError(`No production ${name}`);
+
       this.emit('node.in', { displayName, index });
-      const result = this.parse(index, parameters, this.grammar[name] as GrammarNode);
+
+      const result = typeof productionBody === 'function'
+        ? this.parse(index, parameters, productionBody(safeAccessProxy(parameters)))
+        : this.parse(index, parameters, productionBody);
+
       this.emit('node.out', { displayName, index, result });
 
       if (result) {

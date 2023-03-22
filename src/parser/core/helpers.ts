@@ -3,7 +3,6 @@ import { type Parameters } from './ast';
 
 export type GrammarNode =
   | string
-  | ((p: Required<Parameters>) => GrammarNode)
   | CharSet
   | { type: 'NAMED', name: string, child: GrammarNode }
   | { type: 'EMPTY' }
@@ -19,7 +18,9 @@ export type GrammarNode =
   | { type: 'DETECT_INDENTATION', min: number, child: (m: number) => GrammarNode }
 ;
 
-export type Grammar = { [K in string]?: GrammarNode };
+export type ProductionBody = GrammarNode | ((p: Required<Parameters>) => GrammarNode);
+
+export type Grammar = { [K in string]?: ProductionBody };
 
 export function named(name: string, child: GrammarNode) {
   return { type: 'NAMED', name, child } as const;
