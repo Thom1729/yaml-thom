@@ -71,7 +71,7 @@ const JSON_CHARACTER = new CharSet(0x09, [0x20, 0x10ffff]);
 
 const ASCII_ALPHA_CHARACTER = new CharSet([0x41, 0x5a], [0x61, 0x7a]);
 
-const x = new CharSet(
+const PLAIN_SCALAR_FIRST_CHARACTER = NON_SPACE_CHARACTER.minus(new CharSet(
   '?', // Mapping key
   ':', // Mapping value
   '-', // Sequence entry
@@ -91,8 +91,7 @@ const x = new CharSet(
   '%', // Directive
   '@', // Reserved
   '`', // Reserved
-);
-const PLAIN_SCALAR_FIRST_CHARACTER = NON_SPACE_CHARACTER.minus(x);
+));
 
 const BASE_GRAMMAR: Grammar = {
   /* 1 */ 'yaml-stream': sequence(
@@ -103,7 +102,7 @@ const BASE_GRAMMAR: Grammar = {
       'byte-order-mark',
       'comment-line',
       'start-indicator-and-document',
-    ))
+    )),
   ),
 
   /* 2 */ 'document-prefix': sequence(
