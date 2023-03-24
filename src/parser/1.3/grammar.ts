@@ -285,8 +285,6 @@ const BASE_GRAMMAR: Grammar = {
     detectIndentation(1, m => sequence(
       ref('indentation-spaces', { n: m }),
       first(
-        // ref('compact-sequence', { n: m }),
-        // ref('compact-mapping', { n: m }),
         ref('compact-sequence', { n: n + m + 1 }),
         ref('compact-mapping', { n: n + m + 1 }),
       ),
@@ -310,7 +308,6 @@ const BASE_GRAMMAR: Grammar = {
     ...Object.values(ChompingBehavior).map(t => sequence(
       str('|'),
       ref('block-scalar-indicators', { t }),
-      // detectIndentation(0, m => ref('literal-scalar-content', { n: n + m, t })),
       // detectIndentation(n, m => ref('literal-scalar-content', { n: m, t })),
       ref('literal-scalar-content', { n: n => n + 1, t }),
     ))
@@ -345,14 +342,6 @@ const BASE_GRAMMAR: Grammar = {
       ref('folded-scalar-content', { n: n => n + 1 }, { t }),
     ))
   ),
-
-  // /* 35 */ 'block-folded-scalar': ({ n }) => first(
-  //   ...Object.values(ChompingBehavior).map(t => sequence(
-  //     str('>'),
-  //     optional(ref('block-scalar-indicators', 't')),
-  //     detectIndentation(0, m => ref('folded-scalar-content', { n: n + m, t })),
-  //   ))
-  // ),
 
   /* 36 */ 'folded-scalar-content': sequence(
     optional(sequence(
