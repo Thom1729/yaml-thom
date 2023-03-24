@@ -284,7 +284,7 @@ export class ParseOperation extends EventEmitter<{
     index: number,
     parameters: Parameters,
     min: number | ((n: number) => number),
-    arg: GrammarNode | ((m: number) => GrammarNode),
+    child: GrammarNode,
   ) {
     let minValue;
     if (typeof min === 'function') {
@@ -297,8 +297,6 @@ export class ParseOperation extends EventEmitter<{
 
     let m = 0;
     while (this.text[index + m] === ' ') m++;
-
-    const child = typeof arg === 'function' ? arg(m) : arg;
 
     if (m >= minValue) {
       return this.parse(index, { ...parameters, m }, child);

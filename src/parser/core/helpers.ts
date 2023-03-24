@@ -22,7 +22,7 @@ export type GrammarNode =
   | { type: 'REPEAT', child: GrammarNode, min: number, max: number }
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', charSet: CharSet }
-  | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode | ((m: number) => GrammarNode) }
+  | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode }
   | { type: 'CONTEXT', parameter: keyof Parameters, cases: { [K in string]?: GrammarNode } }
 ;
 
@@ -91,7 +91,7 @@ export function lookbehind(charSet: CharSet) {
   return { type: 'LOOKBEHIND', charSet } as const;
 }
 
-export function detectIndentation<const Child extends GrammarNode>(min: number | ((n: number) => number), child: Child | ((m: number) => Child)) {
+export function detectIndentation<const Child extends GrammarNode>(min: number | ((n: number) => number), child: Child) {
   return { type: 'DETECT_INDENTATION', min, child } as const;
 }
 
