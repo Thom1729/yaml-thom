@@ -20,7 +20,7 @@ export type GrammarNode =
   | { type: 'REPEAT', child: GrammarNode, min: number, max: number }
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', charSet: CharSet }
-  | { type: 'DETECT_INDENTATION', min: number, child: (m: number) => GrammarNode }
+  | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: (m: number) => GrammarNode }
   | { type: 'CONTEXT', parameter: keyof Parameters, cases: { [K in string]?: GrammarNode } }
 ;
 

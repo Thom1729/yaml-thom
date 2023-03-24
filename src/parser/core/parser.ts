@@ -285,13 +285,22 @@ export class ParseOperation extends EventEmitter<{
   parseDetectIndentation(
     index: number,
     parameters: Parameters,
-    min: number,
+    min: number | ((n: number) => number),
     arg: (m: number) => GrammarNode,
   ) {
+    let minValue;
+    if (typeof min === 'function') {
+      const n = parameters.n;
+      if (n === undefined) throw new Error(`n not defined`);
+      minValue = min(n);
+    } else {
+      minValue = min;
+    }
+
     let m = 0;
     while (this.text[index + m] === ' ') m++;
 
-    if (m >= min) {
+    if (m >= minValue) {
       return this.parse(index, parameters, arg(m));
     } else {
       return null;
