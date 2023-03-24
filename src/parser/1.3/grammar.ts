@@ -281,7 +281,7 @@ const BASE_GRAMMAR: Grammar = {
     ref('block-indented-node', 'n', { c: 'BLOCK-IN' }),
   ),
 
-  /* 29 */ 'block-indented-node': ({ n }) => first(
+  /* 29 */ 'block-indented-node': first(
     detectIndentation(1, m => sequence(
       ref('indentation-spaces', { n: m }),
       first(
