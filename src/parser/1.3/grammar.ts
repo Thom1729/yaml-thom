@@ -285,8 +285,8 @@ const BASE_GRAMMAR: Grammar = {
     detectIndentation(1, m => sequence(
       ref('indentation-spaces', { n: m }),
       first(
-        ref('compact-sequence', { n: n + m + 1 }),
-        ref('compact-mapping', { n: n + m + 1 }),
+        ref('compact-sequence', { n: n => n + m + 1 }),
+        ref('compact-mapping', { n: n => n + m + 1 }),
       ),
     )),
     ref('block-node', 'n', 'c'),
