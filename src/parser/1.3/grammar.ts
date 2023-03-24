@@ -190,7 +190,7 @@ const BASE_GRAMMAR: Grammar = {
     ),
   ),
 
-  /* 16 */ 'block-sequence-context': ({ c }) => context(c, {
+  /* 16 */ 'block-sequence-context': context('c', {
     'BLOCK-OUT': ref('block-sequence', { n: n => n - 1 }),
     'BLOCK-IN': ref('block-sequence', 'n'),
   }),
@@ -428,19 +428,19 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 45 */ 'block-scalar-indentation-indicator': 'decimal-digit-1-9',
 
-  /* 46 */ 'block-scalar-chomping-indicator': ({ t }) => context(t, {
+  /* 46 */ 'block-scalar-chomping-indicator': context('t', {
     STRIP: str('-'),
     KEEP: str('+'),
     CLIP: empty,
   }),
 
-  /* 47 */ 'block-scalar-chomp-last': ({ t }) => context(t, {
+  /* 47 */ 'block-scalar-chomp-last': context('t', {
     STRIP: first('line-break', endOfInput),
     KEEP: first('break-as-line-feed', endOfInput),
     CLIP: first('break-as-line-feed', endOfInput),
   }),
 
-  /* 48 */ 'block-scalar-chomp-empty': ({ t }) => context(t, {
+  /* 48 */ 'block-scalar-chomp-empty': context('t', {
     'STRIP': ref('line-strip-empty', 'n'),
     'CLIP': ref('line-strip-empty', 'n'),
     'KEEP': ref('line-keep-empty', 'n'),
@@ -670,7 +670,7 @@ const BASE_GRAMMAR: Grammar = {
     str('"'),
   ),
 
-  /* 78 */ 'double-quoted-text': ({ c }) => context(c, {
+  /* 78 */ 'double-quoted-text': context('c', {
     'BLOCK-KEY': 'double-quoted-one-line',
     'FLOW-KEY': 'double-quoted-one-line',
     'FLOW-OUT': ref('double-quoted-multi-line', 'n'),
@@ -729,14 +729,14 @@ const BASE_GRAMMAR: Grammar = {
     ref('indentation-spaces-plus-maybe-more', 'n'),
   ),
 
-  /* 86 */ 'flow-mapping-context': ({ c }) => context(c, {
+  /* 86 */ 'flow-mapping-context': context('c', {
     'FLOW-OUT': ref('flow-mapping-entries', 'n', { c: 'FLOW-IN' }),
     'FLOW-IN' : ref('flow-mapping-entries', 'n', { c: 'FLOW-IN' }),
     'BLOCK-KEY': ref('flow-mapping-entries', 'n', { c: 'FLOW-KEY' }),
     'FLOW-KEY' : ref('flow-mapping-entries', 'n', { c: 'FLOW-KEY' }),
   }),
 
-  /* 87 */ 'flow-sequence-context': ({ c }) => context(c, {
+  /* 87 */ 'flow-sequence-context': context('c', {
     'FLOW-OUT': ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
     'FLOW-IN' : ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
     'BLOCK-KEY': ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
@@ -749,7 +749,7 @@ const BASE_GRAMMAR: Grammar = {
     str('\''),
   ),
 
-  /* 89 */ 'single-quoted-text': ({ c }) => context(c, {
+  /* 89 */ 'single-quoted-text': context('c', {
     'BLOCK-KEY': 'single-quoted-one-line',
     'FLOW-KEY': 'single-quoted-one-line',
     'FLOW-OUT': ref('single-quoted-multi-line', 'n'),
@@ -798,7 +798,7 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 96 */ 'single-quoted-escaped-single-quote': str('\'\''),
 
-  /* 97 */ 'flow-plain-scalar': ({ c }) => context(c, {
+  /* 97 */ 'flow-plain-scalar': context('c', {
     'FLOW-OUT': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-OUT' }),
     'FLOW-IN': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-IN' }),
     'BLOCK-KEY': ref('plain-scalar-single-line', { c: 'BLOCK-KEY' }),
@@ -852,7 +852,7 @@ const BASE_GRAMMAR: Grammar = {
     ),
   ),
 
-  /* 104 */ 'non-space-plain-scalar-character': ({ c }) => context(c, {
+  /* 104 */ 'non-space-plain-scalar-character': context('c', {
     'FLOW-OUT': 'block-plain-scalar-character',
     'FLOW-IN': 'flow-plain-scalar-character',
     'BLOCK-KEY': 'block-plain-scalar-character',
@@ -876,7 +876,7 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 111 */ 'indentation-spaces-less-than-or-equal': ({ n }) => repeat('space-character', 0, n+1),
 
-  /* 112 */ 'line-prefix-spaces': ({ c }) => context(c, {
+  /* 112 */ 'line-prefix-spaces': context('c', {
     'BLOCK-OUT': ref('indentation-spaces-exact', 'n'),
     'BLOCK-IN': ref('indentation-spaces-exact', 'n'),
     'FLOW-OUT': ref('indentation-spaces-plus-maybe-more', 'n'),
@@ -927,7 +927,7 @@ const BASE_GRAMMAR: Grammar = {
     'break-as-line-feed',
   ),
 
-  /* 122 */ 'separation-characters': ({ c }) => context(c, {
+  /* 122 */ 'separation-characters': context('c', {
     'BLOCK-OUT': ref('separation-lines', 'n'),
     'BLOCK-IN': ref('separation-lines', 'n'),
     'FLOW-OUT': ref('separation-lines', 'n'),
@@ -1239,79 +1239,79 @@ const NO_LOOKBEHIND: Grammar = {
 
 const ANNOTATION_INDICATORS = new CharSet('(', ')');
 
-const ANNOTATIONS = {
-  'block-collection-node-properties': sequence(
-    first(ref('annotation-property', 'n', 'c'), 'anchor-property', 'tag-property'),
-    first(
-      sequence(
-        ref('separation-characters', 'n', 'c'),
-        ref('block-collection-node-properties', 'n', 'c'),
-      ),
-      lookahead('comment-line'),
-    ),
-  ),
+// const ANNOTATIONS = {
+//   'block-collection-node-properties': sequence(
+//     first(ref('annotation-property', 'n', 'c'), 'anchor-property', 'tag-property'),
+//     first(
+//       sequence(
+//         ref('separation-characters', 'n', 'c'),
+//         ref('block-collection-node-properties', 'n', 'c'),
+//       ),
+//       lookahead('comment-line'),
+//     ),
+//   ),
 
-  /* 87 */ 'flow-sequence-context': ({ c }) => context(c, {
-    'FLOW-OUT': ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
-    'FLOW-IN' : ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
-    'BLOCK-KEY': ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
-    'FLOW-KEY' : ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
-    'ANNOTATION-IN' : ref('flow-sequence-entries', 'n', { c: 'ANNOTATION-IN' }),
-  }),
+//   /* 87 */ 'flow-sequence-context': context('c', {
+//     'FLOW-OUT': ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
+//     'FLOW-IN' : ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
+//     'BLOCK-KEY': ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
+//     'FLOW-KEY' : ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
+//     'ANNOTATION-IN' : ref('flow-sequence-entries', 'n', { c: 'ANNOTATION-IN' }),
+//   }),
 
-  /* 97 */ 'flow-plain-scalar': ({ c }) => context(c, {
-    'FLOW-OUT': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-OUT' }),
-    'FLOW-IN': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-IN' }),
-    'BLOCK-KEY': ref('plain-scalar-single-line', { c: 'BLOCK-KEY' }),
-    'FLOW-KEY': ref('plain-scalar-single-line', { c: 'FLOW-KEY' }),
-    'ANNOTATION-IN': ref('plain-scalar-multi-line', 'n', { c: 'ANNOTATION-IN' }),
-  }),
+//   /* 97 */ 'flow-plain-scalar': context('c', {
+//     'FLOW-OUT': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-OUT' }),
+//     'FLOW-IN': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-IN' }),
+//     'BLOCK-KEY': ref('plain-scalar-single-line', { c: 'BLOCK-KEY' }),
+//     'FLOW-KEY': ref('plain-scalar-single-line', { c: 'FLOW-KEY' }),
+//     'ANNOTATION-IN': ref('plain-scalar-multi-line', 'n', { c: 'ANNOTATION-IN' }),
+//   }),
 
-  /* 104 */ 'non-space-plain-scalar-character': ({ c }) => context(c, {
-    'FLOW-OUT': 'block-plain-scalar-character',
-    'FLOW-IN': 'flow-plain-scalar-character',
-    'BLOCK-KEY': 'block-plain-scalar-character',
-    'FLOW-KEY': 'flow-plain-scalar-character',
-    'ANNOTATION-IN': 'annotation-plain-scalar-character',
-  }),
+//   /* 104 */ 'non-space-plain-scalar-character': context('c', {
+//     'FLOW-OUT': 'block-plain-scalar-character',
+//     'FLOW-IN': 'flow-plain-scalar-character',
+//     'BLOCK-KEY': 'block-plain-scalar-character',
+//     'FLOW-KEY': 'flow-plain-scalar-character',
+//     'ANNOTATION-IN': 'annotation-plain-scalar-character',
+//   }),
 
-  /* 122 */ 'separation-characters': ({ c }) => context(c, {
-    'BLOCK-OUT': ref('separation-lines', 'n'),
-    'BLOCK-IN': ref('separation-lines', 'n'),
-    'FLOW-OUT': ref('separation-lines', 'n'),
-    'FLOW-IN': ref('separation-lines', 'n'),
-    'ANNOTATION-IN': ref('separation-lines', 'n'),
-    'BLOCK-KEY': 'separation-blanks',
-    'FLOW-KEY': 'separation-blanks',
-  }),
+//   /* 122 */ 'separation-characters': context('c', {
+//     'BLOCK-OUT': ref('separation-lines', 'n'),
+//     'BLOCK-IN': ref('separation-lines', 'n'),
+//     'FLOW-OUT': ref('separation-lines', 'n'),
+//     'FLOW-IN': ref('separation-lines', 'n'),
+//     'ANNOTATION-IN': ref('separation-lines', 'n'),
+//     'BLOCK-KEY': 'separation-blanks',
+//     'FLOW-KEY': 'separation-blanks',
+//   }),
 
-  'annotation-plain-scalar-character': NON_SPACE_CHARACTER
-    .minus(FLOW_COLLECTION_INDICATORS)
-    .minus(ANNOTATION_INDICATORS),
+//   'annotation-plain-scalar-character': NON_SPACE_CHARACTER
+//     .minus(FLOW_COLLECTION_INDICATORS)
+//     .minus(ANNOTATION_INDICATORS),
 
-  'node-properties': sequence(
-    first(ref('annotation-property', 'n', 'c'), 'anchor-property', 'tag-property'),
-    optional(sequence(
-      ref('separation-characters', 'n', 'c'),
-      ref('node-properties', 'n', 'c'),
-    )),
-  ),
+//   'node-properties': sequence(
+//     first(ref('annotation-property', 'n', 'c'), 'anchor-property', 'tag-property'),
+//     optional(sequence(
+//       ref('separation-characters', 'n', 'c'),
+//       ref('node-properties', 'n', 'c'),
+//     )),
+//   ),
 
-  'annotation-property': sequence(
-    str('@'),
-    'annotation-name',
-    optional(ref('annotation-arguments', 'n', 'c')),
-  ),
+//   'annotation-property': sequence(
+//     str('@'),
+//     'annotation-name',
+//     optional(ref('annotation-arguments', 'n', 'c')),
+//   ),
 
-  'annotation-name': plus(ANCHOR_CHARACTER.minus(new CharSet('(', ')'))),
+//   'annotation-name': plus(ANCHOR_CHARACTER.minus(new CharSet('(', ')'))),
 
-  'annotation-arguments': sequence(
-    str('('),
-    optional('separation-characters'),
-    optional(ref('flow-sequence-context', 'n', { c: 'ANNOTATION-IN' })),
-    str(')'),
-  ),
-} as const satisfies Grammar;
+//   'annotation-arguments': sequence(
+//     str('('),
+//     optional('separation-characters'),
+//     optional(ref('flow-sequence-context', 'n', { c: 'ANNOTATION-IN' })),
+//     str(')'),
+//   ),
+// } as const satisfies Grammar;
 
 export const GRAMMAR = {
   ...BASE_GRAMMAR,

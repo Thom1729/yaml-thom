@@ -112,6 +112,8 @@ export class ParseOperation extends EventEmitter<{
       return this.parseLookbehind(index, node.charSet);
     } else if (node.type === 'DETECT_INDENTATION') {
       return this.parseDetectIndentation(index, parameters, node.min, node.child);
+    } else if (node.type === 'CONTEXT') {
+      return this.parseContext(index, parameters, node.parameter, node.cases);
     }
 
     throw new TypeError(node);
@@ -294,5 +296,20 @@ export class ParseOperation extends EventEmitter<{
     } else {
       return null;
     }
+  }
+
+  parseContext(
+    index: number,
+    parameters: Parameters,
+    parameter: keyof Parameters,
+    cases: { [K in string]?: GrammarNode },
+  ) {
+    const value = parameters[parameter];
+    if (value === undefined) throw new Error(`Parameter ${parameter} is undefined`);
+
+    const child = cases[value];
+    if (child === undefined) throw new Error(`Unhandled value ${value} for parameter ${parameter}`);
+
+    return this.parse(index, parameters, child);
   }
 }

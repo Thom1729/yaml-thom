@@ -21,6 +21,7 @@ export type GrammarNode =
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', charSet: CharSet }
   | { type: 'DETECT_INDENTATION', min: number, child: (m: number) => GrammarNode }
+  | { type: 'CONTEXT', parameter: keyof Parameters, cases: { [K in string]?: GrammarNode } }
 ;
 
 export type ProductionBody = GrammarNode | ((p: Required<Parameters>) => GrammarNode);
@@ -98,26 +99,13 @@ export function minus<Child extends GrammarNode>(p: Child, ...rest: readonly Gra
 
 //////////
 
-export function context<T extends string>(
-  c: T,
-  cases: { [K in T]?: GrammarNode },
+export function context<T extends keyof Parameters>(
+  parameter: T,
+  cases: { [K in Parameters[T] & string]?: GrammarNode },
 ) {
-  const result = cases[c];
-  if (result === undefined) {
-    throw new TypeError(`Unexpected context type ${c}`);
-  } else {
-    return result as GrammarNode;
-  }
+  return {
+    type: 'CONTEXT',
+    parameter,
+    cases,
+  } as const;
 }
-
-// export function context<T extends string>(
-//   c: T,
-//   cases: { [K in T]?: GrammarNode },
-// ) {
-//   const result = cases[c];
-//   if (result === undefined) {
-//     throw new TypeError(`Unexpected context type ${c}`);
-//   } else {
-//     return result as GrammarNode;
-//   }
-// }
