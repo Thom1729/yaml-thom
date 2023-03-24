@@ -173,15 +173,15 @@ const BASE_GRAMMAR: Grammar = {
   ),
 
   /* 14 */ 'flow-node-in-a-block-node': ({ n }) => sequence(
-    ref('separation-characters', { n: n + 1, c: 'FLOW-OUT' }),
-    ref('flow-node', { n: n + 1, c: 'FLOW-OUT' }),
+    ref('separation-characters', { n: n => n + 1, c: 'FLOW-OUT' }),
+    ref('flow-node', { n: n => n + 1, c: 'FLOW-OUT' }),
     'comment-lines',
   ),
 
   /* 15 */ 'block-collection': ({ n, c }) => sequence(
     optional(sequence(
-      ref('separation-characters', { n: n + 1, c }),
-      ref('node-properties', { n: n + 1, c }),
+      ref('separation-characters', { n: n => n + 1, c }),
+      ref('node-properties', { n: n => n + 1, c }),
     )),
     'comment-lines',
     first(

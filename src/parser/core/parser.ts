@@ -1,12 +1,13 @@
 import type {
   Grammar,
   GrammarNode,
+  RefParameters,
 } from './helpers';
 
 import { CharSet } from './charSet';
 import { AstNode, Parameters } from './ast';
 import { safeAccessProxy } from '@/util/safeAccessProxy';
-import { single, charUtf16Width } from '@/util';
+import { single, charUtf16Width, objectEntries } from '@/util';
 
 import { EventEmitter } from '@/util/EventEmitter';
 
@@ -51,7 +52,7 @@ export class ParseOperation extends EventEmitter<{
     node: GrammarNode,
   ): ParseResult {
     if (typeof node === 'string') {
-      return this.parseRef(index, parameters, node);
+      return this.parseRef(index, parameters, {}, node);
     } else if (node instanceof CharSet) {
       const codePoint = this.text.codePointAt(index);
 
@@ -98,7 +99,7 @@ export class ParseOperation extends EventEmitter<{
         return null;
       }
     } else if (node.type === 'REF') {
-      return this.parseRef(index, node.parameters, node.name);
+      return this.parseRef(index, parameters, node.parameters, node.name);
     } else if (node.type === 'SEQUENCE') {
       return this.parseSequence(index, parameters, node.children);
     } else if (node.type === 'FIRST') {
@@ -118,11 +119,21 @@ export class ParseOperation extends EventEmitter<{
 
   parseRef(
     index: number,
-    parameters: Parameters,
+    oldParameters: Parameters,
+    refParameters: RefParameters,
     name: string,
   ) {
     this.stack.push(name);
     try {
+      const parameters = Object.fromEntries(objectEntries(refParameters).map(
+        ([name, value]) => [
+          name,
+          typeof value === 'function'
+            ? (value as (x: unknown) => never)(oldParameters[name])
+            : value
+        ] as const
+      )) as Parameters;
+
       const params = [parameters.n, parameters.c, parameters.t].filter(p => p !== undefined);
       const displayName = name + (params.length ? `(${params.join(',')})` : '');
 
@@ -132,7 +143,10 @@ export class ParseOperation extends EventEmitter<{
       }
 
       const productionBody = this.grammar[name];
-      if (productionBody === undefined) throw new TypeError(`No production ${name}`);
+      if (productionBody === undefined) {
+        console.error(`Stack: ${this.stack.slice().reverse().join(' ')}`);
+        throw new TypeError(`No production ${name}`);
+      }
 
       this.emit('node.in', { displayName, index });
 

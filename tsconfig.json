@@ -5,6 +5,7 @@
       "target": "es2021",
 
       "strict": true,
+      "exactOptionalPropertyTypes": true,
       "esModuleInterop": true,
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,

@@ -1,6 +1,10 @@
 import { type CharSet } from './charSet';
 import { type Parameters } from './ast';
 
+export type RefParameters = {
+  [K in keyof Parameters]?: Required<Parameters>[K] | ((p: Required<Parameters>[K]) => Required<Parameters>[K])
+};
+
 export type GrammarNode =
   | string
   | CharSet
@@ -9,7 +13,7 @@ export type GrammarNode =
   | { type: 'START_OF_LINE' }
   | { type: 'END_OF_INPUT' }
   | { type: 'STRING', string: string }
-  | { type: 'REF', name: string, parameters: Parameters }
+  | { type: 'REF', name: string, parameters: RefParameters }
   | { type: 'SEQUENCE', children: readonly GrammarNode[] }
   | { type: 'FIRST', children: readonly GrammarNode[] }
   | { type: 'REPEAT', child: GrammarNode, min: number, max: number }
@@ -36,7 +40,7 @@ export function str<T extends string>(string: T) {
   return { type: 'STRING', string } as const;
 }
 
-export function ref<const Name extends string>(name: Name, parameters: Parameters) {
+export function ref<const Name extends string>(name: Name, parameters: RefParameters) {
   return { type: 'REF', name, parameters } as const;
 }
 
