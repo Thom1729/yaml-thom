@@ -131,9 +131,7 @@ export class ParseOperation extends EventEmitter<{
         ([name, given]) => {
           let value;
           if (typeof given === 'function') {
-            const previous = oldParameters[name];
-            if (previous === undefined) throw new Error(`Parameter ${name} is undefined`);
-            value = given(previous as never);
+            value = given(safeAccessProxy(oldParameters));
           } else {
             value = given;
           }
@@ -286,7 +284,7 @@ export class ParseOperation extends EventEmitter<{
     index: number,
     parameters: Parameters,
     min: number | ((n: number) => number),
-    arg: (m: number) => GrammarNode,
+    arg: GrammarNode | ((m: number) => GrammarNode),
   ) {
     let minValue;
     if (typeof min === 'function') {
@@ -300,8 +298,10 @@ export class ParseOperation extends EventEmitter<{
     let m = 0;
     while (this.text[index + m] === ' ') m++;
 
+    const child = typeof arg === 'function' ? arg(m) : arg;
+
     if (m >= minValue) {
-      return this.parse(index, parameters, arg(m));
+      return this.parse(index, { ...parameters, m }, child);
     } else {
       return null;
     }

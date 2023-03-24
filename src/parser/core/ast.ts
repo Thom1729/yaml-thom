@@ -9,6 +9,7 @@ export interface AstNode<T = string> {
 
 export interface Parameters {
   n?: number,
+  m?: number,
   c?: ContextType,
   t?: ChompingBehavior,
 }

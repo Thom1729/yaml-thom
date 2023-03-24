@@ -3,7 +3,9 @@ import { type Parameters } from './ast';
 import { objectEntries, strictFromEntries } from '@/util';
 
 export type RefParameters = {
-  [K in keyof Parameters]?: Required<Parameters>[K] | ((p: Required<Parameters>[K]) => Required<Parameters>[K])
+  [K in keyof Parameters]?:
+  | Required<Parameters>[K]
+  | ((p: Required<Parameters>) => Required<Parameters>[K])
 };
 
 export type GrammarNode =
@@ -20,7 +22,7 @@ export type GrammarNode =
   | { type: 'REPEAT', child: GrammarNode, min: number, max: number }
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', charSet: CharSet }
-  | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: (m: number) => GrammarNode }
+  | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode | ((m: number) => GrammarNode) }
   | { type: 'CONTEXT', parameter: keyof Parameters, cases: { [K in string]?: GrammarNode } }
 ;
 
@@ -46,7 +48,7 @@ export function ref<const Name extends string>(name: Name, ...args: (RefParamete
   const parameters = strictFromEntries(
     args.flatMap(arg =>
       typeof arg === 'string'
-        ? [[arg, ((arg: unknown) => arg) as any] as const]
+        ? [[arg, ((parameters: Parameters) => parameters[arg]) as any] as const]
         : objectEntries(arg)
     )
   );
@@ -89,7 +91,7 @@ export function lookbehind(charSet: CharSet) {
   return { type: 'LOOKBEHIND', charSet } as const;
 }
 
-export function detectIndentation<const Child extends GrammarNode>(min: number, child: (m: number) => Child) {
+export function detectIndentation<const Child extends GrammarNode>(min: number | ((n: number) => number), child: Child | ((m: number) => Child)) {
   return { type: 'DETECT_INDENTATION', min, child } as const;
 }
 

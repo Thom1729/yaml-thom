@@ -173,15 +173,15 @@ const BASE_GRAMMAR: Grammar = {
   ),
 
   /* 14 */ 'flow-node-in-a-block-node': sequence(
-    ref('separation-characters', { n: n => n + 1, c: 'FLOW-OUT' }),
-    ref('flow-node', { n: n => n + 1, c: 'FLOW-OUT' }),
+    ref('separation-characters', { n: ({ n }) => n + 1, c: 'FLOW-OUT' }),
+    ref('flow-node', { n: ({ n }) => n + 1, c: 'FLOW-OUT' }),
     'comment-lines',
   ),
 
   /* 15 */ 'block-collection': sequence(
     optional(sequence(
-      ref('separation-characters', { n: n => n + 1 }, 'c'),
-      ref('node-properties', { n: n => n + 1 }, 'c'),
+      ref('separation-characters', { n: ({ n }) => n + 1 }, 'c'),
+      ref('node-properties', { n: ({ n }) => n + 1 }, 'c'),
     )),
     'comment-lines',
     first(
@@ -191,15 +191,15 @@ const BASE_GRAMMAR: Grammar = {
   ),
 
   /* 16 */ 'block-sequence-context': context('c', {
-    'BLOCK-OUT': ref('block-sequence', { n: n => n - 1 }),
+    'BLOCK-OUT': ref('block-sequence', { n: ({ n }) => n - 1 }),
     'BLOCK-IN': ref('block-sequence', 'n'),
   }),
 
   /* 17 */ 'block-scalar': sequence(
-    ref('separation-characters', { n: n => n + 1 }, 'c'),
+    ref('separation-characters', { n: ({ n }) => n + 1 }, 'c'),
     optional(sequence(
-      ref('node-properties', { n: n => n + 1 }, 'c'),
-      ref('separation-characters', { n: n => n + 1 }, 'c'),
+      ref('node-properties', { n: ({ n }) => n + 1 }, 'c'),
+      ref('separation-characters', { n: ({ n }) => n + 1 }, 'c'),
     )),
     first(
       ref('block-literal-scalar', 'n'),
@@ -207,10 +207,10 @@ const BASE_GRAMMAR: Grammar = {
     ),
   ),
 
-  /* 18 */ 'block-mapping': ({ n }) =>
-    detectIndentation(n + 1, m => plus(sequence(
-      ref('indentation-spaces', { n: m }),
-      ref('block-mapping-entry', { n: m }),
+  /* 18 */ 'block-mapping':
+    detectIndentation(n => n + 1, plus(sequence(
+      ref('indentation-spaces', { n: ({ m }) => m }),
+      ref('block-mapping-entry', { n: ({ m }) => m }),
     ))),
 
   /* 19 */ 'block-mapping-entry': first(
@@ -226,12 +226,12 @@ const BASE_GRAMMAR: Grammar = {
     ),
   ),
 
-  /* 21 */ 'block-mapping-explicit-key': ({ n }) => sequence(
+  /* 21 */ 'block-mapping-explicit-key': sequence(
     str('?'),
     ref('block-indented-node', 'n', { c: 'BLOCK-OUT' }),
   ),
 
-  /* 22 */ 'block-mapping-explicit-value': ({ n }) => sequence(
+  /* 22 */ 'block-mapping-explicit-value': sequence(
     ref('indentation-spaces', 'n'),
     str(':'),
     ref('block-indented-node', 'n', { c: 'BLOCK-OUT' }),
@@ -269,10 +269,10 @@ const BASE_GRAMMAR: Grammar = {
     )),
   ),
 
-  /* 27 */ 'block-sequence': ({ n }) =>
-    detectIndentation(n + 1, m => plus(sequence(
-      ref('indentation-spaces', { n: m }),
-      ref('block-sequence-entry', { n: m }),
+  /* 27 */ 'block-sequence':
+    detectIndentation(n => n + 1, plus(sequence(
+      ref('indentation-spaces', { n: ({ m }) => m }),
+      ref('block-sequence-entry', { n: ({ m }) => m }),
     ))),
 
   /* 28 */ 'block-sequence-entry': sequence(
@@ -282,11 +282,11 @@ const BASE_GRAMMAR: Grammar = {
   ),
 
   /* 29 */ 'block-indented-node': first(
-    detectIndentation(1, m => sequence(
-      ref('indentation-spaces', { n: m }),
+    detectIndentation(1, sequence(
+      ref('indentation-spaces', { n: ({ m }) => m }),
       first(
-        ref('compact-sequence', { n: n => n + m + 1 }),
-        ref('compact-mapping', { n: n => n + m + 1 }),
+        ref('compact-sequence', { n: ({ n, m }) => n + m + 1 }),
+        ref('compact-mapping', { n: ({ n, m }) => n + m + 1 }),
       ),
     )),
     ref('block-node', 'n', 'c'),
@@ -308,8 +308,8 @@ const BASE_GRAMMAR: Grammar = {
     ...Object.values(ChompingBehavior).map(t => sequence(
       str('|'),
       ref('block-scalar-indicators', { t }),
-      // detectIndentation(n, m => ref('literal-scalar-content', { n: m, t })),
-      ref('literal-scalar-content', { n: n => n + 1, t }),
+      // detectIndentation(({ n }) => n, ref('literal-scalar-content', { n: ({ m }) => m, t })),
+      ref('literal-scalar-content', { n: ({ n }) => n + 1, t }),
     ))
   ),
 
@@ -338,8 +338,8 @@ const BASE_GRAMMAR: Grammar = {
     ...Object.values(ChompingBehavior).map(t => sequence(
       str('>'),
       ref('block-scalar-indicators', { t }),
-      // detectIndentation(0, m => ref('folded-scalar-content', { n: n + m, t })),
-      ref('folded-scalar-content', { n: n => n + 1 }, { t }),
+      // detectIndentation(0, ref('folded-scalar-content', { n: ({ n, m }) => n + m, t })),
+      ref('folded-scalar-content', { n: ({ n }) => n + 1 }, { t }),
     ))
   ),
 
@@ -1144,8 +1144,8 @@ const PATCHES: Grammar = {
 
   /* 15 */ 'block-collection': sequence(
     optional(sequence(
-      ref('separation-characters', { n: n => n + 1 }, 'c'),
-      ref('block-collection-node-properties', { n: n => n + 1 }, 'c'),
+      ref('separation-characters', { n: ({ n }) => n + 1 }, 'c'),
+      ref('block-collection-node-properties', { n: ({ n }) => n + 1 }, 'c'),
     )),
     'comment-lines',
     first(
@@ -1226,7 +1226,7 @@ const NO_LOOKBEHIND: Grammar = {
   ),
 };
 
-const ANNOTATION_INDICATORS = new CharSet('(', ')');
+// const ANNOTATION_INDICATORS = new CharSet('(', ')');
 
 // const ANNOTATIONS = {
 //   'block-collection-node-properties': sequence(
