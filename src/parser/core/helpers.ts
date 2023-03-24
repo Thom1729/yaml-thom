@@ -1,5 +1,6 @@
 import { type CharSet } from './charSet';
 import { type Parameters } from './ast';
+import { objectEntries, strictFromEntries } from '@/util';
 
 export type RefParameters = {
   [K in keyof Parameters]?: Required<Parameters>[K] | ((p: Required<Parameters>[K]) => Required<Parameters>[K])
@@ -40,7 +41,14 @@ export function str<T extends string>(string: T) {
   return { type: 'STRING', string } as const;
 }
 
-export function ref<const Name extends string>(name: Name, parameters: RefParameters) {
+export function ref<const Name extends string>(name: Name, ...args: (RefParameters | keyof Parameters)[]) {
+  const parameters = strictFromEntries(
+    args.flatMap(arg =>
+      typeof arg === 'string'
+        ? [[arg, ((arg: unknown) => arg) as any] as const]
+        : objectEntries(arg)
+    )
+  );
   return { type: 'REF', name, parameters } as const;
 }
 
@@ -101,3 +109,15 @@ export function context<T extends string>(
     return result as GrammarNode;
   }
 }
+
+// export function context<T extends string>(
+//   c: T,
+//   cases: { [K in T]?: GrammarNode },
+// ) {
+//   const result = cases[c];
+//   if (result === undefined) {
+//     throw new TypeError(`Unexpected context type ${c}`);
+//   } else {
+//     return result as GrammarNode;
+//   }
+// }

@@ -126,12 +126,18 @@ export class ParseOperation extends EventEmitter<{
     this.stack.push(name);
     try {
       const parameters = Object.fromEntries(objectEntries(refParameters).map(
-        ([name, value]) => [
-          name,
-          typeof value === 'function'
-            ? (value as (x: unknown) => never)(oldParameters[name])
-            : value
-        ] as const
+        ([name, given]) => {
+          let value;
+          if (typeof given === 'function') {
+            const previous = oldParameters[name];
+            if (previous === undefined) throw new Error(`Parameter ${name} is undefined`);
+            value = given(previous as never);
+          } else {
+            value = given;
+          }
+
+          return [name, value] as const;
+        }
       )) as Parameters;
 
       const params = [parameters.n, parameters.c, parameters.t].filter(p => p !== undefined);

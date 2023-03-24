@@ -13,7 +13,7 @@ export const objectHasOwn = Object.hasOwn as
   <T extends object, K extends BaseKey>(o: T, v: K) => v is K & keyof T;
 
 export type ObjectEntry<T extends object> = {
-  [K in keyof Required<T>]-?: [K, T[K]]
+  [K in keyof Required<T>]-?: readonly [K, T[K]]
 }[keyof T];
 
 export const objectEntries = Object.entries as
