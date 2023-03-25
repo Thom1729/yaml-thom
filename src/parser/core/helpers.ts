@@ -11,7 +11,6 @@ export type RefParameters = {
 export type GrammarNode =
   | string
   | CharSet
-  | { type: 'NAMED', name: string, child: GrammarNode }
   | { type: 'EMPTY' }
   | { type: 'START_OF_LINE' }
   | { type: 'END_OF_INPUT' }
@@ -29,10 +28,6 @@ export type GrammarNode =
 export type ProductionBody = GrammarNode | ((p: Required<Parameters>) => GrammarNode);
 
 export type Grammar = { [K in string]?: ProductionBody };
-
-export function named(name: string, child: GrammarNode) {
-  return { type: 'NAMED', name, child } as const;
-}
 
 export const empty = { type: 'EMPTY' } as const;
 export const startOfLine = { type: 'START_OF_LINE' } as const;

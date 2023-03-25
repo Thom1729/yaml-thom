@@ -17,7 +17,6 @@ import {
   context,
 
   type Grammar,
-  // named,
 } from '../core/helpers';
 
 import { ChompingBehavior } from '../core/ast';

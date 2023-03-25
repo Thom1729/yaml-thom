@@ -61,22 +61,6 @@ export class ParseOperation extends EventEmitter<{
       } else {
         return null;
       }
-    } else if (node.type === 'NAMED') {
-      const result = this.parse(index, parameters, node.child);
-      if (result) {
-        const [content, j] = result;
-        return [
-          [{
-            name: node.name,
-            parameters,
-            content,
-            range: [index, j]
-          }],
-          j,
-        ];
-      } else {
-        return null;
-      }
     } else if (node.type === 'EMPTY') {
       return [[], index];
     } else if (node.type === 'START_OF_LINE') {
