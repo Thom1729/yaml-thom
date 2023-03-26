@@ -91,7 +91,7 @@ export function detectIndentation<const Child extends GrammarNode>(min: number |
 }
 
 export function minus<Child extends GrammarNode>(p: Child, ...rest: readonly GrammarNode[]) {
-  return [negativeLookahead(first(...rest)), p];
+  return sequence(negativeLookahead(first(...rest)), p);
 }
 
 //////////
