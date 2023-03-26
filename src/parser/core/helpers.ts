@@ -20,7 +20,7 @@ export type GrammarNode =
   | { type: 'FIRST', children: readonly GrammarNode[] }
   | { type: 'REPEAT', child: GrammarNode, min: number, max: number }
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
-  | { type: 'LOOKBEHIND', charSet: CharSet }
+  | { type: 'LOOKBEHIND', child: GrammarNode }
   | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode }
   | { type: 'CONTEXT', parameter: keyof Parameters, cases: { [K in string]?: GrammarNode } }
 ;
@@ -82,8 +82,8 @@ export function negativeLookahead<const Child extends GrammarNode>(child: Child)
   return { type: 'LOOKAHEAD', child, positive: false } as const;
 }
 
-export function lookbehind(charSet: CharSet) {
-  return { type: 'LOOKBEHIND', charSet } as const;
+export function lookbehind(child: GrammarNode) {
+  return { type: 'LOOKBEHIND', child } as const;
 }
 
 export function detectIndentation<const Child extends GrammarNode>(min: number | ((n: number) => number), child: Child) {

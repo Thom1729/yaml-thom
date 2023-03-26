@@ -93,7 +93,7 @@ export class ParseOperation extends EventEmitter<{
     } else if (node.type === 'LOOKAHEAD') {
       return this.parseLookahead(index, parameters, node.child, node.positive);
     } else if (node.type === 'LOOKBEHIND') {
-      return this.parseLookbehind(index, node.charSet);
+      return this.parseLookbehind(index, parameters, node.child);
     } else if (node.type === 'DETECT_INDENTATION') {
       return this.parseDetectIndentation(index, parameters, node.min, node.child);
     } else if (node.type === 'CONTEXT') {
@@ -254,10 +254,13 @@ export class ParseOperation extends EventEmitter<{
 
   parseLookbehind(
     index: number,
-    charSet: CharSet,
+    parameters: Parameters,
+    child: GrammarNode,
   ) {
-    // TODO handle prev char is astral
-    if (index > 0 && charSet.has(this.text.charCodeAt(index - 1))) {
+    // Warning: this only works right if the child is a single non-astral character!
+    // This shouldn't matter for the YAML grammar.
+    // In the long run, we should remove lookbehinds from the grammar.
+    if (index > 0 && this.parse(index - 1, parameters, child) !== null) {
       return [[], index] as const;
     } else {
       return null;
