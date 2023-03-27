@@ -12,11 +12,6 @@ import {
 import {
   single,
   singleOrNull,
-  strictFromEntries,
-  fromSnake,
-  toCamel,
-  type FromSnake,
-  type ToCamel,
 } from '@/util';
 
 import {
@@ -25,6 +20,8 @@ import {
   handleDoubleQuotedScalarContent,
   handleBlockScalarContent,
 } from '../core/scalarContent';
+
+import { iterateAst, groupNodes } from '../core/transformAst';
 
 export function *astToSerializationTree(text: string, nodes: AstNode<'yaml-stream'>): Generator<SerializationNode> {
   const nodeStream = iterateAst(nodes.content, {
@@ -232,15 +229,13 @@ class AstToSerializationTreeOperation {
           hasAnnotation = true;
 
           const { annotationName, annotationArguments } = groupNodes(property.content, {
-            return: ['annotation-name', 'annotation-arguments'],
-          });
-
-          const name = this.nodeText(single(annotationName));
+            return: ['annotation-name%', 'annotation-arguments?'],
+          }, this.text);
 
           outerNode = new SerializationMapping('tag:yaml.org,2002:annotation', [
             [
               new SerializationScalar('tag:yaml.org,2002:str', 'name'),
-              new SerializationScalar('tag:yaml.org,2002:str', name),
+              new SerializationScalar('tag:yaml.org,2002:str', annotationName),
             ],
             [
               new SerializationScalar('tag:yaml.org,2002:str', 'value'),
@@ -248,9 +243,8 @@ class AstToSerializationTreeOperation {
             ],
           ]);
 
-          const argNode = singleOrNull(annotationArguments);
-          if (argNode !== null) {
-            const args = this.flowSequenceContent(argNode);
+          if (annotationArguments !== null) {
+            const args = this.flowSequenceContent(annotationArguments);
             outerNode.content.push([
               new SerializationScalar('tag:yaml.org,2002:str', 'arguments'),
               new SerializationSequence('tag:yaml.org,2002:seq', args),
@@ -279,9 +273,9 @@ class AstToSerializationTreeOperation {
 
   nodeAnchor(node: AstNode<'anchor-property'>) {
     const { anchorName } = groupNodes(node.content, {
-      return: ['anchor-name'],
-    });
-    return this.nodeText(single(anchorName));
+      return: ['anchor-name%'],
+    }, this.text);
+    return anchorName;
   }
 
   nodeTag(node: AstNode<'tag-property'>) {
@@ -355,10 +349,10 @@ class AstToSerializationTreeOperation {
       foldedScalarContent,
     } = groupNodes(node.content, {
       return: [
-        'block-scalar-indentation-indicator',
-        'block-scalar-chomping-indicator',
-        'literal-scalar-content',
-        'folded-scalar-content',
+        'block-scalar-indentation-indicator?%',
+        // 'block-scalar-chomping-indicator*', // TODO?
+        'literal-scalar-content*',
+        'folded-scalar-content*',
       ],
       recurse: [
         'block-literal-scalar',
@@ -370,10 +364,8 @@ class AstToSerializationTreeOperation {
         'comment-line',
         'block-scalar-chomping-indicator',
       ],
-    });
+    }, this.text);
 
-    const indentationIndicatorNode = singleOrNull(blockScalarIndentationIndicator);
-    const indentationIndicator = indentationIndicatorNode ? this.nodeText(indentationIndicatorNode) : '';
     const contentNode = single([...literalScalarContent, ...foldedScalarContent]);
 
     const content = this.nodeText(contentNode);
@@ -383,7 +375,7 @@ class AstToSerializationTreeOperation {
       node.name === 'block-folded-scalar',
       node.parameters.n as number,
       contentNode.parameters.t as ChompingBehavior,
-      indentationIndicator === '' ? null : Number(indentationIndicator),
+      blockScalarIndentationIndicator === null ? null : Number(blockScalarIndentationIndicator),
     );
   }
 
@@ -430,7 +422,7 @@ class AstToSerializationTreeOperation {
 
   blockSequenceContent(node: AstNode) {
     const { blockIndentedNode } = groupNodes(node.content, {
-      return: ['block-indented-node'],
+      return: ['block-indented-node*'],
       recurse: ['block-sequence-entry'],
       ignore: ['indentation-spaces'],
     });
@@ -440,7 +432,7 @@ class AstToSerializationTreeOperation {
 
   blockMappingContent(node: AstNode) {
     const { blockMappingEntry } = groupNodes(node.content, {
-      return: ['block-mapping-entry'],
+      return: ['block-mapping-entry*'],
       ignore: ['indentation-spaces'],
     });
 
@@ -498,52 +490,4 @@ class AstToSerializationTreeOperation {
       this.buildNode(v),
     ] as const;
   }
-}
-
-function *iterateAst<T extends string>(
-  nodes: Iterable<AstNode>,
-  names: {
-    return: T[],
-    recurse?: string[],
-    ignore?: string[],
-  },
-): Generator<AstNode<T>> {
-  for (const node of nodes) {
-    if ((names.return as string[]).includes(node.name)) {
-      yield node as AstNode<T>;
-    } else if (names.recurse?.includes(node.name)) {
-      yield* iterateAst(node.content, names);
-    } else if (names.ignore?.includes(node.name)) {
-      // pass
-    } else {
-      throw new Error(`Encountered unexpected AST node named ${node.name}`);
-    }
-  }
-}
-
-function groupNodes<T extends string>(
-  nodes: Iterable<AstNode>,
-  names: {
-    return: T[],
-    recurse?: string[],
-    ignore?: string[],
-  },
-) {
-  const ret = strictFromEntries(
-    names.return.map(
-      name => [
-        toCamel(fromSnake(name)),
-        [] as AstNode<T>[],
-      ] as const
-    )
-  );
-
-  for (const node of iterateAst(nodes, names)) {
-    const name = toCamel(fromSnake(node.name));
-    ret[name].push(node);
-  }
-
-  return ret as unknown as {
-    [K in T as ToCamel<FromSnake<K>>]: AstNode<K>[]
-  };
 }
