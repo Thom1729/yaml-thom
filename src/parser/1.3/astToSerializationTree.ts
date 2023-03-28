@@ -12,6 +12,7 @@ import {
 import {
   single,
   singleOrNull,
+  assertKeyOf,
 } from '@/util';
 
 import {
@@ -91,6 +92,12 @@ const DEFAULT_TAG_HANDLES = {
   '!': '!',
   '!!': 'tag:yaml.org,2002:',
 } as Partial<Record<string, string>>;
+
+const CHOMPING_BEHAVIOR_LOOKUP = {
+  '-': ChompingBehavior.STRIP,
+  '+': ChompingBehavior.KEEP,
+  '': ChompingBehavior.CLIP,
+};
 
 class AstToSerializationTreeOperation {
   readonly text: string;
@@ -187,8 +194,6 @@ class AstToSerializationTreeOperation {
         'flow-content',
         'flow-json-content',
         'flow-yaml-content',
-
-        'alias-node',
       ],
       ignore: [
         'separation-characters',
@@ -228,28 +233,7 @@ class AstToSerializationTreeOperation {
           hasTag = false;
           hasAnnotation = true;
 
-          const { annotationName, annotationArguments } = groupNodes(property.content, {
-            return: ['annotation-name%', 'annotation-arguments?'],
-          }, this.text);
-
-          outerNode = new SerializationMapping('tag:yaml.org,2002:annotation', [
-            [
-              new SerializationScalar('tag:yaml.org,2002:str', 'name'),
-              new SerializationScalar('tag:yaml.org,2002:str', annotationName),
-            ],
-            [
-              new SerializationScalar('tag:yaml.org,2002:str', 'value'),
-              outerNode,
-            ],
-          ]);
-
-          if (annotationArguments !== null) {
-            const args = this.flowSequenceContent(annotationArguments);
-            outerNode.content.push([
-              new SerializationScalar('tag:yaml.org,2002:str', 'arguments'),
-              new SerializationSequence('tag:yaml.org,2002:seq', args),
-            ]);
-          }
+          outerNode = this.buildAnnotation(property, outerNode);
           break;
         }
         case 'anchor-property': {
@@ -269,6 +253,33 @@ class AstToSerializationTreeOperation {
     }
 
     return outerNode;
+  }
+
+  buildAnnotation(node: AstNode, child: SerializationNode) {
+    const { annotationName, annotationArguments } = groupNodes(node.content, {
+      return: ['annotation-name%', 'annotation-arguments?'],
+    }, this.text);
+
+    const ret = new SerializationMapping('tag:yaml.org,2002:annotation', [
+      [
+        new SerializationScalar('tag:yaml.org,2002:str', 'name'),
+        new SerializationScalar('tag:yaml.org,2002:str', annotationName),
+      ],
+      [
+        new SerializationScalar('tag:yaml.org,2002:str', 'value'),
+        child,
+      ],
+    ]);
+
+    if (annotationArguments !== null) {
+      const args = this.flowSequenceContent(annotationArguments);
+      ret.content.push([
+        new SerializationScalar('tag:yaml.org,2002:str', 'arguments'),
+        new SerializationSequence('tag:yaml.org,2002:seq', args),
+      ]);
+    }
+
+    return ret;
   }
 
   nodeAnchor(node: AstNode<'anchor-property'>) {
@@ -302,9 +313,7 @@ class AstToSerializationTreeOperation {
     }
   }
 
-  nodeValue(
-    node: AstNode,
-  ) {
+  nodeValue(node: AstNode) {
     switch (node.name) {
       case 'alias-node': return new Alias(this.nodeText(node).slice(1));
 
@@ -322,21 +331,21 @@ class AstToSerializationTreeOperation {
         const content = this.nodeText(single(node.content));
         return new SerializationScalar(NonSpecificTag.exclamation, handleDoubleQuotedScalarContent(content));
       }
+
       case 'block-literal-scalar':
       case 'block-folded-scalar':
         return new SerializationScalar(NonSpecificTag.exclamation, this.blockScalarContent(node));
-
-      case 'flow-sequence':
-        return new SerializationSequence(NonSpecificTag.question, this.flowSequenceContent(node));
       case 'block-sequence':
       case 'compact-sequence':
         return new SerializationSequence(NonSpecificTag.question, this.blockSequenceContent(node));
-
-      case 'flow-mapping':
-        return new SerializationMapping(NonSpecificTag.question, this.flowMappingContent(node));
       case 'block-mapping':
       case 'compact-mapping':
         return new SerializationMapping(NonSpecificTag.question, this.blockMappingContent(node));
+
+      case 'flow-sequence':
+        return new SerializationSequence(NonSpecificTag.question, this.flowSequenceContent(node));
+      case 'flow-mapping':
+        return new SerializationMapping(NonSpecificTag.question, this.flowMappingContent(node));
 
       default: throw new TypeError(node.name);
     }
@@ -344,13 +353,14 @@ class AstToSerializationTreeOperation {
 
   blockScalarContent(node: AstNode) {
     const {
+      blockScalarChompingIndicator,
       blockScalarIndentationIndicator,
       literalScalarContent,
       foldedScalarContent,
     } = groupNodes(node.content, {
       return: [
         'block-scalar-indentation-indicator?%',
-        // 'block-scalar-chomping-indicator*', // TODO?
+        'block-scalar-chomping-indicator%',
         'literal-scalar-content*',
         'folded-scalar-content*',
       ],
@@ -362,19 +372,20 @@ class AstToSerializationTreeOperation {
       ignore: [
         'separation-characters',
         'comment-line',
-        'block-scalar-chomping-indicator',
       ],
     }, this.text);
 
     const contentNode = single([...literalScalarContent, ...foldedScalarContent]);
-
     const content = this.nodeText(contentNode);
+
+    assertKeyOf(blockScalarChompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${blockScalarChompingIndicator}`);
+    const chompingBehavior = CHOMPING_BEHAVIOR_LOOKUP[blockScalarChompingIndicator];
 
     return handleBlockScalarContent(
       content,
       node.name === 'block-folded-scalar',
       node.parameters.n as number,
-      contentNode.parameters.t as ChompingBehavior,
+      chompingBehavior,
       blockScalarIndentationIndicator === null ? null : Number(blockScalarIndentationIndicator),
     );
   }
