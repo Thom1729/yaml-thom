@@ -1,5 +1,6 @@
 export * from './char';
 export * from './collection';
+export * from './groupBy';
 export * from './number';
 export * from './strict';
 export * from './string';

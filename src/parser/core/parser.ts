@@ -97,7 +97,7 @@ export class ParseOperation extends EventEmitter<{
     } else if (node.type === 'DETECT_INDENTATION') {
       return this.parseDetectIndentation(index, parameters, node.min, node.child);
     } else if (node.type === 'CONTEXT') {
-      return this.parseContext(index, parameters, node.parameter, node.cases);
+      return this.parseContext(index, parameters, node.parameter, node.cases, node.defaultCase);
     }
 
     throw new TypeError(node);
@@ -112,15 +112,20 @@ export class ParseOperation extends EventEmitter<{
     this.stack.push(name);
     try {
       const parameters = Object.fromEntries(objectEntries(refParameters).map(
-        ([name, given]) => {
+        ([p, given]) => {
           let value;
-          if (typeof given === 'function') {
-            value = given(safeAccessProxy(oldParameters));
+          if (Array.isArray(given)) {
+            value = given
+              .map(x => (typeof x === 'string') ? safeAccessProxy(oldParameters)[x] : x)
+              .reduce((a,b) => a+b, 0);
+
+          } else if (given === 'n' || given === 'm' || given === 'c' || given === 't') {
+            value = safeAccessProxy(oldParameters)[given];
           } else {
             value = given;
           }
 
-          return [name, value] as const;
+          return [p, value] as const;
         }
       )) as Parameters;
 
@@ -297,13 +302,18 @@ export class ParseOperation extends EventEmitter<{
     parameters: Parameters,
     parameter: keyof Parameters,
     cases: { [K in string]?: GrammarNode },
+    defaultCase: GrammarNode | undefined,
   ) {
     const value = parameters[parameter];
     if (value === undefined) throw new Error(`Parameter ${parameter} is undefined`);
 
     const child = cases[value];
-    if (child === undefined) throw new Error(`Unhandled value ${value} for parameter ${parameter}`);
-
-    return this.parse(index, parameters, child);
+    if (child) {
+      return this.parse(index, parameters, child);
+    } else if (defaultCase) {
+      return this.parse(index, parameters, defaultCase);
+    } else {
+      throw new Error(`Unhandled value ${value} for parameter ${parameter}`);
+    }
   }
 }

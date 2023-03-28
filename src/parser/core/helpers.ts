@@ -4,8 +4,9 @@ import { objectEntries, strictFromEntries } from '@/util';
 
 export type RefParameters = {
   [K in keyof Parameters]?:
+  | keyof Parameters
   | Required<Parameters>[K]
-  | ((p: Required<Parameters>) => Required<Parameters>[K])
+  | ('n' | 'm' | number)[]
 };
 
 export type GrammarNode =
@@ -22,7 +23,7 @@ export type GrammarNode =
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', child: GrammarNode }
   | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode }
-  | { type: 'CONTEXT', parameter: keyof Parameters, cases: { [K in string]?: GrammarNode } }
+  | { type: 'CONTEXT', parameter: keyof Parameters, cases: { [K in string]?: GrammarNode }, defaultCase: GrammarNode | undefined }
 ;
 
 export type ProductionBody = GrammarNode | ((p: Required<Parameters>) => GrammarNode);
@@ -43,7 +44,7 @@ export function ref<const Name extends string>(name: Name, ...args: (RefParamete
   const parameters = strictFromEntries(
     args.flatMap(arg =>
       typeof arg === 'string'
-        ? [[arg, ((parameters: Parameters) => parameters[arg]) as any] as const]
+        ? [[arg, arg] as const] as any
         : objectEntries(arg)
     )
   );
@@ -99,10 +100,12 @@ export function minus<Child extends GrammarNode>(p: Child, ...rest: readonly Gra
 export function context<T extends keyof Parameters>(
   parameter: T,
   cases: { [K in Parameters[T] & string]?: GrammarNode },
+  defaultCase?: GrammarNode,
 ) {
   return {
     type: 'CONTEXT',
     parameter,
     cases,
+    defaultCase,
   } as const;
 }

@@ -14,7 +14,7 @@ export interface Parameters {
   t?: ChompingBehavior,
 }
 
-const ContextType = {
+export const ContextType = {
   'BLOCK-IN': 'BLOCK-IN',
   'BLOCK-OUT': 'BLOCK-OUT',
   'BLOCK-KEY': 'BLOCK-KEY',
