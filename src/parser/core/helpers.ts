@@ -7,6 +7,7 @@ export type RefParameters = {
   | keyof Parameters
   | Required<Parameters>[K]
   | ('n' | 'm' | number)[]
+  | 'in-flow(c)'
 };
 
 export type GrammarNode =

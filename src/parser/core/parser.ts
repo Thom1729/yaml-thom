@@ -7,7 +7,7 @@ import type {
 import { CharSet } from './charSet';
 import { AstNode, Parameters } from './ast';
 import { safeAccessProxy } from '@/util/safeAccessProxy';
-import { single, charUtf16Width, objectEntries } from '@/util';
+import { single, charUtf16Width, objectEntries, strictFromEntries } from '@/util';
 
 import { EventEmitter } from '@/util/EventEmitter';
 
@@ -111,22 +111,8 @@ export class ParseOperation extends EventEmitter<{
   ) {
     this.stack.push(name);
     try {
-      const parameters = Object.fromEntries(objectEntries(refParameters).map(
-        ([p, given]) => {
-          let value;
-          if (Array.isArray(given)) {
-            value = given
-              .map(x => (typeof x === 'string') ? safeAccessProxy(oldParameters)[x] : x)
-              .reduce((a,b) => a+b, 0);
-
-          } else if (given === 'n' || given === 'm' || given === 'c' || given === 't') {
-            value = safeAccessProxy(oldParameters)[given];
-          } else {
-            value = given;
-          }
-
-          return [p, value] as const;
-        }
+      const parameters = strictFromEntries(objectEntries(refParameters).map(
+        ([p, given]) => [p, resolveParameter(safeAccessProxy(oldParameters), given)]
       )) as Parameters;
 
       const params = [parameters.n, parameters.c, parameters.t].filter(p => p !== undefined);
@@ -315,5 +301,26 @@ export class ParseOperation extends EventEmitter<{
     } else {
       throw new Error(`Unhandled value ${value} for parameter ${parameter}`);
     }
+  }
+}
+
+function resolveParameter(
+  oldParameters: Required<Parameters>,
+  given: RefParameters[keyof RefParameters],
+) {
+  if (given === 'in-flow(c)') {
+    switch (oldParameters.c) {
+      case 'FLOW-OUT': case 'FLOW-IN': return 'FLOW-IN';
+      case 'BLOCK-KEY': case 'FLOW-KEY': return 'FLOW-KEY';
+      default: throw new Error(`Unhandled context ${oldParameters.c} in in-flow(c)`);
+    }
+  } else if (given === 'n' || given === 'm' || given === 'c' || given === 't') {
+    return oldParameters[given];
+  } else if (Array.isArray(given)) {
+    return given
+      .map(x => (typeof x === 'string') ? oldParameters[x] : x)
+      .reduce((a,b) => a+b, 0);
+  } else {
+    return given;
   }
 }
