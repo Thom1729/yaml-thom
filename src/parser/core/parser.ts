@@ -97,7 +97,7 @@ export class ParseOperation extends EventEmitter<{
     } else if (node.type === 'DETECT_INDENTATION') {
       return this.parseDetectIndentation(index, parameters, node.min, node.child);
     } else if (node.type === 'CONTEXT') {
-      return this.parseContext(index, parameters, node.parameter, node.cases, node.defaultCase);
+      return this.parseContext(index, parameters, node.cases);
     }
 
     throw new TypeError(node);
@@ -286,21 +286,14 @@ export class ParseOperation extends EventEmitter<{
   parseContext(
     index: number,
     parameters: Parameters,
-    parameter: keyof Parameters,
-    cases: { [K in string]?: GrammarNode },
-    defaultCase: GrammarNode | undefined,
+    cases: readonly [Parameters, GrammarNode][],
   ) {
-    const value = parameters[parameter];
-    if (value === undefined) throw new Error(`Parameter ${parameter} is undefined`);
-
-    const child = cases[value];
-    if (child) {
-      return this.parse(index, parameters, child);
-    } else if (defaultCase) {
-      return this.parse(index, parameters, defaultCase);
-    } else {
-      throw new Error(`Unhandled value ${value} for parameter ${parameter}`);
+    for (const [constraints, child] of cases) {
+      if (objectEntries(constraints).every(([p, value]) => parameters[p] === value)) {
+        return this.parse(index, parameters, child);
+      }
     }
+    throw new Error(`Unhandled case`);
   }
 }
 

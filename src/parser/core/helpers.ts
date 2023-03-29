@@ -24,7 +24,7 @@ export type GrammarNode =
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', child: GrammarNode }
   | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode }
-  | { type: 'CONTEXT', parameter: keyof Parameters, cases: { [K in string]?: GrammarNode }, defaultCase: GrammarNode | undefined }
+  | { type: 'CONTEXT', cases: readonly [Parameters, GrammarNode][] }
 ;
 
 export type ProductionBody = GrammarNode | ((p: Required<Parameters>) => GrammarNode);
@@ -99,14 +99,10 @@ export function minus<Child extends GrammarNode>(p: Child, ...rest: readonly Gra
 //////////
 
 export function context<T extends keyof Parameters>(
-  parameter: T,
-  cases: { [K in Parameters[T] & string]?: GrammarNode },
-  defaultCase?: GrammarNode,
+  ...cases: readonly [Parameters, GrammarNode][]
 ) {
   return {
     type: 'CONTEXT',
-    parameter,
     cases,
-    defaultCase,
   } as const;
 }

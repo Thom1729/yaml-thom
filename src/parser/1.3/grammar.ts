@@ -189,10 +189,10 @@ const BASE_GRAMMAR: Grammar = {
     ),
   ),
 
-  /* 16 */ 'block-sequence-context': context('c', {
-    'BLOCK-OUT': ref('block-sequence', { n: ['n', -1] }),
-    'BLOCK-IN': ref('block-sequence', 'n'),
-  }),
+  /* 16 */ 'block-sequence-context': context(
+    [{ c: 'BLOCK-OUT'}, ref('block-sequence', { n: ['n', -1] })],
+    [{ c: 'BLOCK-IN'}, ref('block-sequence', 'n')],
+  ),
 
   /* 17 */ 'block-scalar': sequence(
     ref('separation-characters', { n: ['n', 1] }, 'c'),
@@ -416,23 +416,23 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 45 */ 'block-scalar-indentation-indicator': 'decimal-digit-1-9',
 
-  /* 46 */ 'block-scalar-chomping-indicator': context('t', {
-    STRIP: str('-'),
-    KEEP: str('+'),
-    CLIP: empty,
-  }),
+  /* 46 */ 'block-scalar-chomping-indicator': context(
+    [{t: 'STRIP'}, str('-')],
+    [{t: 'KEEP'}, str('+')],
+    [{t: 'CLIP'}, empty],
+  ),
 
-  /* 47 */ 'block-scalar-chomp-last': context('t', {
-    STRIP: first('line-break', endOfInput),
-    KEEP: first('break-as-line-feed', endOfInput),
-    CLIP: first('break-as-line-feed', endOfInput),
-  }),
+  /* 47 */ 'block-scalar-chomp-last': context(
+    [{t: 'STRIP'}, first('line-break', endOfInput)],
+    [{t: 'KEEP'}, first('break-as-line-feed', endOfInput)],
+    [{t: 'CLIP'}, first('break-as-line-feed', endOfInput)],
+  ),
 
-  /* 48 */ 'block-scalar-chomp-empty': context('t', {
-    'STRIP': ref('line-strip-empty', 'n'),
-    'CLIP': ref('line-strip-empty', 'n'),
-    'KEEP': ref('line-keep-empty', 'n'),
-  }),
+  /* 48 */ 'block-scalar-chomp-empty': context(
+    [{t: 'STRIP'}, ref('line-strip-empty', 'n')],
+    [{t: 'KEEP'}, ref('line-strip-empty', 'n')],
+    [{t: 'CLIP'}, ref('line-keep-empty', 'n')],
+  ),
 
   /* 49 */ 'line-strip-empty': sequence(
     star(sequence(
@@ -658,12 +658,12 @@ const BASE_GRAMMAR: Grammar = {
     str('"'),
   ),
 
-  /* 78 */ 'double-quoted-text': context('c', {
-    'BLOCK-KEY': 'double-quoted-one-line',
-    'FLOW-KEY': 'double-quoted-one-line',
-    'FLOW-OUT': ref('double-quoted-multi-line', 'n'),
-    'FLOW-IN': ref('double-quoted-multi-line', 'n'),
-  }),
+  /* 78 */ 'double-quoted-text': context(
+    [{c: 'BLOCK-KEY'}, 'double-quoted-one-line'],
+    [{c: 'FLOW-KEY'}, 'double-quoted-one-line'],
+    [{c: 'FLOW-OUT'}, ref('double-quoted-multi-line', 'n')],
+    [{c: 'FLOW-IN'}, ref('double-quoted-multi-line', 'n')],
+  ),
 
   /* 79 */ 'double-quoted-multi-line': sequence(
     'double-quoted-first-line',
@@ -717,19 +717,19 @@ const BASE_GRAMMAR: Grammar = {
     ref('indentation-spaces-plus-maybe-more', 'n'),
   ),
 
-  /* 86 */ 'flow-mapping-context': context('c', {
-    'FLOW-OUT': ref('flow-mapping-entries', 'n', { c: 'FLOW-IN' }),
-    'FLOW-IN' : ref('flow-mapping-entries', 'n', { c: 'FLOW-IN' }),
-    'BLOCK-KEY': ref('flow-mapping-entries', 'n', { c: 'FLOW-KEY' }),
-    'FLOW-KEY' : ref('flow-mapping-entries', 'n', { c: 'FLOW-KEY' }),
-  }),
+  /* 86 */ 'flow-mapping-context': context(
+    [{c: 'FLOW-OUT'}, ref('flow-mapping-entries', 'n', { c: 'FLOW-IN' })],
+    [{c: 'FLOW-IN'}, ref('flow-mapping-entries', 'n', { c: 'FLOW-IN' })],
+    [{c: 'BLOCK-KEY'}, ref('flow-mapping-entries', 'n', { c: 'FLOW-KEY' })],
+    [{c: 'FLOW-KEY'}, ref('flow-mapping-entries', 'n', { c: 'FLOW-KEY' })],
+  ),
 
-  /* 87 */ 'flow-sequence-context': context('c', {
-    'FLOW-OUT': ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
-    'FLOW-IN' : ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
-    'BLOCK-KEY': ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
-    'FLOW-KEY' : ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
-  }),
+  /* 87 */ 'flow-sequence-context': context(
+    [{c: 'FLOW-OUT'}, ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' })],
+    [{c: 'FLOW-IN'}, ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' })],
+    [{c: 'BLOCK-KEY'}, ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' })],
+    [{c: 'FLOW-KEY'}, ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' })],
+  ),
 
   /* 88 */ 'single-quoted-scalar': sequence(
     str('\''),
@@ -737,12 +737,12 @@ const BASE_GRAMMAR: Grammar = {
     str('\''),
   ),
 
-  /* 89 */ 'single-quoted-text': context('c', {
-    'BLOCK-KEY': 'single-quoted-one-line',
-    'FLOW-KEY': 'single-quoted-one-line',
-    'FLOW-OUT': ref('single-quoted-multi-line', 'n'),
-    'FLOW-IN': ref('single-quoted-multi-line', 'n'),
-  }),
+  /* 89 */ 'single-quoted-text': context(
+    [{c: 'BLOCK-KEY'}, 'single-quoted-one-line'],
+    [{c: 'FLOW-KEY'}, 'single-quoted-one-line'],
+    [{c: 'FLOW-OUT'}, ref('single-quoted-multi-line', 'n')],
+    [{c: 'FLOW-IN'}, ref('single-quoted-multi-line', 'n')],
+  ),
 
   /* 90 */ 'single-quoted-multi-line': sequence(
     'single-quoted-first-line',
@@ -786,12 +786,12 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 96 */ 'single-quoted-escaped-single-quote': str('\'\''),
 
-  /* 97 */ 'flow-plain-scalar': context('c', {
-    'FLOW-OUT': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-OUT' }),
-    'FLOW-IN': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-IN' }),
-    'BLOCK-KEY': ref('plain-scalar-single-line', { c: 'BLOCK-KEY' }),
-    'FLOW-KEY': ref('plain-scalar-single-line', { c: 'FLOW-KEY' }),
-  }),
+  /* 97 */ 'flow-plain-scalar': context(
+    [{c: 'FLOW-OUT'}, ref('plain-scalar-multi-line', 'n', { c: 'FLOW-OUT' })],
+    [{c: 'FLOW-IN'}, ref('plain-scalar-multi-line', 'n', { c: 'FLOW-IN' })],
+    [{c: 'BLOCK-KEY'}, ref('plain-scalar-single-line', { c: 'BLOCK-KEY' })],
+    [{c: 'FLOW-KEY'}, ref('plain-scalar-single-line', { c: 'FLOW-KEY' })],
+  ),
 
   /* 98 */ 'plain-scalar-multi-line': sequence(
     ref('plain-scalar-single-line', 'c'),
@@ -840,12 +840,12 @@ const BASE_GRAMMAR: Grammar = {
     ),
   ),
 
-  /* 104 */ 'non-space-plain-scalar-character': context('c', {
-    'FLOW-OUT': 'block-plain-scalar-character',
-    'FLOW-IN': 'flow-plain-scalar-character',
-    'BLOCK-KEY': 'block-plain-scalar-character',
-    'FLOW-KEY': 'flow-plain-scalar-character',
-  }),
+  /* 104 */ 'non-space-plain-scalar-character': context(
+    [{c: 'FLOW-OUT'}, 'block-plain-scalar-character'],
+    [{c: 'FLOW-IN'}, 'flow-plain-scalar-character'],
+    [{c: 'BLOCK-KEY'}, 'block-plain-scalar-character'],
+    [{c: 'FLOW-KEY'}, 'flow-plain-scalar-character'],
+  ),
 
   /* 105 */ 'block-plain-scalar-character': 'non-space-character',
 
@@ -864,12 +864,12 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 111 */ 'indentation-spaces-less-than-or-equal': ({ n }) => repeat('space-character', 0, n+1),
 
-  /* 112 */ 'line-prefix-spaces': context('c', {
-    'BLOCK-OUT': ref('indentation-spaces-exact', 'n'),
-    'BLOCK-IN': ref('indentation-spaces-exact', 'n'),
-    'FLOW-OUT': ref('indentation-spaces-plus-maybe-more', 'n'),
-    'FLOW-IN': ref('indentation-spaces-plus-maybe-more', 'n'),
-  }),
+  /* 112 */ 'line-prefix-spaces': context(
+    [{c: 'BLOCK-OUT'}, ref('indentation-spaces-exact', 'n')],
+    [{c: 'BLOCK-IN'}, ref('indentation-spaces-exact', 'n')],
+    [{c: 'FLOW-OUT'}, ref('indentation-spaces-plus-maybe-more', 'n')],
+    [{c: 'FLOW-IN'}, ref('indentation-spaces-plus-maybe-more', 'n')],
+  ),
 
   /* 113 */ 'indentation-spaces-exact': ref('indentation-spaces', 'n'),
 
@@ -915,14 +915,14 @@ const BASE_GRAMMAR: Grammar = {
     'break-as-line-feed',
   ),
 
-  /* 122 */ 'separation-characters': context('c', {
-    'BLOCK-OUT': ref('separation-lines', 'n'),
-    'BLOCK-IN': ref('separation-lines', 'n'),
-    'FLOW-OUT': ref('separation-lines', 'n'),
-    'FLOW-IN': ref('separation-lines', 'n'),
-    'BLOCK-KEY': 'separation-blanks',
-    'FLOW-KEY': 'separation-blanks',
-  }),
+  /* 122 */ 'separation-characters': context(
+    [{c: 'BLOCK-OUT'}, ref('separation-lines', 'n')],
+    [{c: 'BLOCK-IN'}, ref('separation-lines', 'n')],
+    [{c: 'FLOW-OUT'}, ref('separation-lines', 'n')],
+    [{c: 'FLOW-IN'}, ref('separation-lines', 'n')],
+    [{c: 'BLOCK-KEY'}, 'separation-blanks'],
+    [{c: 'FLOW-KEY'}, 'separation-blanks'],
+  ),
 
   /* 123 */ 'separation-lines': first(
     sequence(
