@@ -286,7 +286,7 @@ export class ParseOperation extends EventEmitter<{
   parseContext(
     index: number,
     parameters: Parameters,
-    cases: readonly [Parameters, GrammarNode][],
+    cases: readonly (readonly [Parameters, GrammarNode])[],
   ) {
     for (const [constraints, child] of cases) {
       if (objectEntries(constraints).every(([p, value]) => parameters[p] === value)) {
