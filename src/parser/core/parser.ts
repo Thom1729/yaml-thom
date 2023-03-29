@@ -131,9 +131,7 @@ export class ParseOperation extends EventEmitter<{
 
       this.emit('node.in', { displayName, index });
 
-      const result = typeof productionBody === 'function'
-        ? this.parse(index, parameters, productionBody(safeAccessProxy(parameters)))
-        : this.parse(index, parameters, productionBody);
+      const result = this.parse(index, parameters, productionBody);
 
       this.emit('node.out', { displayName, index, result });
 

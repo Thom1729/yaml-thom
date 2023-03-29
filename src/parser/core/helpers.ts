@@ -27,7 +27,7 @@ export type GrammarNode =
   | { type: 'CONTEXT', cases: readonly (readonly [Parameters, GrammarNode])[] }
 ;
 
-export type ProductionBody = GrammarNode | ((p: Required<Parameters>) => GrammarNode);
+export type ProductionBody = GrammarNode;
 
 export type Grammar = { [K in string]?: ProductionBody };
 

@@ -858,11 +858,27 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 108 */ 'empty-node': empty,
 
-  /* 109 */ 'indentation-spaces': ({ n }) => repeat('space-character', n, n),
+  /* 109 */ 'indentation-spaces': context(
+    [{ n: 0 }, empty],
+    [{}, sequence('space-character', ref('indentation-spaces', { n: ['n', -1] }))],
+  ),
 
-  /* 110 */ 'indentation-spaces-less-than': ({ n }) => repeat('space-character', 0, n),
+  /* 110 */ 'indentation-spaces-less-than': context(
+    [{ n: 0 }, empty],
+    [{ n: 1 }, empty],
+    [{}, first(
+      sequence('space-character', ref('indentation-spaces-less-than', { n: ['n', -1] })),
+      empty,
+    )],
+  ),
 
-  /* 111 */ 'indentation-spaces-less-than-or-equal': ({ n }) => repeat('space-character', 0, n+1),
+  /* 111 */ 'indentation-spaces-less-than-or-equal': context(
+    [{ n: 0 }, empty],
+    [{}, first(
+      sequence('space-character', ref('indentation-spaces-less-than', { n: ['n', -1] })),
+      empty,
+    )],
+  ),
 
   /* 112 */ 'line-prefix-spaces': context(
     [{c: 'BLOCK-OUT'}, ref('indentation-spaces-exact', 'n')],
