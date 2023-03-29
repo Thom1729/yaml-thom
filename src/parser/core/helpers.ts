@@ -99,7 +99,7 @@ export function minus<Child extends GrammarNode>(p: Child, ...rest: readonly Gra
 //////////
 
 export function context<T extends keyof Parameters>(
-  ...cases: readonly [Parameters, GrammarNode][]
+  ...cases: readonly (readonly [Parameters, GrammarNode])[]
 ) {
   return {
     type: 'CONTEXT',
