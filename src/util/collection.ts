@@ -1,9 +1,3 @@
-export function sorted<T>(arr: T[], comparator?: (a: T, b: T) => number) {
-  const ret = arr.slice();
-  ret.sort(comparator);
-  return ret;
-}
-
 export function single<T>(itr: Iterable<T>) {
   const arr = Array.from(itr);
   switch (arr.length) {

@@ -6,7 +6,7 @@ import type {
 
 import { AstNode, Parameters } from './ast';
 import { safeAccessProxy } from '@/util/safeAccessProxy';
-import { single, charUtf16Width, objectEntries, strictFromEntries } from '@/util';
+import { single, charUtf16Width, objectEntries, strictFromEntries, isArray } from '@/util';
 
 import { EventEmitter } from '@/util/EventEmitter';
 
@@ -305,10 +305,6 @@ export class ParseOperation extends EventEmitter<{
     }
     throw new Error(`Unhandled case`);
   }
-}
-
-function isArray<T, A>(value: T | readonly A[]): value is readonly A[] {
-  return Array.isArray(value);
 }
 
 function resolveParameter(

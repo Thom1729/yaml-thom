@@ -1,6 +1,5 @@
-import { normalizeRanges } from './charSet';
 import { type Parameters } from './ast';
-import { objectEntries, strictFromEntries } from '@/util';
+import { isArray } from '@/util';
 
 export type RefParameters = {
   [K in keyof Parameters]?:
@@ -45,10 +44,34 @@ export function str<T extends string>(string: T) {
   return { type: 'STRING', string } as const;
 }
 
+import {
+  assertCodePoint,
+  charUtf16Width,
+} from '@/util';
+
+function normalizeChar(char: number | string) {
+  if (typeof char === 'number') {
+    assertCodePoint(char);
+    return char;
+  } else {
+    const codePoint = char.codePointAt(0);
+    if (codePoint === undefined || char.length !== charUtf16Width(codePoint)) {
+      throw new TypeError(`String was not a single character`);
+    }
+    return codePoint;
+  }
+}
+
 export function charSet(...args: (number | string | readonly [number | string, number | string])[]) {
+  const ranges = args
+    .map(arg =>
+      (isArray(arg) ? arg : [arg, arg]).map(normalizeChar) as [number, number]
+    )
+    .sort((a, b) => a[0] - b[0]);
+
   return {
     type: 'CHAR_SET',
-    ranges: normalizeRanges(args),
+    ranges,
   } as const satisfies GrammarNode;
 }
 

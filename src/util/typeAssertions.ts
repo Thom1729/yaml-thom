@@ -12,6 +12,8 @@ export function isString(value: unknown): value is string {
 
 export const assertString = assertionFunction(isString);
 
+export const isArray = Array.isArray as (arg: unknown) => arg is ReadonlyArray<unknown> | Array<unknown>;
+
 export function isKeyOf<K extends string | number | symbol, T extends object>(
   key: K,
   obj: T,
