@@ -8,9 +8,9 @@ import {
   star,
   negativeLookahead,
   minus,
+  charSet,
 
   type Grammar,
-  charSet,
 } from '@/parser/core/helpers';
 
 export const grammar = {

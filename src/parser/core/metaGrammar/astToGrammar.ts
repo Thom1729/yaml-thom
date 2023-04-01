@@ -1,6 +1,6 @@
 import { AstNode } from '@/parser';
 
-import { parseHex, single, groupBy, strictFromEntries, isKeyOf } from '@/util';
+import { parseHex, single, groupBy, strictFromEntries, isKeyOf, parseDecimal } from '@/util';
 
 import { groupNodes } from '@/parser/core/transformAst';
 
@@ -95,7 +95,7 @@ export function astToGrammar(ast: AstNode, text: string) {
         ignore: ['space'],
       }, text);
 
-      const number = (productionNumber !== null) ? Number(productionNumber.slice(1, -1)) : null;
+      const number = (productionNumber !== null) ? parseDecimal(productionNumber.slice(1, -1)) : null;
 
       const body = parseBody(alternation, text);
 
@@ -146,7 +146,7 @@ function valueToParam(p: string) {
   } else if (isKeyOf(p, ChompingBehavior)) {
     return ['t', p] as const;
   } else {
-    return ['n', Number(p)] as const;
+    return ['n', parseDecimal(p)] as const;
   }
 }
 
@@ -177,7 +177,7 @@ function parseBody(body: AstNode, text: string) {
           default: {
             const match = /\{(\d+)\}/.exec(q);
             if (match) {
-              const n = Number(match[1]);
+              const n = parseDecimal(match[1]);
               ret = repeat(ret, n, n);
             } else {
               throw new Error(`Unknown quantifier ${quantifier}`);

@@ -139,7 +139,7 @@ export class ParseOperation extends EventEmitter<{
 
       this.emit('node.in', { displayName, index });
 
-      const body = typeof production === 'object' && production.type === 'PRODUCTION'
+      const body = production.type === 'PRODUCTION'
         ? production.body
         : production;
 
@@ -299,7 +299,7 @@ export class ParseOperation extends EventEmitter<{
     cases: readonly (readonly [Parameters, GrammarNode])[],
   ) {
     for (const [constraints, child] of cases) {
-      if (objectEntries(constraints).every(([p, value]) => parameters[p] === undefined || parameters[p] === value)) {
+      if (objectEntries(constraints).every(([p, value]) => parameters[p] === value)) {
         return this.parse(index, parameters, child);
       }
     }

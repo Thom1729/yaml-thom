@@ -13,6 +13,7 @@ import {
   single,
   singleOrNull,
   assertKeyOf,
+  parseDecimal,
 } from '@/util';
 
 import {
@@ -128,8 +129,8 @@ class AstToSerializationTreeOperation {
       const versionMatch = YAML_VERSION_EXPR.exec(versionString);
       if (versionMatch === null) throw new Error(`Invalid YAML version ${versionString}`);
 
-      const major = Number(versionMatch[1]);
-      const minor = Number(versionMatch[2]);
+      const major = parseDecimal(versionMatch[1]);
+      const minor = parseDecimal(versionMatch[2]);
 
       if (major !== 1) {
         throw new Error(`Can't handle version ${versionString}`);
@@ -386,7 +387,7 @@ class AstToSerializationTreeOperation {
       node.name === 'block-folded-scalar',
       node.parameters.n as number,
       chompingBehavior,
-      blockScalarIndentationIndicator === null ? null : Number(blockScalarIndentationIndicator),
+      blockScalarIndentationIndicator === null ? null : parseDecimal(blockScalarIndentationIndicator),
     );
   }
 
