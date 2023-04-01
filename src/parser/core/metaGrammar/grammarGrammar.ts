@@ -1,4 +1,5 @@
 import {
+  ref,
   str,
   sequence,
   first,
@@ -21,16 +22,16 @@ export const grammar = {
 
   comment: sequence(
     str('#'),
-    star(minus('anyChar', str('\n'))),
+    star(minus(ref('anyChar'), str('\n'))),
     str('\n'),
   ),
 
   space: plus(first(
-    'comment',
+    ref('comment'),
     sequence(
       str('/*'),
       star(first(
-        minus('anyChar', str('*')),
+        minus(ref('anyChar'), str('*')),
         sequence(str('*'), negativeLookahead(str('/'))),
       )),
       str('*/'),
@@ -41,157 +42,157 @@ export const grammar = {
 
   hexChar: sequence(
     str('x'),
-    plus('hexDigit'),
+    plus(ref('hexDigit')),
   ),
 
   charRange: sequence(
     str('['),
-    'hexChar',
+    ref('hexChar'),
     str('-'),
-    'hexChar',
+    ref('hexChar'),
     str(']'),
   ),
 
   string: first(
-    sequence(str('\''), star(minus('anyChar', str('\''))), str('\'')),
-    sequence(str('"'), star(minus('anyChar', str('"'))), str('"')),
+    sequence(str('\''), star(minus(ref('anyChar'), str('\''))), str('\'')),
+    sequence(str('"'), star(minus(ref('anyChar'), str('"'))), str('"')),
   ),
 
   productionName: sequence(
-    plus('productionNameChar'),
+    plus(ref('productionNameChar')),
     star(sequence(
       first(str('-'), str('+')),
-      plus('productionNameChar'),
+      plus(ref('productionNameChar')),
     )),
   ),
 
   productionParameters: sequence(
     str('('),
-    optional('space'),
+    optional(ref('space')),
 
-    'parameter',
+    ref('parameter'),
     star(sequence(
       str(','),
-      optional('space'),
-      'parameter',
+      optional(ref('space')),
+      ref('parameter'),
     )),
 
-    optional('space'),
+    optional(ref('space')),
     str(')'),
   ),
 
   parameter: first(
     str('in-flow(c)'),
-    plus(minus('anyChar', str(')'), str(','))),
+    plus(minus(ref('anyChar'), str(')'), str(','))),
   ),
 
   productionRef: sequence(
-    'productionName',
-    optional('productionParameters'),
+    ref('productionName'),
+    optional(ref('productionParameters')),
   ),
 
   grammar: sequence(
-    optional('space'),
-    'production',
+    optional(ref('space')),
+    ref('production'),
     star(sequence(
-      'space',
-      'production',
+      ref('space'),
+      ref('production'),
     )),
-    optional('space'),
+    optional(ref('space')),
   ),
 
   production: sequence(
     optional(sequence(
-      'productionNumber',
-      'space',
+      ref('productionNumber'),
+      ref('space'),
     )),
 
-    'productionRef',
-    optional('space'),
+    ref('productionRef'),
+    optional(ref('space')),
     str('::='),
-    optional('space'),
-    'alternation',
+    optional(ref('space')),
+    ref('alternation'),
   ),
 
   productionNumber: sequence(
     str('['),
-    plus('decimalDigit'),
+    plus(ref('decimalDigit')),
     str(']'),
   ),
 
   alternation: sequence(
-    'sequence',
+    ref('sequence'),
     star(sequence(
-      optional('space'),
+      optional(ref('space')),
       str('|'),
-      optional('space'),
-      'sequence',
+      optional(ref('space')),
+      ref('sequence'),
     )),
   ),
 
   sequence: sequence(
-    'minus',
+    ref('minus'),
     star(sequence(
-      'space',
-      'minus',
+      ref('space'),
+      ref('minus'),
     )),
   ),
 
   minus: sequence(
-    'quantified',
+    ref('quantified'),
     star(sequence(
-      'space',
+      ref('space'),
       str('-'),
-      'space',
-      'quantified',
+      ref('space'),
+      ref('quantified'),
     )),
   ),
 
   quantified: sequence(
-    'atom',
-    star('quantifier'),
+    ref('atom'),
+    star(ref('quantifier')),
   ),
 
   quantifier: first(
     str('?'),
     str('*'),
     str('+'),
-    sequence(str('{'), plus('decimalDigit'), str('}')),
+    sequence(str('{'), plus(ref('decimalDigit')), str('}')),
   ),
 
   atom: first(
-    'hexChar',
-    'charRange',
-    'string',
-    sequence('productionRef', negativeLookahead(sequence('space', str('::=')))),
-    'special',
-    'parenthesized',
-    'lookaround',
+    ref('hexChar'),
+    ref('charRange'),
+    ref('string'),
+    sequence(ref('productionRef'), negativeLookahead(sequence(ref('space'), str('::=')))),
+    ref('special'),
+    ref('parenthesized'),
+    ref('lookaround'),
   ),
 
   special: sequence(
     str('<'),
-    'productionName',
+    ref('productionName'),
     str('>'),
   ),
 
   parenthesized: sequence(
     str('('),
-    optional('space'),
-    'alternation',
-    optional('space'),
+    optional(ref('space')),
+    ref('alternation'),
+    optional(ref('space')),
     str(')'),
   ),
 
   lookaround: sequence(
     str('['),
-    'space',
-    'lookaroundType',
-    'space',
-    'lookaroundOperator',
-    'space',
-    'alternation',
-    'space',
+    ref('space'),
+    ref('lookaroundType'),
+    ref('space'),
+    ref('lookaroundOperator'),
+    ref('space'),
+    ref('alternation'),
+    ref('space'),
     str(']'),
   ),
 

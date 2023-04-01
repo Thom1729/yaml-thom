@@ -11,7 +11,6 @@ export type RefParameters = {
 };
 
 export type GrammarNode =
-  | string
   | { type: 'EMPTY' }
   | { type: 'START_OF_LINE' }
   | { type: 'END_OF_INPUT' }

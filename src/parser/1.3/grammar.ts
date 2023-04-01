@@ -1294,8 +1294,8 @@ const INTRODUCE_INDENTATION = {
     )),
     ref('block-node', 'n', 'c'),
     sequence(
-      'empty-node',
-      'comment-lines',
+      ref('empty-node'),
+      ref('comment-lines'),
     ),
   ),
 } as const satisfies Grammar;

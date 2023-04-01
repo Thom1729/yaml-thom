@@ -4,7 +4,6 @@ import type {
   RefParameters,
 } from './helpers';
 
-import { CharSet } from './charSet';
 import { AstNode, Parameters } from './ast';
 import { safeAccessProxy } from '@/util/safeAccessProxy';
 import { single, charUtf16Width, objectEntries, strictFromEntries } from '@/util';
@@ -32,7 +31,7 @@ export class ParseOperation extends EventEmitter<{
   }
 
   parseAll<T extends string>(name: T) {
-    const result = this.parse(0, {}, name);
+    const result = this.parseRef(0, {}, {}, name);
 
     if (result === null) throw new Error('parse failed');
 
@@ -51,9 +50,7 @@ export class ParseOperation extends EventEmitter<{
     parameters: Parameters,
     node: GrammarNode,
   ): ParseResult {
-    if (typeof node === 'string') {
-      return this.parseRef(index, parameters, {}, node);
-    } else if (node.type === 'EMPTY') {
+    if (node.type === 'EMPTY') {
       return [[], index];
     } else if (node.type === 'START_OF_LINE') {
       if (index === 0 || this.text[index - 1] === '\r' || this.text[index - 1] === '\n') {
