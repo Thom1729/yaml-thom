@@ -6,7 +6,7 @@ export type RefParameters = {
   [K in keyof Parameters]?:
   | keyof Parameters
   | Required<Parameters>[K]
-  | ('n' | 'm' | number)[]
+  | readonly ('n' | 'm' | number)[]
   | 'in-flow(c)'
 };
 

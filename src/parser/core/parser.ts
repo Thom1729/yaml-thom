@@ -310,6 +310,10 @@ export class ParseOperation extends EventEmitter<{
   }
 }
 
+function isArray<T, A>(value: T | readonly A[]): value is readonly A[] {
+  return Array.isArray(value);
+}
+
 function resolveParameter(
   oldParameters: Required<Parameters>,
   given: RefParameters[keyof RefParameters],
@@ -322,7 +326,7 @@ function resolveParameter(
     }
   } else if (given === 'n' || given === 'm' || given === 'c' || given === 't') {
     return oldParameters[given];
-  } else if (Array.isArray(given)) {
+  } else if (isArray(given)) {
     return given
       .map(x => (typeof x === 'string') ? oldParameters[x] : x)
       .reduce((a,b) => a+b, 0);

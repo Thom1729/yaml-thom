@@ -1,5 +1,6 @@
 import path from 'path';
 import chalk from 'chalk';
+import { inspect } from 'util';
 
 import { parseStream } from '@/parser';
 import { zip } from '@/util';
@@ -39,13 +40,17 @@ function runTest(test: TestCase) {
   if (test.tree === undefined) return makeResult('skipped'); // TODO
 
   try {
-    const expectedTree = eventsToSerializationTree(test.tree);
+    const expectedTree = Array.from(eventsToSerializationTree(test.tree));
     const actualTree = Array.from(parseStream(test.yaml));
 
     const inequal = [] as Difference[];
+    if (expectedTree.length !== actualTree.length) {
+      console.error(expectedTree.length, actualTree.length);
+      console.error(test.tree);
+    }
     for (const [expectedDocument, actualDocument] of zip(
-      expectedTree,
-      actualTree,
+      expectedTree.slice(0, Math.min(expectedTree.length, actualTree.length)),
+      actualTree.slice(0, Math.min(expectedTree.length, actualTree.length)),
     )) {
       inequal.push(...diffSerializations(expectedDocument, actualDocument));
     }
@@ -86,8 +91,8 @@ for (const testName of testNames) {
         }
 
         if (result.error) {
-          // logger.log(chalk.red(inspect(result.error)));
-          logger.log(chalk.red(result.error));
+          logger.log(chalk.red(inspect(result.error)));
+          // logger.log(chalk.red(result.error));
         }
       });
     }

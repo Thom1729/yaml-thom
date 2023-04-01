@@ -1,285 +1,1288 @@
 import {
-  empty,
-  startOfLine,
-  endOfInput,
   str,
   ref,
   sequence,
   first,
-  optional,
   plus,
-  star,
-  repeat,
-  lookahead,
-  negativeLookahead,
-  lookbehind,
   detectIndentation,
-  context,
-  charSet,
 
   type Grammar,
 } from '../core/helpers';
 
 import { ChompingBehavior } from '../core/ast';
 
-import { CharSet } from '../core/charSet';
+import { parseGrammar } from '../core/metaGrammar';
 
-const YAML_CHARACTER = new CharSet(
-  0x09, // Tab
-  0x0A, // Line Feed
-  0x0D, // Carriage return
-  [0x20, 0x7E], // Printable ASCII
+const GENERATED_BASE = parseGrammar(String.raw`
+[1]
+yaml-stream ::=
+  document-prefix*
+  any-document?
+  (
+      (
+        document-suffix+
+        document-prefix*
+        any-document?
+      )
+    | byte-order-mark
+    | comment-line
+    | start-indicator-and-document
+  )*
 
-  0x85, // Next line (NEL)
-  [0xA0, 0xD7FF], // Basic multilingual plane (BMP)
-  [0xE000, 0xFFFD], // Additional unicode areas
-  [0x010000, 0x10FFFF], // Astral planes
-);
+[2]
+document-prefix ::=
+  byte-order-mark?
+  blanks-and-comment-line*
 
-const NON_BREAK_CHARACTER = YAML_CHARACTER.minus(
-  new CharSet(0x0a, 0x0d, 0xfeff)
-);
+[3]
+document-suffix ::=
+  document-end-indicator
+  comment-lines
 
-const BLANK_CHARACTER = new CharSet(
-  0x09, // Space
-  0x20, // Tab
-);
+[4]
+document-start-indicator ::=
+  "---"
 
-const NON_SPACE_CHARACTER = NON_BREAK_CHARACTER.minus(BLANK_CHARACTER);
+[5]
+document-end-indicator ::=
+  "..."                             # Not followed by non-ws char
 
-const DECIMAL_DIGIT = new CharSet([0x30, 0x39]);
-const DECIMAL_DIGIT_1_9 = new CharSet([0x31, 0x39]);
-const HEXADECIMAL_DIGIT = new CharSet(
-  [0x30, 0x39],
-  [0x41, 0x46],
-  [0x61, 0x66],
-);
+[6]
+any-document ::=
+    directives-and-document
+  | start-indicator-and-document
+  | bare-document
 
-const BYTE_ORDER_MARK = new CharSet(0xfeff);
+[7]
+directives-and-document ::=
+  directive-line+
+  start-indicator-and-document
 
-const FLOW_COLLECTION_INDICATORS = new CharSet(
-  ',',
-  '{',
-  '}',
-  '[',
-  ']',
-);
+[8]
+start-indicator-and-document ::=
+  document-start-indicator
+  (
+      bare-document
+    | (
+        empty-node
+        comment-lines
+      )
+  )
 
-const ANCHOR_CHARACTER = NON_SPACE_CHARACTER.minus(FLOW_COLLECTION_INDICATORS);
+[9]
+bare-document ::=
+  block-node(-1,BLOCK-IN)
+  /* Excluding forbidden-content */
 
-const JSON_CHARACTER = new CharSet(0x09, [0x20, 0x10ffff]);
+[10]
+directive-line ::=
+  '%'
+  (
+      yaml-directive-line
+    | tag-directive-line
+    | reserved-directive-line
+  )
+  comment-lines
 
-const ASCII_ALPHA_CHARACTER = new CharSet([0x41, 0x5a], [0x61, 0x7a]);
+[11]
+forbidden-content ::=
+  <start-of-line>
+  (
+      document-start-indicator
+    | document-end-indicator
+  )
+  (
+      line-ending
+    | blank-character
+  )
 
-const PLAIN_SCALAR_FIRST_CHARACTER = NON_SPACE_CHARACTER.minus(new CharSet(
-  '?', // Mapping key
-  ':', // Mapping value
-  '-', // Sequence entry
-  '{', // Mapping start
-  '}', // Mapping end
-  '[', // Sequence start
-  ']', // Sequence end
-  ',', // Entry separator
-  '#', // Comment
-  '&', // Anchor
-  '*', // Alias
-  '!', // Tag
-  '|', // Literal scalar
-  '>', // Folded scalar
-  '\'', // Single quote
-  '"', // Double quote
-  '%', // Directive
-  '@', // Reserved
-  '`', // Reserved
-));
+[12]
+block-node(n,c) ::=
+    block-node-in-a-block-node(n,c)
+  | flow-node-in-a-block-node(n)
 
-const BASE_GRAMMAR: Grammar = {
-  /* 1 */ 'yaml-stream': sequence(
-    star('document-prefix'),
-    optional('any-document'),
-    star(first(
-      sequence(plus('document-suffix'), star('document-prefix'), optional('any-document')),
-      'byte-order-mark',
-      'comment-line',
-      'start-indicator-and-document',
-    )),
-  ),
+[13]
+block-node-in-a-block-node(n,c) ::=
+    block-scalar(n,c)
+  | block-collection(n,c)
 
-  /* 2 */ 'document-prefix': sequence(
-    optional('byte-order-mark'),
-    star('blanks-and-comment-line'),
-  ),
+[14]
+flow-node-in-a-block-node(n) ::=
+  separation-characters(n+1,FLOW-OUT)
+  flow-node(n+1,FLOW-OUT)
+  comment-lines
 
-  /* 3 */ 'document-suffix': sequence(
-    'document-end-indicator',
-    'comment-lines',
-  ),
+[15]
+block-collection(n,c) ::=
+  (
+    separation-characters(n+1,c)
+    node-properties(n+1,c)
+  )?
+  comment-lines
+  (
+      block-sequence-context(n,c)
+    | block-mapping(n)
+  )
 
-  /* 4 */ 'document-start-indicator': str('---'),
+[16]
+block-sequence-context(n,BLOCK-OUT) ::= block-sequence(n-1)
+block-sequence-context(n,BLOCK-IN)  ::= block-sequence(n)
 
-  /* 5 */ 'document-end-indicator': str('...'), // TODO: Not followed by non-ws char
+[17]
+block-scalar(n,c) ::=
+  separation-characters(n+1,c)
+  (
+    node-properties(n+1,c)
+    separation-characters(n+1,c)
+  )?
+  (
+      block-literal-scalar(n)
+    | block-folded-scalar(n)
+  )
 
-  /* 6 */ 'any-document': first(
-    'directives-and-document',
-    'start-indicator-and-document',
-    'bare-document',
-  ),
+[18]
+block-mapping(n) ::=
+  (
+    indentation-spaces(n+1+m)
+    block-mapping-entry(n+1+m)
+  )+
 
-  /* 7 */ 'directives-and-document': sequence(
-    plus('directive-line'),
-    'start-indicator-and-document',
-  ),
+[19]
+block-mapping-entry(n) ::=
+    block-mapping-explicit-entry(n)
+  | block-mapping-implicit-entry(n)
 
-  /* 8 */ 'start-indicator-and-document': sequence(
-    'document-start-indicator',
-    first(
-      'bare-document',
-      sequence('empty-node', 'comment-lines'),
+[20]
+block-mapping-explicit-entry(n) ::=
+  block-mapping-explicit-key(n)
+  (
+      block-mapping-explicit-value(n)
+    | empty-node
+  )
+
+[21]
+block-mapping-explicit-key(n) ::=
+  '?'                               # Not followed by non-ws char
+  block-indented-node(n,BLOCK-OUT)
+
+[22]
+block-mapping-explicit-value(n) ::=
+  indentation-spaces(n)
+  ':'                               # Not followed by non-ws char
+  block-indented-node(n,BLOCK-OUT)
+
+[23]
+block-mapping-implicit-entry(n) ::=
+  (
+      block-mapping-implicit-key
+    | empty-node
+  )
+  block-mapping-implicit-value(n)
+
+[24]
+block-mapping-implicit-key ::=
+    implicit-json-key(BLOCK-KEY)
+  | implicit-yaml-key(BLOCK-KEY)
+
+[25]
+block-mapping-implicit-value(n) ::=
+  ':'                               # Not followed by non-ws char
+  (
+      block-node(n,BLOCK-OUT)
+    | (
+        empty-node
+        comment-lines
+      )
+  )
+
+[26]
+compact-mapping(n) ::=
+  block-mapping-entry(n)
+  (
+    indentation-spaces(n)
+    block-mapping-entry(n)
+  )*
+
+[27]
+block-sequence(n) ::=
+  (
+    indentation-spaces(n+1+m)
+    block-sequence-entry(n+1+m)
+  )+
+
+[28]
+block-sequence-entry(n) ::=
+  '-'
+  [ lookahead ≠ non-space-character ]
+  block-indented-node(n,BLOCK-IN)
+
+[29]
+block-indented-node(n,c) ::=
+    (
+      indentation-spaces(m)
+      (
+          compact-sequence(n+1+m)
+        | compact-mapping(n+1+m)
+      )
     )
+  | block-node(n,c)
+  | (
+      empty-node
+      comment-lines
+    )
+
+[30]
+compact-sequence(n) ::=
+  block-sequence-entry(n)
+  (
+    indentation-spaces(n)
+    block-sequence-entry(n)
+  )*
+
+[31]
+block-literal-scalar(n) ::=
+  '|'
+  block-scalar-indicators(t)
+  literal-scalar-content(n+m,t)
+
+[32]
+literal-scalar-content(n,t) ::=
+  (
+    literal-scalar-line-content(n)
+    literal-scalar-next-line(n)*
+    block-scalar-chomp-last(t)
+  )?
+  block-scalar-chomp-empty(n,t)
+
+[33]
+literal-scalar-line-content(n) ::=
+  empty-line(n,BLOCK-IN)*
+  indentation-spaces(n)
+  non-break-character+
+
+[34]
+literal-scalar-next-line(n) ::=
+  break-as-line-feed
+  literal-scalar-line-content(n)
+
+[35]
+block-folded-scalar(n) ::=
+  '>'
+  block-scalar-indicators(t)
+  folded-scalar-content(n+m,t)
+
+[36]
+folded-scalar-content(n,t) ::=
+  (
+    folded-scalar-lines-different-indentation(n)
+    block-scalar-chomp-last(t)
+  )?
+  block-scalar-chomp-empty(n,t)
+
+[37]
+folded-scalar-lines-different-indentation(n) ::=
+  folded-scalar-lines-same-indentation(n)
+  (
+    break-as-line-feed
+    folded-scalar-lines-same-indentation(n)
+  )*
+
+[38]
+folded-scalar-lines-same-indentation(n) ::=
+  empty-line(n,BLOCK-IN)*
+  (
+      folded-scalar-lines(n)
+    | folded-scalar-spaced-lines(n)
+  )
+
+[39]
+folded-scalar-lines(n) ::=
+  folded-scalar-text(n)
+  (
+    folded-whitespace(n,BLOCK-IN)
+    folded-scalar-text(n)
+  )*
+
+[40]
+folded-scalar-spaced-lines(n) ::=
+  folded-scalar-spaced-text(n)
+  (
+    line-break-and-empty-lines(n)
+    folded-scalar-spaced-text(n)
+  )*
+
+[41]
+folded-scalar-text(n) ::=
+  indentation-spaces(n)
+  non-space-character
+  non-break-character*
+
+[42]
+line-break-and-empty-lines(n) ::=
+  break-as-line-feed
+  empty-line(n,BLOCK-IN)*
+
+[43]
+folded-scalar-spaced-text(n) ::=
+  indentation-spaces(n)
+  blank-character
+  non-break-character*
+
+[44]
+block-scalar-indicators(t) ::=
+  (
+      (
+        block-scalar-indentation-indicator
+        block-scalar-chomping-indicator(t)
+      )
+    | (
+        block-scalar-chomping-indicator(t)
+        block-scalar-indentation-indicator
+      )
+  )
+  comment-line
+
+[45]
+block-scalar-indentation-indicator ::=
+  decimal-digit-1-9
+
+[46]
+block-scalar-chomping-indicator(STRIP) ::= '-'
+block-scalar-chomping-indicator(KEEP)  ::= '+'
+block-scalar-chomping-indicator(CLIP)  ::= ""
+
+[47]
+block-scalar-chomp-last(STRIP) ::= line-break | <end-of-input>
+block-scalar-chomp-last(CLIP)  ::= break-as-line-feed | <end-of-input>
+block-scalar-chomp-last(KEEP)  ::= break-as-line-feed | <end-of-input>
+
+[48]
+block-scalar-chomp-empty(n,STRIP) ::= line-strip-empty(n)
+block-scalar-chomp-empty(n,CLIP)  ::= line-strip-empty(n)
+block-scalar-chomp-empty(n,KEEP)  ::= line-keep-empty(n)
+
+[49]
+line-strip-empty(n) ::=
+  (
+    indentation-spaces-less-or-equal(n)
+    line-break
+  )*
+  line-trail-comments(n)?
+
+[50]
+line-keep-empty(n) ::=
+  empty-line(n,BLOCK-IN)*
+  line-trail-comments(n)?
+
+[51]
+line-trail-comments(n) ::=
+  indentation-spaces-less-than(n)
+  comment-content
+  line-ending
+  comment-line*
+
+[52]
+flow-node(n,c) ::=
+    alias-node
+  | flow-content(n,c)
+  | (
+      node-properties(n,c)
+      (
+        (
+          separation-characters(n,c)
+          flow-content(n,c)
+        )
+        | empty-node
+      )
+    )
+
+[53]
+flow-content(n,c) ::=
+    flow-yaml-content(n,c)
+  | flow-json-content(n,c)
+
+[54]
+flow-yaml-content(n,c) ::=
+  flow-plain-scalar(n,c)
+
+[55]
+flow-json-content(n,c) ::=
+    flow-sequence(n,c)
+  | flow-mapping(n,c)
+  | single-quoted-scalar(n,c)
+  | double-quoted-scalar(n,c)
+
+[56]
+flow-mapping(n,c) ::=
+  '{'
+  separation-characters(n,c)?
+  flow-mapping-context(n,c)?
+  '}'
+
+[57]
+flow-mapping-entries(n,c) ::=
+  flow-mapping-entry(n,c)
+  separation-characters(n,c)?
+  (
+    ','
+    separation-characters(n,c)?
+    flow-mapping-entries(n,c)?
+  )?
+
+[58]
+flow-mapping-entry(n,c) ::=
+    (
+      '?'                           # Not followed by non-ws char
+      separation-characters(n,c)
+      flow-mapping-explicit-entry(n,c)
+    )
+  | flow-mapping-implicit-entry(n,c)
+
+[59]
+flow-mapping-explicit-entry(n,c) ::=
+    flow-mapping-implicit-entry(n,c)
+  | (
+      empty-node
+      empty-node
+    )
+
+[60]
+flow-mapping-implicit-entry(n,c) ::=
+    flow-mapping-yaml-key-entry(n,c)
+  | flow-mapping-empty-key-entry(n,c)
+  | flow-mapping-json-key-entry(n,c)
+
+[61]
+flow-mapping-yaml-key-entry(n,c) ::=
+  flow-yaml-node(n,c)
+  (
+      (
+        separation-characters(n,c)?
+        flow-mapping-separate-value(n,c)
+      )
+    | empty-node
+  )
+
+[62]
+flow-mapping-empty-key-entry(n,c) ::=
+  empty-node
+  flow-mapping-separate-value(n,c)
+
+[63]
+flow-mapping-separate-value(n,c) ::=
+  ':'
+  [ lookahead ≠ non-space-plain-scalar-character(c) ]
+  (
+      (
+        separation-characters(n,c)
+        flow-node(n,c)
+      )
+    | empty-node
+  )
+
+[64]
+flow-mapping-json-key-entry(n,c) ::=
+  flow-json-node(n,c)
+  (
+      (
+        separation-characters(n,c)?
+        flow-mapping-adjacent-value(n,c)
+      )
+    | empty-node
+  )
+
+[65]
+flow-mapping-adjacent-value(n,c) ::=
+  ':'
+  (
+      (
+        separation-characters(n,c)?
+        flow-node(n,c)
+      )
+    | empty-node
+  )
+
+[66]
+flow-pair(n,c) ::=
+    (
+      '?'                           # Not followed by non-ws char
+      separation-characters(n,c)
+      flow-mapping-explicit-entry(n,c)
+    )
+  | flow-pair-entry(n,c)
+
+[67]
+flow-pair-entry(n,c) ::=
+    flow-pair-yaml-key-entry(n,c)
+  | flow-mapping-empty-key-entry(n,c)
+  | flow-pair-json-key-entry(n,c)
+
+[68]
+flow-pair-yaml-key-entry(n,c) ::=
+  implicit-yaml-key(FLOW-KEY)
+  flow-mapping-separate-value(n,c)
+
+[69]
+flow-pair-json-key-entry(n,c) ::=
+  implicit-json-key(FLOW-KEY)
+  flow-mapping-adjacent-value(n,c)
+
+[70]
+implicit-yaml-key(c) ::=
+  flow-yaml-node(0,c)
+  separation-blanks?
+  /* At most 1024 characters altogether */
+
+[71]
+implicit-json-key(c) ::=
+  flow-json-node(0,c)
+  separation-blanks?
+  /* At most 1024 characters altogether */
+
+[72]
+flow-yaml-node(n,c) ::=
+    alias-node
+  | flow-yaml-content(n,c)
+  | (
+      node-properties(n,c)
+      (
+          (
+            separation-characters(n,c)
+            flow-yaml-content(n,c)
+          )
+        | empty-node
+      )
+    )
+
+[73]
+flow-json-node(n,c) ::=
+  (
+    node-properties(n,c)
+    separation-characters(n,c)
+  )?
+  flow-json-content(n,c)
+
+[74]
+flow-sequence(n,c) ::=
+  '['
+  separation-characters(n,c)?
+  flow-sequence-context(n,c)?
+  ']'
+
+[75]
+flow-sequence-entries(n,c) ::=
+  flow-sequence-entry(n,c)
+  separation-characters(n,c)?
+  (
+    ','
+    separation-characters(n,c)?
+    flow-sequence-entries(n,c)?
+  )?
+
+[76]
+flow-sequence-entry(n,c) ::=
+    flow-pair(n,c)
+  | flow-node(n,c)
+
+[77]
+double-quoted-scalar(n,c) ::=
+  '"'
+  double-quoted-text(n,c)
+  '"'
+
+[78]
+double-quoted-text(n,BLOCK-KEY) ::= double-quoted-one-line
+double-quoted-text(n,FLOW-KEY)  ::= double-quoted-one-line
+double-quoted-text(n,FLOW-OUT)  ::= double-quoted-multi-line(n)
+double-quoted-text(n,FLOW-IN)   ::= double-quoted-multi-line(n)
+
+[79]
+double-quoted-multi-line(n) ::=
+  double-quoted-first-line
+  (
+      double-quoted-next-line(n)
+    | blank-character*
+  )
+
+[80]
+double-quoted-one-line ::=
+  non-break-double-quoted-character*
+
+[81]
+double-quoted-first-line ::=
+  (
+    blank-character*
+    non-space-double-quoted-character
+  )*
+
+[82]
+double-quoted-next-line(n) ::=
+  (
+      double-quoted-line-continuation(n)
+    | flow-folded-whitespace(n)
+  )
+  (
+    non-space-double-quoted-character
+    double-quoted-first-line
+    (
+        double-quoted-next-line(n)
+      | blank-character*
+    )
+  )?
+
+[83]
+non-space-double-quoted-character ::=
+    non-break-double-quoted-character
+  - blank-character
+
+[84]
+non-break-double-quoted-character ::=
+    double-quoted-scalar-escape-character
+  | (
+        json-character
+      - '\'
+      - '"'
+    )
+
+[85]
+double-quoted-line-continuation(n) ::=
+  blank-character*
+  '\'
+  line-break
+  empty-line(n,FLOW-IN)*
+  indentation-spaces-plus-maybe-more(n)
+
+[86]
+flow-mapping-context(n,FLOW-OUT)  ::= flow-sequence-entries(n,FLOW-IN)
+flow-mapping-context(n,FLOW-IN)   ::= flow-sequence-entries(n,FLOW-IN)
+flow-mapping-context(n,BLOCK-KEY) ::= flow-sequence-entries(n,FLOW-KEY)
+flow-mapping-context(n,FLOW-KEY)  ::= flow-sequence-entries(n,FLOW-KEY)
+
+[87]
+flow-sequence-context(n,FLOW-OUT)  ::= flow-sequence-entries(n,FLOW-IN)
+flow-sequence-context(n,FLOW-IN)   ::= flow-sequence-entries(n,FLOW-IN)
+flow-sequence-context(n,BLOCK-KEY) ::= flow-sequence-entries(n,FLOW-KEY)
+flow-sequence-context(n,FLOW-KEY)  ::= flow-sequence-entries(n,FLOW-KEY)
+
+[88]
+single-quoted-scalar(n,c) ::=
+  "'"
+  single-quoted-text(n,c)
+  "'"
+
+[89]
+single-quoted-text(BLOCK-KEY) ::= single-quoted-one-line
+single-quoted-text(FLOW-KEY)  ::= single-quoted-one-line
+single-quoted-text(FLOW-OUT)  ::= single-quoted-multi-line(n)
+single-quoted-text(FLOW-IN)   ::= single-quoted-multi-line(n)
+
+[90]
+single-quoted-multi-line(n) ::=
+  single-quoted-first-line
+  (
+      single-quoted-next-line(n)
+    | blank-character*
+  )
+
+[91]
+single-quoted-one-line ::=
+  non-break-single-quoted-character*
+
+[92]
+single-quoted-first-line ::=
+  (
+    blank-character*
+    non-space-single-quoted-character
+  )*
+
+[93]
+single-quoted-next-line(n) ::=
+  flow-folded-whitespace(n)
+  (
+    non-space-single-quoted-character
+    single-quoted-first-line
+    (
+        single-quoted-next-line(n)
+      | blank-character*
+    )
+  )?
+
+[94]
+non-space-single-quoted-character ::=
+    non-break-single-quoted-character
+  - blank-character
+
+[95]
+non-break-single-quoted-character ::=
+    single-quoted-escaped-single-quote
+  | (
+        json-character
+      - "'"
+    )
+
+[96]
+single-quoted-escaped-single-quote ::=
+  "''"
+
+[97]
+flow-plain-scalar(n,FLOW-OUT)  ::= plain-scalar-multi-line(n,FLOW-OUT)
+flow-plain-scalar(n,FLOW-IN)   ::= plain-scalar-multi-line(n,FLOW-IN)
+flow-plain-scalar(n,BLOCK-KEY) ::= plain-scalar-single-line(BLOCK-KEY)
+flow-plain-scalar(n,FLOW-KEY)  ::= plain-scalar-single-line(FLOW-KEY)
+
+[98]
+plain-scalar-multi-line(n,c) ::=
+  plain-scalar-single-line(c)
+  plain-scalar-next-line(n,c)*
+
+[99]
+plain-scalar-single-line(c) ::=
+  plain-scalar-first-character(c)
+  plain-scalar-line-characters(c)
+
+[100]
+plain-scalar-next-line(n,c) ::=
+  flow-folded-whitespace(n)
+  plain-scalar-characters(c)
+  plain-scalar-line-characters(c)
+
+[101]
+plain-scalar-line-characters(c) ::=
+  (
+    blank-character*
+    plain-scalar-characters(c)
+  )*
+
+[102]
+plain-scalar-first-character(c) ::=
+    (
+        non-space-character
+      - '?'                         # Mapping key
+      - ':'                         # Mapping value
+      - '-'                         # Sequence entry
+      - '{'                         # Mapping start
+      - '}'                         # Mapping end
+      - '['                         # Sequence start
+      - ']'                         # Sequence end
+      - ','                         # Entry separator
+      - '#'                         # Comment
+      - '&'                         # Anchor
+      - '*'                         # Alias
+      - '!'                         # Tag
+      - '|'                         # Literal scalar
+      - '>'                         # Folded scalar
+      - "'"                         # Single quote
+      - '"'                         # Double quote
+      - '%'                         # Directive
+      - '@'                         # Reserved
+      - '${'`'}'                         # Reserved
+    )
+  | (
+      ( '?' | ':' | '-' )
+      [ lookahead = non-space-plain-scalar-character(c) ]
+    )
+
+[103]
+plain-scalar-characters(c) ::=
+    (
+        non-space-plain-scalar-character(c)
+      - ':'
+      - '#'
+    )
+  | (
+      [ lookbehind = non-space-character ]
+      '#'
+    )
+  | (
+      ':'
+      [ lookahead = non-space-plain-scalar-character(c) ]
+    )
+
+[104]
+non-space-plain-scalar-character(FLOW-OUT)  ::= block-plain-scalar-character
+non-space-plain-scalar-character(FLOW-IN)   ::= flow-plain-scalar-character
+non-space-plain-scalar-character(BLOCK-KEY) ::= block-plain-scalar-character
+non-space-plain-scalar-character(FLOW-KEY)  ::= flow-plain-scalar-character
+
+[105]
+block-plain-scalar-character ::=
+  non-space-character
+
+[106]
+flow-plain-scalar-character ::=
+    non-space-character
+  - flow-collection-indicators
+
+[107]
+alias-node ::=
+  '*'
+  anchor-name
+
+[108]
+empty-node ::=
+  ""
+
+[109]
+indentation-spaces(0) ::=
+  ""
+
+# When n≥0
+indentation-spaces(n+1) ::=
+  space-character
+  indentation-spaces(n)
+
+[110]
+indentation-spaces-less-than(1) ::=
+  ""
+
+# When n≥1
+indentation-spaces-less-than(n+1) ::=
+    (
+      space-character
+      indentation-spaces-less-than(n)
+    )
+  | ""
+
+[111]
+indentation-spaces-less-or-equal(0) ::=
+  ""
+
+# When n≥0
+indentation-spaces-less-or-equal(n+1) ::=
+    (
+      space-character
+      indentation-spaces-less-or-equal(n)
+    )
+  | ""
+
+[112]
+line-prefix-spaces(n,BLOCK-OUT) ::= indentation-spaces-exact(n)
+line-prefix-spaces(n,BLOCK-IN)  ::= indentation-spaces-exact(n)
+line-prefix-spaces(n,FLOW-OUT)  ::= indentation-spaces-plus-maybe-more(n)
+line-prefix-spaces(n,FLOW-IN)   ::= indentation-spaces-plus-maybe-more(n)
+
+[113]
+indentation-spaces-exact(n) ::=
+  indentation-spaces(n)
+
+[114]
+indentation-spaces-plus-maybe-more(n) ::=
+  indentation-spaces(n)
+  separation-blanks?
+
+[115]
+flow-folded-whitespace(n) ::=
+  separation-blanks?
+  folded-whitespace(n,FLOW-IN)
+  indentation-spaces-plus-maybe-more(n)
+
+[116]
+folded-whitespace(n,c) ::=
+    (
+      line-break
+      empty-line(n,c)+
+    )
+  | break-as-space
+
+[117]
+comment-lines ::=
+  (
+    comment-line
+  | <start-of-line>
+  )
+  blanks-and-comment-line*
+
+[118]
+comment-line ::=
+  (
+    separation-blanks
+    comment-content?
+  )?
+  line-ending
+
+[119]
+blanks-and-comment-line ::=
+  separation-blanks
+  comment-content?
+  line-ending
+
+[120]
+comment-content ::=
+  '#'
+  non-break-character*
+
+[121]
+empty-line(n,c) ::=
+  (
+      line-prefix-spaces(n,c)
+    | indentation-spaces-less-than(n)
+  )
+  break-as-line-feed
+
+[122]
+separation-characters(n,BLOCK-OUT) ::= separation-lines(n)
+separation-characters(n,BLOCK-IN)  ::= separation-lines(n)
+separation-characters(n,FLOW-OUT)  ::= separation-lines(n)
+separation-characters(n,FLOW-IN)   ::= separation-lines(n)
+separation-characters(n,BLOCK-KEY) ::= separation-blanks
+separation-characters(n,FLOW-KEY)  ::= separation-blanks
+
+[123]
+separation-lines(n) ::=
+    (
+      comment-lines
+      indentation-spaces-plus-maybe-more(n)
+    )
+  | separation-blanks
+
+[124]
+separation-blanks ::=
+    blank-character+
+  | <start-of-line>
+
+[125]
+yaml-directive-line ::=
+  "YAML"
+  separation-blanks
+  yaml-version-number
+
+[126]
+yaml-version-number ::=
+  decimal-digit+
+  '.'
+  decimal-digit+
+
+[127]
+reserved-directive-line ::=
+  directive-name
+  (
+    separation-blanks
+    directive-parameter
+  )*
+
+[128]
+directive-name ::=
+  non-space-character+
+
+[129]
+directive-parameter ::=
+  non-space-character+
+
+[130]
+tag-directive-line ::=
+  "TAG"
+  separation-blanks
+  tag-handle
+  separation-blanks
+  tag-prefix
+
+[131]
+tag-handle ::=
+    named-tag-handle
+  | secondary-tag-handle
+  | primary-tag-handle
+
+[132]
+named-tag-handle ::=
+  '!'
+  word-character+
+  '!'
+
+[133]
+secondary-tag-handle ::=
+  "!!"
+
+[134]
+primary-tag-handle ::=
+  '!'
+
+[135]
+tag-prefix ::=
+    local-tag-prefix
+  | global-tag-prefix
+
+[136]
+local-tag-prefix ::=
+  '!'
+  uri-character*
+
+[137]
+global-tag-prefix ::=
+  tag-character
+  uri-character*
+
+[138]
+node-properties(n,c) ::=
+    (
+      anchor-property
+      (
+        separation-characters(n,c)
+        tag-property
+      )?
+    )
+  | (
+      tag-property
+      (
+        separation-characters(n,c)
+        anchor-property
+      )?
+    )
+
+[139]
+anchor-property ::=
+  '&'
+  anchor-name
+
+[140]
+anchor-name ::=
+  anchor-character+
+
+[141]
+anchor-character ::=
+    non-space-character
+  - flow-collection-indicators
+
+[142]
+tag-property ::=
+    verbatim-tag
+  | shorthand-tag
+  | non-specific-tag
+
+[143]
+verbatim-tag ::=
+  "!<"
+  uri-character+
+  '>'
+
+[144]
+shorthand-tag ::=
+  tag-handle
+  tag-character+
+
+[145]
+non-specific-tag ::=
+  '!'
+
+[146]
+byte-order-mark ::=
+  xFEFF
+
+[147]
+yaml-character ::=
+                                    # 8 bit
+    x09                             # Tab
+  | x0A                             # Line feed
+  | x0D                             # Carriage return
+  | [x20-x7E]                       # Printable ASCII
+                                    # 16 bit
+  | x85                             # Next line (NEL)
+  | [xA0-xD7FF]                     # Basic multilingual plane (BMP)
+  | [xE000-xFFFD]                   # Additional unicode areas
+  | [x010000-x10FFFF]               # 32 bit
+
+[148]
+json-character ::=
+    x09                             # Tab
+  | [x20-x10FFFF]                   # Non-C0-control characters
+
+[149]
+non-space-character ::=
+    non-break-character
+  - blank-character
+
+[150]
+non-break-character ::=
+    yaml-character
+  - x0A
+  - x0D
+  - byte-order-mark
+
+[151]
+blank-character ::=
+    x20                             # Space
+  | x09                             # Tab
+
+[152]
+space-character ::=
+  x20
+
+[153]
+line-ending ::=
+    line-break
+  | <end-of-input>
+
+[154]
+break-as-space ::=
+  line-break
+
+[155]
+break-as-line-feed ::=
+  line-break
+
+[156]
+line-break ::=
+    (
+      x0D                           # Carriage return
+      x0A                           # Line feed
+    )
+  | x0D
+  | x0A
+
+[157]
+flow-collection-indicators ::=
+    ','                             # Flow collection separator
+  | '{'                             # Flow mapping start
+  | '}'                             # Flow mapping end
+  | '['                             # Flow sequence start
+  | ']'                             # Flow sequence end
+
+[158]
+double-quoted-scalar-escape-character ::=
+  '\'
+  (
+      '0'
+    | 'a'
+    | 'b'
+    | 't' | x09
+    | 'n'
+    | 'v'
+    | 'f'
+    | 'r'
+    | 'e'
+    | x20
+    | '"'
+    | '/'
+    | '\'
+    | 'N'
+    | '_'
+    | 'L'
+    | 'P'
+    | ( 'x' hexadecimal-digit{2} )
+    | ( 'u' hexadecimal-digit{4} )
+    | ( 'U' hexadecimal-digit{8} )
+  )
+
+[159]
+tag-character ::=
+    uri-character
+  - '!'
+  - flow-collection-indicators
+
+[160]
+uri-character ::=
+    (
+      '%'
+      hexadecimal-digit{2}
+    )
+  | word-character
+  | '#'
+  | ';'
+  | '/'
+  | '?'
+  | ':'
+  | '@'
+  | '&'
+  | '='
+  | '+'
+  | '$'
+  | ','
+  | '_'
+  | '.'
+  | '!'
+  | '~'
+  | '*'
+  | "'"
+  | '('
+  | ')'
+  | '['
+  | ']'
+
+[161]
+word-character ::=
+    decimal-digit
+  | ascii-alpha-character
+  | '-'
+
+[162]
+hexadecimal-digit ::=
+    decimal-digit
+  | [x41-x46]                       # A-F
+  | [x61-x66]                       # a-f
+
+[163]
+decimal-digit ::=
+  [x30-x39]                         # 0-9
+
+[164]
+decimal-digit-1-9 ::=
+  [x31-x39]                         # 1-9
+
+[165]
+ascii-alpha-character ::=
+    [x41-x5A]                       # A-Z
+  | [x61-x7A]                       # a-z
+
+`);
+
+const FORBIDDEN_CONTENT = parseGrammar(String.raw`
+[33]
+literal-scalar-line-content(n) ::=
+  empty-line(n,BLOCK-IN)*
+  [ lookahead ≠ forbidden-content ]
+  indentation-spaces(n)
+  non-break-character+
+
+[41]
+folded-scalar-text(n) ::=
+  [ lookahead ≠ forbidden-content ]
+  indentation-spaces(n)
+  non-space-character
+  non-break-character*
+
+[99]
+plain-scalar-single-line(c) ::=
+  [ lookahead ≠ forbidden-content ]
+  plain-scalar-first-character(c)
+  plain-scalar-line-characters(c)
+
+[100]
+plain-scalar-next-line(n,c) ::=
+  flow-folded-whitespace(n)
+  [ lookahead ≠ forbidden-content ]
+  plain-scalar-characters(c)
+  plain-scalar-line-characters(c)
+`);
+
+const INTRODUCE_T = {
+  /* 31 */ 'block-literal-scalar': first(
+    ...Object.values(ChompingBehavior).map(t => sequence(
+      str('|'),
+      ref('block-scalar-indicators', { t }),
+      ref('literal-scalar-content', { n: ['n', 1], t }),
+    ))
   ),
 
-  /* 9 */ 'bare-document': ref('block-node', { n: -1, c: 'BLOCK-IN' }),
-
-  /* 10 */ 'directive-line': sequence(
-    str('%'),
-    first(
-      'yaml-directive-line',
-      'tag-directive-line',
-      'reserved-directive-line',
-    ),
-    'comment-lines',
+  /* 35 */ 'block-folded-scalar': first(
+    ...Object.values(ChompingBehavior).map(t => sequence(
+      str('>'),
+      ref('block-scalar-indicators', { t }),
+      ref('folded-scalar-content', { n: ['n', 1], t }),
+    ))
   ),
+};
 
-  /* 11 */ 'forbidden-content': sequence(
-    startOfLine,
-    first(
-      'document-start-indicator',
-      'document-end-indicator',
-    ),
-    first(
-      'line-ending',
-      'blank-character',
-    ),
-  ),
-
-  /* 12 */ 'block-node': first(
-    ref('block-node-in-a-block-node', 'n', 'c'),
-    ref('flow-node-in-a-block-node', 'n'),
-  ),
-
-  /* 13 */ 'block-node-in-a-block-node': first(
-    ref('block-scalar', 'n', 'c'),
-    ref('block-collection', 'n', 'c'),
-  ),
-
-  /* 14 */ 'flow-node-in-a-block-node': sequence(
-    ref('separation-characters', { n: ['n', 1], c: 'FLOW-OUT' }),
-    ref('flow-node', { n: ['n', 1], c: 'FLOW-OUT' }),
-    'comment-lines',
-  ),
-
-  /* 15 */ 'block-collection': sequence(
-    optional(sequence(
-      ref('separation-characters', { n: ['n', 1] }, 'c'),
-      ref('node-properties', { n: ['n', 1] }, 'c'),
-    )),
-    'comment-lines',
-    first(
-      ref('block-sequence-context', 'n', 'c'),
-      ref('block-mapping', 'n'),
-    ),
-  ),
-
-  /* 16 */ 'block-sequence-context': context(
-    [{ c: 'BLOCK-OUT'}, ref('block-sequence', { n: ['n', -1] })],
-    [{ c: 'BLOCK-IN'}, ref('block-sequence', 'n')],
-  ),
-
-  /* 17 */ 'block-scalar': sequence(
-    ref('separation-characters', { n: ['n', 1] }, 'c'),
-    optional(sequence(
-      ref('node-properties', { n: ['n', 1] }, 'c'),
-      ref('separation-characters', { n: ['n', 1] }, 'c'),
-    )),
-    first(
-      ref('block-literal-scalar', 'n'),
-      ref('block-folded-scalar', 'n'),
-    ),
-  ),
-
+const INTRODUCE_INDENTATION = {
   /* 18 */ 'block-mapping':
     detectIndentation(n => n + 1, plus(sequence(
       ref('indentation-spaces', { n: 'm' }),
       ref('block-mapping-entry', { n: 'm' }),
     ))),
 
-  /* 19 */ 'block-mapping-entry': first(
-    ref('block-mapping-explicit-entry', 'n'),
-    ref('block-mapping-implicit-entry', 'n'),
-  ),
-
-  /* 20 */ 'block-mapping-explicit-entry': sequence(
-    ref('block-mapping-explicit-key', 'n'),
-    first(
-      ref('block-mapping-explicit-value', 'n'),
-      'empty-node',
-    ),
-  ),
-
-  /* 21 */ 'block-mapping-explicit-key': sequence(
-    str('?'),
-    ref('block-indented-node', 'n', { c: 'BLOCK-OUT' }),
-  ),
-
-  /* 22 */ 'block-mapping-explicit-value': sequence(
-    ref('indentation-spaces', 'n'),
-    str(':'),
-    ref('block-indented-node', 'n', { c: 'BLOCK-OUT' }),
-  ),
-
-  /* 23 */ 'block-mapping-implicit-entry': sequence(
-    first(
-      'block-mapping-implicit-key',
-      'empty-node',
-    ),
-    ref('block-mapping-implicit-value', 'n'),
-  ),
-
-  /* 24 */ 'block-mapping-implicit-key': first(
-    ref('implicit-json-key', { c: 'BLOCK-KEY' }),
-    ref('implicit-yaml-key', { c: 'BLOCK-KEY' }),
-  ),
-
-  /* 25 */ 'block-mapping-implicit-value': sequence(
-    str(':'),
-    first(
-      ref('block-node', 'n', { c: 'BLOCK-OUT' }),
-      sequence(
-        'empty-node',
-        'comment-lines',
-      ),
-    ),
-  ),
-
-  /* 26 */ 'compact-mapping': sequence(
-    ref('block-mapping-entry', 'n'),
-    star(sequence(
-      ref('indentation-spaces', 'n'),
-      ref('block-mapping-entry', 'n'),
-    )),
-  ),
-
   /* 27 */ 'block-sequence':
     detectIndentation(n => n + 1, plus(sequence(
       ref('indentation-spaces', { n: 'm' }),
       ref('block-sequence-entry', { n: 'm' }),
     ))),
-
-  /* 28 */ 'block-sequence-entry': sequence(
-    str('-'),
-    negativeLookahead('non-space-character'),
-    ref('block-indented-node', 'n', { c: 'BLOCK-IN' }),
-  ),
 
   /* 29 */ 'block-indented-node': first(
     detectIndentation(1, sequence(
@@ -295,952 +1298,141 @@ const BASE_GRAMMAR: Grammar = {
       'comment-lines',
     ),
   ),
+} as const satisfies Grammar;
 
-  /* 30 */ 'compact-sequence': sequence(
-    ref('block-sequence-entry', 'n'),
-    star(sequence(
-      ref('indentation-spaces', 'n'),
-      ref('block-sequence-entry', 'n'),
-    )),
-  ),
+const HANDLE_N_MINUS_1 = parseGrammar(String.raw`
+[109]
+indentation-spaces(0) ::=
+  ""
 
-  /* 31 */ 'block-literal-scalar': first(
-    ...Object.values(ChompingBehavior).map(t => sequence(
-      str('|'),
-      ref('block-scalar-indicators', { t }),
-      // detectIndentation(({ n }) => n, ref('literal-scalar-content', { n: 'm', t })),
-      ref('literal-scalar-content', { n: ['n', 1], t }),
-    ))
-  ),
+# When n≥0
+indentation-spaces(n) ::=
+  space-character
+  indentation-spaces(n-1)
 
-  /* 32 */ 'literal-scalar-content': sequence(
-    optional(sequence(
-      ref('literal-scalar-line-content', 'n'),
-      star(ref('literal-scalar-next-line', 'n')),
-      ref('block-scalar-chomp-last', 't'),
-    )),
-    ref('block-scalar-chomp-empty', 'n', 't'),
-  ),
+[110]
+indentation-spaces-less-than(1) ::=
+  ""
 
-  /* 33 */ 'literal-scalar-line-content': sequence(
-    star(ref('empty-line', 'n', { c: 'BLOCK-IN' })),
-    negativeLookahead('forbidden-content'), // TODO
-    ref('indentation-spaces', 'n'),
-    plus('non-break-character'),
-  ),
+# When n≥1
+indentation-spaces-less-than(n) ::=
+    (
+      space-character
+      indentation-spaces-less-than(n-1)
+    )
+  | ""
 
-  /* 34 */ 'literal-scalar-next-line': sequence(
-    'break-as-line-feed',
-    ref('literal-scalar-line-content', 'n'),
-  ),
+[111]
+indentation-spaces-less-or-equal(0) ::=
+  ""
 
-  /* 35 */ 'block-folded-scalar': first(
-    ...Object.values(ChompingBehavior).map(t => sequence(
-      str('>'),
-      ref('block-scalar-indicators', { t }),
-      // detectIndentation(0, ref('folded-scalar-content', { n: ({ n, m }) => n + m, t })),
-      ref('folded-scalar-content', { n: ['n', 1] }, { t }),
-    ))
-  ),
+# When n≥0
+indentation-spaces-less-or-equal(n) ::=
+    (
+      space-character
+      indentation-spaces-less-or-equal(n-1)
+    )
+  | ""
+`);
 
-  /* 36 */ 'folded-scalar-content': sequence(
-    optional(sequence(
-      ref('folded-scalar-lines-different-indentation', 'n'),
-      ref('block-scalar-chomp-last', 't'),
-    )),
-    ref('block-scalar-chomp-empty', 'n', 't'),
-  ),
+const FLOW_MAPPING_CONTEXT_FIX = parseGrammar(String.raw`
+[86]
+flow-mapping-context(n,FLOW-OUT)  ::= flow-mapping-entries(n,FLOW-IN)
+flow-mapping-context(n,FLOW-IN)   ::= flow-mapping-entries(n,FLOW-IN)
+flow-mapping-context(n,BLOCK-KEY) ::= flow-mapping-entries(n,FLOW-KEY)
+flow-mapping-context(n,FLOW-KEY)  ::= flow-mapping-entries(n,FLOW-KEY)
+`);
 
-  /* 37 */ 'folded-scalar-lines-different-indentation': sequence(
-    ref('folded-scalar-lines-same-indentation', 'n'),
-    star(sequence(
-      'break-as-line-feed',
-      ref('folded-scalar-lines-same-indentation', 'n'),
-    )),
-  ),
+const UNBOUNDED_REPETITION_FIX = parseGrammar(String.raw`
+[2]
+document-prefix ::= byte-order-mark | blanks-and-comment-line
+`);
 
-  /* 38 */ 'folded-scalar-lines-same-indentation': sequence(
-    star(ref('empty-line', 'n', { c: 'BLOCK-IN' })),
-    first(
-      ref('folded-scalar-lines', 'n'),
-      ref('folded-scalar-spaced-lines', 'n'),
-    ),
-  ),
+const FLOW_MAPPING_IMPLICIT_ENTRY_FIX = parseGrammar(String.raw`
+[60]
+flow-mapping-implicit-entry(n,c) ::=
+    flow-mapping-json-key-entry(n,c)
+  | flow-mapping-yaml-key-entry(n,c)
+  | flow-mapping-empty-key-entry(n,c)
+`);
 
-  /* 39 */ 'folded-scalar-lines': sequence(
-    ref('folded-scalar-text', 'n'),
-    star(sequence(
-      ref('folded-whitespace', 'n', { c: 'BLOCK-IN' }),
-      ref('folded-scalar-text', 'n'),
-    )),
-  ),
-
-  /* 40 */ 'folded-scalar-spaced-lines': sequence(
-    ref('folded-scalar-spaced-text', 'n'),
-    star(sequence(
-      ref('line-break-and-empty-lines', 'n'),
-      ref('folded-scalar-spaced-text', 'n'),
-    )),
-  ),
-
-  /* 41 */ 'folded-scalar-text': sequence(
-    negativeLookahead('forbidden-content'), // TODO
-    ref('indentation-spaces', 'n'),
-    'non-space-character',
-    star('non-break-character'),
-  ),
-
-  /* 42 */ 'line-break-and-empty-lines': sequence(
-    'break-as-line-feed',
-    star(ref('empty-line', 'n', { c: 'BLOCK-IN' })),
-  ),
-
-  /* 43 */ 'folded-scalar-spaced-text': sequence(
-    ref('indentation-spaces', 'n'),
-    'blank-character',
-    star('non-break-character'),
-  ),
-
-  /* 44 */ 'block-scalar-indicators': sequence(
-    first(
-      sequence(
-        'block-scalar-indentation-indicator',
-        ref('block-scalar-chomping-indicator', 't'),
-      ),
-      sequence(
-        ref('block-scalar-chomping-indicator', 't'),
-        'block-scalar-indentation-indicator',
-      ),
-    ),
-    'comment-line',
-  ),
-
-  /* 45 */ 'block-scalar-indentation-indicator': 'decimal-digit-1-9',
-
-  /* 46 */ 'block-scalar-chomping-indicator': context(
-    [{t: 'STRIP'}, str('-')],
-    [{t: 'KEEP'}, str('+')],
-    [{t: 'CLIP'}, empty],
-  ),
-
-  /* 47 */ 'block-scalar-chomp-last': context(
-    [{t: 'STRIP'}, first('line-break', endOfInput)],
-    [{t: 'KEEP'}, first('break-as-line-feed', endOfInput)],
-    [{t: 'CLIP'}, first('break-as-line-feed', endOfInput)],
-  ),
-
-  /* 48 */ 'block-scalar-chomp-empty': context(
-    [{t: 'STRIP'}, ref('line-strip-empty', 'n')],
-    [{t: 'KEEP'}, ref('line-strip-empty', 'n')],
-    [{t: 'CLIP'}, ref('line-keep-empty', 'n')],
-  ),
-
-  /* 49 */ 'line-strip-empty': sequence(
-    star(sequence(
-      ref('indentation-spaces-less-than-or-equal', 'n'),
-      'line-break',
-    )),
-    optional(ref('line-trail-comments', 'n')),
-  ),
-
-  /* 50 */ 'line-keep-empty': sequence(
-    star(ref('empty-line', 'n', { c: 'BLOCK-IN' })),
-    optional(ref('line-trail-comments', 'n')),
-  ),
-
-  /* 51 */ 'line-trail-comments': sequence(
-    ref('indentation-spaces-less-than', 'n'),
-    'comment-content',
-    'line-ending',
-    star('comment-line'),
-  ),
-
-  /* 52 */ 'flow-node': first(
-    'alias-node',
-    ref('flow-content', 'n', 'c'),
-    sequence(
-      ref('node-properties', 'n', 'c'),
-      first(
-        sequence(
-          ref('separation-characters', 'n', 'c'),
-          ref('flow-content', 'n', 'c'),
-        ),
-        'empty-node',
-      ),
-    ),
-  ),
-
-  /* 53 */ 'flow-content': first(
-    ref('flow-yaml-content', 'n', 'c'),
-    ref('flow-json-content', 'n', 'c'),
-  ),
-
-  /* 54 */ 'flow-yaml-content': ref('flow-plain-scalar', 'n', 'c'),
-
-  /* 55 */ 'flow-json-content': first(
-    ref('flow-sequence', 'n', 'c'),
-    ref('flow-mapping', 'n', 'c'),
-    ref('single-quoted-scalar', 'n', 'c'),
-    ref('double-quoted-scalar', 'n', 'c'),
-  ),
-
-  /* 56 */ 'flow-mapping': sequence(
-    str('{'),
-    optional(ref('separation-characters', 'n', 'c')),
-    optional(ref('flow-mapping-context', 'n', 'c')),
-    str('}'),
-  ),
-
-  /* 57 */ 'flow-mapping-entries': sequence(
-    ref('flow-mapping-entry', 'n', 'c'),
-    optional(ref('separation-characters', 'n', 'c')),
-    optional(sequence(
-      str(','),
-      optional(ref('separation-characters', 'n', 'c')),
-      optional(ref('flow-mapping-entries', 'n', 'c')),
-    ))
-  ),
-
-  /* 58 */ 'flow-mapping-entry': first(
-    sequence(
-      str('?'),
-      ref('separation-characters', 'n', 'c'),
-      ref('flow-mapping-explicit-entry', 'n', 'c'),
-    ),
-    ref('flow-mapping-implicit-entry', 'n', 'c'),
-  ),
-
-  /* 59 */ 'flow-mapping-explicit-entry': first(
-    ref('flow-mapping-implicit-entry', 'n', 'c'),
-    sequence('empty-node', 'empty-node'),
-  ),
-
-  /* 60 */ 'flow-mapping-implicit-entry': first(
-    ref('flow-mapping-yaml-key-entry', 'n', 'c'),
-    ref('flow-mapping-empty-key-entry', 'n', 'c'),
-    ref('flow-mapping-json-key-entry', 'n', 'c'),
-  ),
-
-  /* 61 */ 'flow-mapping-yaml-key-entry': sequence(
-    ref('flow-yaml-node', 'n', 'c'),
-    first(
-      sequence(
-        optional(ref('separation-characters', 'n', 'c')),
-        ref('flow-mapping-separate-value', 'n', 'c'),
-      ),
-      'empty-node',
-    ),
-  ),
-
-  /* 62 */ 'flow-mapping-empty-key-entry': sequence(
-    'empty-node',
-    ref('flow-mapping-separate-value', 'n', 'c'),
-  ),
-
-  /* 63 */ 'flow-mapping-separate-value': sequence(
-    str(':'),
-    negativeLookahead(ref('non-space-plain-scalar-character', 'c')),
-    first(
-      sequence(
-        ref('separation-characters', 'n', 'c'),
-        ref('flow-node', 'n', 'c'),
-      ),
-      'empty-node',
-    ),
-  ),
-
-  /* 64 */ 'flow-mapping-json-key-entry': sequence(
-    ref('flow-json-node', 'n', 'c'),
-    first(
-      sequence(
-        optional(ref('separation-characters', 'n', 'c')),
-        ref('flow-mapping-adjacent-value', 'n', 'c'),
-      ),
-      'empty-node',
-    ),
-  ),
-
-  /* 65 */ 'flow-mapping-adjacent-value': sequence(
-    str(':'),
-    first(
-      sequence(
-        optional(ref('separation-characters', 'n', 'c')),
-        ref('flow-node', 'n', 'c'),
-      ),
-      'empty-node',
-    ),
-  ),
-
-  /* 66 */ 'flow-pair': first(
-    sequence(
-      str('?'),
-      ref('separation-characters', 'n', 'c'),
-      ref('flow-mapping-explicit-entry', 'n', 'c'),
-    ),
-    ref('flow-pair-entry', 'n', 'c'),
-  ),
-
-  /* 67 */ 'flow-pair-entry': first(
-    ref('flow-pair-yaml-key-entry', 'n', 'c'),
-    ref('flow-mapping-empty-key-entry', 'n', 'c'),
-    ref('flow-pair-json-key-entry', 'n', 'c'),
-  ),
-
-  /* 68 */ 'flow-pair-yaml-key-entry': sequence(
-    ref('implicit-yaml-key', { c: 'FLOW-KEY' }),
-    ref('flow-mapping-separate-value', 'n', 'c'),
-  ),
-
-  /* 69 */ 'flow-pair-json-key-entry': sequence(
-    ref('implicit-json-key', { c: 'FLOW-KEY' }),
-    ref('flow-mapping-adjacent-value', 'n', 'c'),
-  ),
-
-  /* 70 */ 'implicit-yaml-key': sequence(
-    ref('flow-yaml-node', { n: 0 }, 'c'),
-    optional('separation-blanks'),
-    // TODO: 1024 limit
-  ),
-
-  /* 71 */ 'implicit-json-key': sequence(
-    ref('flow-json-node', { n: 0 }, 'c'),
-    optional('separation-blanks'),
-    // TODO: 1024 limit
-  ),
-
-  /* 72 */ 'flow-yaml-node': first(
-    'alias-node',
-    ref('flow-yaml-content', 'n', 'c'),
-    sequence(
-      ref('node-properties', 'n', 'c'),
-      first(
-        sequence(
-          ref('separation-characters', 'n', 'c'),
-          ref('flow-yaml-content', 'n', 'c'),
-        ),
-        'empty-node',
-      ),
-    ),
-  ),
-
-  /* 73 */ 'flow-json-node': sequence(
-    optional(sequence(
-      ref('node-properties', 'n', 'c'),
-      ref('separation-characters', 'n', 'c'),
-    )),
-    ref('flow-json-content', 'n', 'c'),
-  ),
-
-  /* 74 */ 'flow-sequence': sequence(
-    str('['),
-    optional(ref('separation-characters', 'n', 'c')),
-    optional(ref('flow-sequence-context', 'n', 'c')),
-    str(']'),
-  ),
-
-  /* 75 */ 'flow-sequence-entries': sequence(
-    ref('flow-sequence-entry', 'n', 'c'),
-    optional(ref('separation-characters', 'n', 'c')),
-    optional(sequence(
-      str(','),
-      optional(ref('separation-characters', 'n', 'c')),
-      optional(ref('flow-sequence-entries', 'n', 'c')),
-    )),
-  ),
-
-  /* 76 */ 'flow-sequence-entry': first(
-    ref('flow-pair', 'n', 'c'),
-    ref('flow-node', 'n', 'c'),
-  ),
-
-  /* 77 */ 'double-quoted-scalar': sequence(
-    str('"'),
-    ref('double-quoted-text', 'n', 'c'),
-    str('"'),
-  ),
-
-  /* 78 */ 'double-quoted-text': context(
-    [{c: 'BLOCK-KEY'}, 'double-quoted-one-line'],
-    [{c: 'FLOW-KEY'}, 'double-quoted-one-line'],
-    [{c: 'FLOW-OUT'}, ref('double-quoted-multi-line', 'n')],
-    [{c: 'FLOW-IN'}, ref('double-quoted-multi-line', 'n')],
-  ),
-
-  /* 79 */ 'double-quoted-multi-line': sequence(
-    'double-quoted-first-line',
-    first(
-      ref('double-quoted-next-line', 'n'),
-      star('blank-character'),
-    ),
-  ),
-
-  /* 80 */ 'double-quoted-one-line': star('non-break-double-quoted-character'),
-  
-  /* 81 */ 'double-quoted-first-line': star(sequence(
-    star('blank-character'),
-    'non-space-double-quoted-character',
-  )),
-
-  /* 82 */ 'double-quoted-next-line': sequence(
-    first(
-      ref('double-quoted-line-continuation', 'n'),
-      ref('flow-folded-whitespace', 'n'),
-    ),
-    optional(sequence(
-      'non-space-double-quoted-character',
-      'double-quoted-first-line',
-      first(
-        ref('double-quoted-next-line', 'n'),
-        star('blank-character'),
+const BLOCK_SCALAR_INDICATORS_FIX = parseGrammar(String.raw`
+[44]
+block-scalar-indicators(t) ::=
+  (
+      (
+        block-scalar-indentation-indicator
+        block-scalar-chomping-indicator(t)
       )
-    )),
-  ),
+    | (
+        block-scalar-chomping-indicator(t)
+        block-scalar-indentation-indicator?
+      )
+  )
+  comment-line
+`);
 
-  /* 83 */ 'non-space-double-quoted-character': sequence(
-    negativeLookahead('blank-character'),
-    'non-break-double-quoted-character',
-  ),
+const BLOCK_COLLECTION_NODE_PROPERTIES_FIX = parseGrammar(String.raw`
+[15]
+block-collection(n,c) ::=
+  (
+    separation-characters(n+1,c)
+    block-collection-node-properties(n+1,c)
+  )?
+  comment-lines
+  (
+      block-sequence-context(n,c)
+    | block-mapping(n)
+  )
 
-  /* 84 */ 'non-break-double-quoted-character': first(
-    'double-quoted-scalar-escape-character',
-    sequence(
-      negativeLookahead(str('\\')),
-      negativeLookahead(str('"')),
-      'json-character',
+block-collection-node-properties(n,c) ::=
+    (
+      anchor-property
+      (
+        separation-characters(n,c)
+        tag-property
+        [ lookahead = comment-line ]
+      )?
+      [ lookahead = comment-line ]
     )
-  ),
-
-  /* 85 */ 'double-quoted-line-continuation': sequence(
-    star('blank-character'),
-    str('\\'),
-    'line-break',
-    star(ref('empty-line', 'n', { c: 'FLOW-IN'})),
-    ref('indentation-spaces-plus-maybe-more', 'n'),
-  ),
-
-  /* 86 */ 'flow-mapping-context': context(
-    [{c: 'FLOW-OUT'}, ref('flow-mapping-entries', 'n', { c: 'FLOW-IN' })],
-    [{c: 'FLOW-IN'}, ref('flow-mapping-entries', 'n', { c: 'FLOW-IN' })],
-    [{c: 'BLOCK-KEY'}, ref('flow-mapping-entries', 'n', { c: 'FLOW-KEY' })],
-    [{c: 'FLOW-KEY'}, ref('flow-mapping-entries', 'n', { c: 'FLOW-KEY' })],
-  ),
-
-  /* 87 */ 'flow-sequence-context': context(
-    [{c: 'FLOW-OUT'}, ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' })],
-    [{c: 'FLOW-IN'}, ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' })],
-    [{c: 'BLOCK-KEY'}, ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' })],
-    [{c: 'FLOW-KEY'}, ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' })],
-  ),
-
-  /* 88 */ 'single-quoted-scalar': sequence(
-    str('\''),
-    ref('single-quoted-text', 'n', 'c'),
-    str('\''),
-  ),
-
-  /* 89 */ 'single-quoted-text': context(
-    [{c: 'BLOCK-KEY'}, 'single-quoted-one-line'],
-    [{c: 'FLOW-KEY'}, 'single-quoted-one-line'],
-    [{c: 'FLOW-OUT'}, ref('single-quoted-multi-line', 'n')],
-    [{c: 'FLOW-IN'}, ref('single-quoted-multi-line', 'n')],
-  ),
-
-  /* 90 */ 'single-quoted-multi-line': sequence(
-    'single-quoted-first-line',
-    first(
-      ref('single-quoted-next-line', 'n'),
-      star('blank-character'),
-    ),
-  ),
-
-  /* 91 */ 'single-quoted-one-line': star('non-break-single-quoted-character'),
-  
-  /* 92 */ 'single-quoted-first-line': star(sequence(
-    star('blank-character'),
-    'non-break-single-quoted-character',
-  )),
-
-  /* 93 */ 'single-quoted-next-line': sequence(
-    ref('flow-folded-whitespace', 'n'),
-    optional(sequence(
-      'non-space-single-quoted-character',
-      'single-quoted-first-line',
-      first(
-        ref('single-quoted-next-line', 'n'),
-        star('blank-character'),
-      ),
-    )),
-  ),
-
-  /* 94 */ 'non-space-single-quoted-character': sequence(
-    negativeLookahead('blank-character'),
-    'non-break-single-quoted-character',
-  ),
-
-  /* 95 */ 'non-break-single-quoted-character': first(
-    'single-quoted-escaped-single-quote',
-    sequence(
-      negativeLookahead(str('\'')),
-      'json-character',
+  | (
+      tag-property
+      (
+        separation-characters(n,c)
+        anchor-property
+        [ lookahead = comment-line ]
+      )?
+      [ lookahead = comment-line ]
     )
-  ),
-
-  /* 96 */ 'single-quoted-escaped-single-quote': str('\'\''),
-
-  /* 97 */ 'flow-plain-scalar': context(
-    [{c: 'FLOW-OUT'}, ref('plain-scalar-multi-line', 'n', { c: 'FLOW-OUT' })],
-    [{c: 'FLOW-IN'}, ref('plain-scalar-multi-line', 'n', { c: 'FLOW-IN' })],
-    [{c: 'BLOCK-KEY'}, ref('plain-scalar-single-line', { c: 'BLOCK-KEY' })],
-    [{c: 'FLOW-KEY'}, ref('plain-scalar-single-line', { c: 'FLOW-KEY' })],
-  ),
-
-  /* 98 */ 'plain-scalar-multi-line': sequence(
-    ref('plain-scalar-single-line', 'c'),
-    star(ref('plain-scalar-next-line', 'n', 'c')),
-  ),
-
-  /* 99 */ 'plain-scalar-single-line': sequence(
-    negativeLookahead('forbidden-content'), // TODO
-    ref('plain-scalar-first-character', 'c'),
-    ref('plain-scalar-line-characters', 'c'),
-  ),
-
-  /* 100 */ 'plain-scalar-next-line': sequence(
-    ref('flow-folded-whitespace', 'n'),
-    negativeLookahead('forbidden-content'), // TODO
-    ref('plain-scalar-characters', 'c'),
-    ref('plain-scalar-line-characters', 'c'),
-  ),
-
-  /* 101 */ 'plain-scalar-line-characters':
-    star(sequence(
-      star('blank-character'),
-      ref('plain-scalar-characters', 'c'),
-    )),
-
-  /* 102 */ 'plain-scalar-first-character': first(
-    charSet(...PLAIN_SCALAR_FIRST_CHARACTER.ranges),
-    sequence(
-      charSet('?', ':', '-'),
-      lookahead(ref('non-space-plain-scalar-character', 'c')),
-    ),
-  ),
-
-  /* 103 */ 'plain-scalar-characters': first(
-    sequence(
-      negativeLookahead(charSet(':', '#')),
-      ref('non-space-plain-scalar-character', 'c'),
-    ),
-    sequence(
-      lookbehind(charSet(...NON_SPACE_CHARACTER.ranges)),
-      str('#'),
-    ),
-    sequence(
-      str(':'),
-      lookahead(ref('non-space-plain-scalar-character', 'c'))
-    ),
-  ),
-
-  /* 104 */ 'non-space-plain-scalar-character': context(
-    [{c: 'FLOW-OUT'}, 'block-plain-scalar-character'],
-    [{c: 'FLOW-IN'}, 'flow-plain-scalar-character'],
-    [{c: 'BLOCK-KEY'}, 'block-plain-scalar-character'],
-    [{c: 'FLOW-KEY'}, 'flow-plain-scalar-character'],
-  ),
-
-  /* 105 */ 'block-plain-scalar-character': 'non-space-character',
-
-  /* 105 */ 'flow-plain-scalar-character': charSet(...NON_SPACE_CHARACTER.minus(FLOW_COLLECTION_INDICATORS).ranges),
-  
-  /* 107 */ 'alias-node': sequence(
-    str('*'),
-    'anchor-name',
-  ),
-
-  /* 108 */ 'empty-node': empty,
-
-  /* 109 */ 'indentation-spaces': context(
-    [{ n: 0 }, empty],
-    [{}, sequence('space-character', ref('indentation-spaces', { n: ['n', -1] }))],
-  ),
-
-  /* 110 */ 'indentation-spaces-less-than': context(
-    [{ n: 0 }, empty],
-    [{ n: 1 }, empty],
-    [{}, first(
-      sequence('space-character', ref('indentation-spaces-less-than', { n: ['n', -1] })),
-      empty,
-    )],
-  ),
-
-  /* 111 */ 'indentation-spaces-less-than-or-equal': context(
-    [{ n: 0 }, empty],
-    [{}, first(
-      sequence('space-character', ref('indentation-spaces-less-than', { n: ['n', -1] })),
-      empty,
-    )],
-  ),
-
-  /* 112 */ 'line-prefix-spaces': context(
-    [{c: 'BLOCK-OUT'}, ref('indentation-spaces-exact', 'n')],
-    [{c: 'BLOCK-IN'}, ref('indentation-spaces-exact', 'n')],
-    [{c: 'FLOW-OUT'}, ref('indentation-spaces-plus-maybe-more', 'n')],
-    [{c: 'FLOW-IN'}, ref('indentation-spaces-plus-maybe-more', 'n')],
-  ),
-
-  /* 113 */ 'indentation-spaces-exact': ref('indentation-spaces', 'n'),
-
-  /* 114 */ 'indentation-spaces-plus-maybe-more': sequence(
-    ref('indentation-spaces', 'n'),
-    optional('separation-blanks'),
-  ),
-
-  /* 115 */ 'flow-folded-whitespace': sequence(
-    optional('separation-blanks'),
-    ref('folded-whitespace', 'n', { c: 'FLOW-IN' }),
-    ref('indentation-spaces-plus-maybe-more', 'n'),
-  ),
-
-  /* 116 */ 'folded-whitespace': first(
-    sequence( 'line-break', plus(ref('empty-line', 'n', 'c')) ),
-    'break-as-space',
-  ),
-
-  /* 117 */ 'comment-lines': sequence(
-    first('comment-line', startOfLine),
-    star('blanks-and-comment-line'),
-  ),
-
-  /* 118 */ 'comment-line': sequence(
-    optional(sequence('separation-blanks', optional('comment-content'))),
-    'line-ending',
-  ),
-
-  /* 119 */ 'blanks-and-comment-line': sequence(
-    'separation-blanks',
-    optional('comment-content'),
-    'line-ending',
-  ),
-
-  /* 120 */ 'comment-content': sequence(str('#'), star('non-break-character')),
-
-  /* 121 */ 'empty-line': sequence(
-    first(
-      ref('line-prefix-spaces', 'n', 'c'),
-      ref('indentation-spaces-less-than', 'n'),
-    ),
-    'break-as-line-feed',
-  ),
-
-  /* 122 */ 'separation-characters': context(
-    [{c: 'BLOCK-OUT'}, ref('separation-lines', 'n')],
-    [{c: 'BLOCK-IN'}, ref('separation-lines', 'n')],
-    [{c: 'FLOW-OUT'}, ref('separation-lines', 'n')],
-    [{c: 'FLOW-IN'}, ref('separation-lines', 'n')],
-    [{c: 'BLOCK-KEY'}, 'separation-blanks'],
-    [{c: 'FLOW-KEY'}, 'separation-blanks'],
-  ),
-
-  /* 123 */ 'separation-lines': first(
-    sequence(
-      'comment-lines',
-      ref('indentation-spaces-plus-maybe-more', 'n'),
-    ),
-    'separation-blanks',
-  ),
-
-  /* 124 */ 'separation-blanks': first(
-    plus('blank-character'),
-    startOfLine,
-  ),
-
-  /* 125 */ 'yaml-directive-line': sequence(
-    str('YAML'),
-    'separation-blanks',
-    'yaml-version-number',
-  ),
-
-  /* 126 */ 'yaml-version-number': sequence(
-    plus('decimal-digit'),
-    str('.'),
-    plus('decimal-digit'),
-  ),
-
-  /* 127 */ 'reserved-directive-line': sequence(
-    'directive-name',
-    star(sequence(
-      'separation-blanks',
-      'directive-parameter',
-    )),
-  ),
-
-  /* 128 */ 'directive-name': sequence(
-    plus('non-space-character'),
-  ),
-
-  /* 129 */ 'directive-parameter': sequence(
-    plus('non-space-character'),
-  ),
-
-  /* 130 */ 'tag-directive-line': sequence(
-    str('TAG'),
-    'separation-blanks',
-    'tag-handle',
-    'separation-blanks',
-    'tag-prefix',
-  ),
-
-  /* 131 */ 'tag-handle': first(
-    'named-tag-handle',
-    'secondary-tag-handle',
-    'primary-tag-handle',
-  ),
-
-  /* 132 */ 'named-tag-handle': sequence(
-    str('!'),
-    plus('word-character'),
-    str('!'),
-  ),
-
-  /* 133 */ 'secondary-tag-handle': str('!!'),
-
-  /* 134 */ 'primary-tag-handle': str('!'),
-
-  /* 135 */ 'tag-prefix': first(
-    'local-tag-prefix',
-    'global-tag-prefix',
-  ),
-
-  /* 136 */ 'local-tag-prefix': sequence(
-    str('!'),
-    star('uri-character'),
-  ),
-
-  /* 137 */ 'global-tag-prefix': sequence(
-    'tag-character',
-    star('uri-character'),
-  ),
-
-  /* 138 */ 'node-properties': first(
-    sequence(
-      'anchor-property',
-      optional(sequence(
-        ref('separation-characters', 'n', 'c'),
-        'tag-property',
-      )),
-    ),
-    sequence(
-      'tag-property',
-      optional(sequence(
-        ref('separation-characters', 'n', 'c'),
-        'anchor-property',
-      )),
-    ),
-  ),
-
-  /* 139 */ 'anchor-property': sequence(
-    str('&'),
-    'anchor-name',
-  ),
-
-  /* 140 */ 'anchor-name': plus('anchor-character'),
-
-  /* 141 */ 'anchor-character': charSet(...ANCHOR_CHARACTER.ranges),
-
-  /* 142 */ 'tag-property': first(
-    'verbatim-tag',
-    'shorthand-tag',
-    'non-specific-tag',
-  ),
-
-  /* 143 */ 'verbatim-tag': sequence(
-    str('!<'),
-    plus('uri-character'),
-    str('>'),
-  ),
-
-  /* 144 */ 'shorthand-tag': sequence(
-    'tag-handle',
-    plus('tag-character'),
-  ),
-
-  /* 145 */ 'non-specific-tag': str('!'),
-
-  /* 146 */ 'byte-order-mark': charSet(...BYTE_ORDER_MARK.ranges),
-
-  /* 147 */ 'yaml-character': charSet(...YAML_CHARACTER.ranges),
-
-  /* 148 */ 'json-character': charSet(...JSON_CHARACTER.ranges),
-
-  /* 149 */ 'non-space-character': charSet(...NON_SPACE_CHARACTER.ranges),
-
-  /* 150 */ 'non-break-character': charSet(...NON_BREAK_CHARACTER.ranges),
-
-  /* 151 */ 'blank-character': charSet(...BLANK_CHARACTER.ranges),
-
-  /* 151 */ 'space-character': charSet(0x20),
-
-  /* 153 */ 'line-ending': first(
-    'line-break',
-    endOfInput,
-  ),
-
-  /* 154 */ 'break-as-space': 'line-break',
-  
-  /* 155 */ 'break-as-line-feed': 'line-break',
-
-  /* 156 */ 'line-break': first(
-    str('\r\n'),
-    str('\r'),
-    str('\n'),
-  ),
-
-  /* 157 */ 'flow-collection-indicators': charSet(',', '{', '}', '[', ']'),
-
-  /* 158 */ 'double-quoted-scalar-escape-character': sequence(
-    str('\\'),
-    first(
-      str('0'),
-      str('a'),
-      str('b'),
-      str('t'),
-      str('\t'),
-      str('n'),
-      str('v'),
-      str('f'),
-      str('r'),
-      str('e'),
-      str(' '),
-      str('"'),
-      str('/'),
-      str('\\'),
-      str('N'),
-      str('_'),
-      str('L'),
-      str('P'),
-      sequence( str('x'), repeat('hexadecimal-digit', 2, 2) ),
-      sequence( str('u'), repeat('hexadecimal-digit', 4, 4) ),
-      sequence( str('U'), repeat('hexadecimal-digit', 8, 8) ),
-    ),
-  ),
-
-  /* 159 */ 'tag-character': sequence(
-    negativeLookahead(str('!')),
-    negativeLookahead('flow-collection-indicators'),
-    'uri-character',
-  ),
-
-  /* 160 */ 'uri-character': first(
-    sequence( str('%'), repeat('hexadecimal-digit', 2, 2)),
-    'word-character',
-    charSet(
-      '#', ';', '/', '?', ':', '@', '&', '=', '+', '$',
-      ',', '_', '.', '!', '~', '*', '\'', '(', ')', '[', ']',
-    ),
-  ),
-
-  /* 161 */ 'word-character': first(
-    'decimal-digit',
-    'ascii-alpha-character',
-    str('-'),
-  ),
-  
-  /* 162 */ 'hexadecimal-digit': charSet(...HEXADECIMAL_DIGIT.ranges),
-
-  /* 163 */ 'decimal-digit': charSet(...DECIMAL_DIGIT.ranges),
-
-  /* 164 */ 'decimal-digit-1-9': charSet(...DECIMAL_DIGIT_1_9.ranges),
-
-  /* 165 */ 'ascii-alpha-character': charSet(...ASCII_ALPHA_CHARACTER.ranges),
-};
-
-const PATCHES: Grammar = {
-  // Avoid unbounded repetition
-  /* 2 */ 'document-prefix': first('byte-order-mark', 'blanks-and-comment-line'),
-
-  /* 15 */ 'block-collection': sequence(
-    optional(sequence(
-      ref('separation-characters', { n: ['n', 1] }, 'c'),
-      ref('block-collection-node-properties', { n: ['n', 1] }, 'c'),
-    )),
-    'comment-lines',
-    first(
-      ref('block-sequence-context', 'n', 'c'),
-      ref('block-mapping', 'n'),
-    ),
-  ),
-
-  'block-collection-node-properties': sequence(
-    first('anchor-property', 'tag-property'),
-    first(
-      sequence(
-        ref('separation-characters', 'n', 'c'),
-        ref('block-collection-node-properties', 'n', 'c'),
-      ),
-      lookahead('comment-line'),
-    ),
-  ),
-
-  /* 44 */ 'block-scalar-indicators': sequence(
-    first(
-      sequence(
-        'block-scalar-indentation-indicator',
-        ref('block-scalar-chomping-indicator', 't'),
-      ),
-      sequence(
-        ref('block-scalar-chomping-indicator', 't'),
-        optional('block-scalar-indentation-indicator'),
-      ),
-    ),
-    'comment-line',
-  ),
-
-  /* 60 */ 'flow-mapping-implicit-entry': first(
-    ref('flow-mapping-json-key-entry', 'n', 'c'),
-    ref('flow-mapping-yaml-key-entry', 'n', 'c'),
-    ref('flow-mapping-empty-key-entry', 'n', 'c'),
-  ),
-};
-
-// const SIMPLE_DIRECTIVES: Grammar = {
-//   /* 10 */ 'directive-line': sequence(
-//     str('%'),
-//     'directive-name',
+`);
+
+// const NO_LOOKBEHIND: Grammar = {
+//   /* 100 */ 'plain-scalar-next-line': sequence(
+//     ref('flow-folded-whitespace', 'n'),
+//     negativeLookahead('forbidden-content'), // TODO
+//     negativeLookahead(str('#')),
+//     ref('plain-scalar-characters', 'c'),
+//     ref('plain-scalar-line-characters', 'c'),
+//   ),
+
+//   /* 101 */ 'plain-scalar-line-characters':
 //     star(sequence(
-//       'separation-blanks',
-//       'directive-parameter',
+//       star('blank-character'),
+//       negativeLookahead(str('#')),
+//       plus(ref('plain-scalar-characters', 'c')),
 //     )),
-//     'comment-lines',
+
+//   /* 103 */ 'plain-scalar-characters': first(
+//     sequence(
+//       negativeLookahead(charSet(':')),
+//       ref('non-space-plain-scalar-character', 'c'),
+//     ),
+//     sequence(
+//       str(':'),
+//       lookahead(ref('non-space-plain-scalar-character', 'c'))
+//     ),
 //   ),
 // };
-
-const NO_LOOKBEHIND: Grammar = {
-  /* 100 */ 'plain-scalar-next-line': sequence(
-    ref('flow-folded-whitespace', 'n'),
-    negativeLookahead('forbidden-content'), // TODO
-    negativeLookahead(str('#')),
-    ref('plain-scalar-characters', 'c'),
-    ref('plain-scalar-line-characters', 'c'),
-  ),
-
-  /* 101 */ 'plain-scalar-line-characters':
-    star(sequence(
-      star('blank-character'),
-      negativeLookahead(str('#')),
-      plus(ref('plain-scalar-characters', 'c')),
-    )),
-
-  /* 103 */ 'plain-scalar-characters': first(
-    sequence(
-      negativeLookahead(charSet(':')),
-      ref('non-space-plain-scalar-character', 'c'),
-    ),
-    sequence(
-      str(':'),
-      lookahead(ref('non-space-plain-scalar-character', 'c'))
-    ),
-  ),
-};
 
 // const ANNOTATION_INDICATORS = new CharSet('(', ')');
 
@@ -1319,8 +1511,18 @@ const NO_LOOKBEHIND: Grammar = {
 // } as const satisfies Grammar;
 
 export const GRAMMAR = {
-  ...BASE_GRAMMAR,
-  ...PATCHES,
-  ...NO_LOOKBEHIND,
+  ...GENERATED_BASE,
+
+  ...FORBIDDEN_CONTENT,
+  ...INTRODUCE_T,
+  ...INTRODUCE_INDENTATION,
+  ...HANDLE_N_MINUS_1,
+
+  ...FLOW_MAPPING_CONTEXT_FIX,
+  ...UNBOUNDED_REPETITION_FIX,
+  ...FLOW_MAPPING_IMPLICIT_ENTRY_FIX,
+  ...BLOCK_SCALAR_INDICATORS_FIX,
+  ...BLOCK_COLLECTION_NODE_PROPERTIES_FIX,
+  // ...NO_LOOKBEHIND,
   // ...ANNOTATIONS,
 };
