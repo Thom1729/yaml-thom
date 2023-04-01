@@ -1292,7 +1292,7 @@ const INTRODUCE_INDENTATION = {
         ref('compact-mapping', { n: ['n', 'm', 1] }),
       ),
     )),
-    ref('block-node', 'n', 'c'),
+    ref('block-node', { n: 'n', c: 'c' }),
     sequence(
       ref('empty-node'),
       ref('comment-lines'),

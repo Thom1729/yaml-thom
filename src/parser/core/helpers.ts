@@ -52,14 +52,7 @@ export function charSet(...args: (number | string | readonly [number | string, n
   } as const satisfies GrammarNode;
 }
 
-export function ref<const Name extends string>(name: Name, ...args: (RefParameters | keyof Parameters)[]) {
-  const parameters = strictFromEntries(
-    args.flatMap(arg =>
-      typeof arg === 'string'
-        ? [[arg, arg] as const] as any
-        : objectEntries(arg)
-    )
-  );
+export function ref<const Name extends string>(name: Name, parameters: RefParameters = {}) {
   return { type: 'REF', name, parameters } as const;
 }
 
