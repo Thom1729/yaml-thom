@@ -209,13 +209,13 @@ export class ParseOperation extends EventEmitter<{
     parameters: Parameters,
     child: GrammarNode,
     min: number,
-    max: number,
+    max: number | null,
   ) {
     const ret = [];
     let j = index;
     let count = 0;
 
-    for (; count < max; count++) {
+    for (; max === null || count < max; count++) {
       const result = this.parse(j, parameters, child);
       if (result !== null) {
         const [nodes, k] = result;
@@ -224,7 +224,7 @@ export class ParseOperation extends EventEmitter<{
         ret.push(...nodes);
         j = k;
 
-        if (isZeroWidth && max === Infinity) {
+        if (isZeroWidth && max === null) {
           if (j < this.text.length) { // else it should be fixed by line ending normalization
             console.error(`Warning: unbounded repeat matched zero characters at ${j}/${this.text.length}.`);
             console.error(`Stack: ${this.stack.slice().reverse().join(' ')}`);

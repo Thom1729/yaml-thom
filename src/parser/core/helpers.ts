@@ -20,7 +20,7 @@ export type GrammarNode =
   | { type: 'REF', name: string, parameters: RefParameters }
   | { type: 'SEQUENCE', children: readonly GrammarNode[] }
   | { type: 'FIRST', children: readonly GrammarNode[] }
-  | { type: 'REPEAT', child: GrammarNode, min: number, max: number }
+  | { type: 'REPEAT', child: GrammarNode, min: number, max: number | null }
   | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
   | { type: 'LOOKBEHIND', child: GrammarNode }
   | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode }
@@ -77,14 +77,14 @@ export function optional<const Child extends GrammarNode>(child: Child) {
 }
 
 export function star<const Child extends GrammarNode>(child: Child) {
-  return repeat(child, 0, Infinity);
+  return repeat(child, 0, null);
 }
 
 export function plus<const Child extends GrammarNode>(child: Child) {
-  return repeat(child, 1, Infinity);
+  return repeat(child, 1, null);
 }
 
-export function repeat<const Child extends GrammarNode>(child: Child, min: number, max: number) {
+export function repeat<const Child extends GrammarNode>(child: Child, min: number, max: number | null) {
   return { type: 'REPEAT', child, min, max } as const;
 }
 
