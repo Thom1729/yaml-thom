@@ -1254,50 +1254,73 @@ plain-scalar-next-line(n,c) ::=
 `);
 
 const INTRODUCE_T = {
-  /* 31 */ 'block-literal-scalar': first(
-    ...Object.values(ChompingBehavior).map(t => sequence(
-      str('|'),
-      ref('block-scalar-indicators', { t }),
-      ref('literal-scalar-content', { n: ['n', 1], t }),
-    ))
-  ),
+  'block-literal-scalar': {
+    type: 'PRODUCTION',
+    number: 31,
+    parameters: ['n'],
+    body: first(
+      ...Object.values(ChompingBehavior).map(t => sequence(
+        str('|'),
+        ref('block-scalar-indicators', { t }),
+        ref('literal-scalar-content', { n: ['n', 1], t }),
+      ))
+    ),
+  },
 
-  /* 35 */ 'block-folded-scalar': first(
-    ...Object.values(ChompingBehavior).map(t => sequence(
-      str('>'),
-      ref('block-scalar-indicators', { t }),
-      ref('folded-scalar-content', { n: ['n', 1], t }),
-    ))
-  ),
-};
+  'block-folded-scalar': {
+    type: 'PRODUCTION',
+    number: 35,
+    parameters: ['n'],
+    body: first(
+      ...Object.values(ChompingBehavior).map(t => sequence(
+        str('>'),
+        ref('block-scalar-indicators', { t }),
+        ref('folded-scalar-content', { n: ['n', 1], t }),
+      ))
+    ),
+  },
+} as const satisfies Grammar;
 
 const INTRODUCE_INDENTATION = {
-  /* 18 */ 'block-mapping':
-    detectIndentation(n => n + 1, plus(sequence(
+  'block-mapping': {
+    type: 'PRODUCTION',
+    number: 18,
+    parameters: ['n'],
+    body: detectIndentation(n => n + 1, plus(sequence(
       ref('indentation-spaces', { n: 'm' }),
       ref('block-mapping-entry', { n: 'm' }),
-    ))),
+    )))
+  },
 
-  /* 27 */ 'block-sequence':
-    detectIndentation(n => n + 1, plus(sequence(
+  'block-sequence': {
+    type: 'PRODUCTION',
+    number: 27,
+    parameters: ['n'],
+    body: detectIndentation(n => n + 1, plus(sequence(
       ref('indentation-spaces', { n: 'm' }),
       ref('block-sequence-entry', { n: 'm' }),
-    ))),
+    )))
+  },
 
-  /* 29 */ 'block-indented-node': first(
-    detectIndentation(1, sequence(
-      ref('indentation-spaces', { n: 'm' }),
-      first(
-        ref('compact-sequence', { n: ['n', 'm', 1] }),
-        ref('compact-mapping', { n: ['n', 'm', 1] }),
+  'block-indented-node': {
+    type: 'PRODUCTION',
+    number: 29,
+    parameters: ['n'],
+    body: first(
+      detectIndentation(1, sequence(
+        ref('indentation-spaces', { n: 'm' }),
+        first(
+          ref('compact-sequence', { n: ['n', 'm', 1] }),
+          ref('compact-mapping', { n: ['n', 'm', 1] }),
+        ),
+      )),
+      ref('block-node', { n: 'n', c: 'c' }),
+      sequence(
+        ref('empty-node'),
+        ref('comment-lines'),
       ),
-    )),
-    ref('block-node', { n: 'n', c: 'c' }),
-    sequence(
-      ref('empty-node'),
-      ref('comment-lines'),
-    ),
-  ),
+    )
+  },
 } as const satisfies Grammar;
 
 const HANDLE_N_MINUS_1 = parseGrammar(String.raw`
@@ -1525,4 +1548,4 @@ export const GRAMMAR = {
   ...BLOCK_COLLECTION_NODE_PROPERTIES_FIX,
   // ...NO_LOOKBEHIND,
   // ...ANNOTATIONS,
-};
+} satisfies Grammar;
