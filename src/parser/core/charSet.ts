@@ -17,18 +17,22 @@ function normalizeChar(char: number | string) {
   }
 }
 
-export class CharSet {
-  readonly ranges: readonly [number, number][];
+export function normalizeRanges(args: (number | string | readonly [number | string, number | string])[]) {
+  return sorted(args.map(arg => {
+    if (Array.isArray(arg)) {
+      return [normalizeChar(arg[0]), normalizeChar(arg[1])] as const;
+    } else {
+      const n = normalizeChar(arg as string | number);
+      return [n, n] as const;
+    }
+  }), (a, b) => a[0] - b[0]);
+}
 
-  constructor(...args: (number | string | [number | string, number | string])[]) {
-    this.ranges = sorted(args.map(arg => {
-      if (Array.isArray(arg)) {
-        return [normalizeChar(arg[0]), normalizeChar(arg[1])];
-      } else {
-        const n = normalizeChar(arg);
-        return [n, n];
-      }
-    }), (a, b) => a[0] - b[0]);
+export class CharSet {
+  readonly ranges: readonly (readonly [number, number])[];
+
+  constructor(...args: (number | string | readonly [number | string, number | string])[]) {
+    this.ranges = normalizeRanges(args);
   }
 
   has(codepoint: number) {

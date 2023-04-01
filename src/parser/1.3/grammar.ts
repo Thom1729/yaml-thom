@@ -15,6 +15,7 @@ import {
   lookbehind,
   detectIndentation,
   context,
+  charSet,
 
   type Grammar,
 } from '../core/helpers';
@@ -818,20 +819,20 @@ const BASE_GRAMMAR: Grammar = {
     )),
 
   /* 102 */ 'plain-scalar-first-character': first(
-    PLAIN_SCALAR_FIRST_CHARACTER,
+    charSet(...PLAIN_SCALAR_FIRST_CHARACTER.ranges),
     sequence(
-      new CharSet('?', ':', '-'),
+      charSet('?', ':', '-'),
       lookahead(ref('non-space-plain-scalar-character', 'c')),
     ),
   ),
 
   /* 103 */ 'plain-scalar-characters': first(
     sequence(
-      negativeLookahead(new CharSet(':', '#')),
+      negativeLookahead(charSet(':', '#')),
       ref('non-space-plain-scalar-character', 'c'),
     ),
     sequence(
-      lookbehind(NON_SPACE_CHARACTER),
+      lookbehind(charSet(...NON_SPACE_CHARACTER.ranges)),
       str('#'),
     ),
     sequence(
@@ -849,7 +850,7 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 105 */ 'block-plain-scalar-character': 'non-space-character',
 
-  /* 105 */ 'flow-plain-scalar-character': NON_SPACE_CHARACTER.minus(FLOW_COLLECTION_INDICATORS),
+  /* 105 */ 'flow-plain-scalar-character': charSet(...NON_SPACE_CHARACTER.minus(FLOW_COLLECTION_INDICATORS).ranges),
   
   /* 107 */ 'alias-node': sequence(
     str('*'),
@@ -1044,7 +1045,7 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 140 */ 'anchor-name': plus('anchor-character'),
 
-  /* 141 */ 'anchor-character': ANCHOR_CHARACTER,
+  /* 141 */ 'anchor-character': charSet(...ANCHOR_CHARACTER.ranges),
 
   /* 142 */ 'tag-property': first(
     'verbatim-tag',
@@ -1065,19 +1066,19 @@ const BASE_GRAMMAR: Grammar = {
 
   /* 145 */ 'non-specific-tag': str('!'),
 
-  /* 146 */ 'byte-order-mark': BYTE_ORDER_MARK,
+  /* 146 */ 'byte-order-mark': charSet(...BYTE_ORDER_MARK.ranges),
 
-  /* 147 */ 'yaml-character': YAML_CHARACTER,
+  /* 147 */ 'yaml-character': charSet(...YAML_CHARACTER.ranges),
 
-  /* 148 */ 'json-character': JSON_CHARACTER,
+  /* 148 */ 'json-character': charSet(...JSON_CHARACTER.ranges),
 
-  /* 149 */ 'non-space-character': NON_SPACE_CHARACTER,
+  /* 149 */ 'non-space-character': charSet(...NON_SPACE_CHARACTER.ranges),
 
-  /* 150 */ 'non-break-character': NON_BREAK_CHARACTER,
+  /* 150 */ 'non-break-character': charSet(...NON_BREAK_CHARACTER.ranges),
 
-  /* 151 */ 'blank-character': BLANK_CHARACTER,
+  /* 151 */ 'blank-character': charSet(...BLANK_CHARACTER.ranges),
 
-  /* 151 */ 'space-character': new CharSet(0x20),
+  /* 151 */ 'space-character': charSet(0x20),
 
   /* 153 */ 'line-ending': first(
     'line-break',
@@ -1094,7 +1095,7 @@ const BASE_GRAMMAR: Grammar = {
     str('\n'),
   ),
 
-  /* 157 */ 'flow-collection-indicators': new CharSet(',', '{', '}', '[', ']'),
+  /* 157 */ 'flow-collection-indicators': charSet(',', '{', '}', '[', ']'),
 
   /* 158 */ 'double-quoted-scalar-escape-character': sequence(
     str('\\'),
@@ -1132,7 +1133,7 @@ const BASE_GRAMMAR: Grammar = {
   /* 160 */ 'uri-character': first(
     sequence( str('%'), repeat('hexadecimal-digit', 2, 2)),
     'word-character',
-    new CharSet(
+    charSet(
       '#', ';', '/', '?', ':', '@', '&', '=', '+', '$',
       ',', '_', '.', '!', '~', '*', '\'', '(', ')', '[', ']',
     ),
@@ -1144,13 +1145,13 @@ const BASE_GRAMMAR: Grammar = {
     str('-'),
   ),
   
-  /* 162 */ 'hexadecimal-digit': HEXADECIMAL_DIGIT,
+  /* 162 */ 'hexadecimal-digit': charSet(...HEXADECIMAL_DIGIT.ranges),
 
-  /* 163 */ 'decimal-digit': DECIMAL_DIGIT,
+  /* 163 */ 'decimal-digit': charSet(...DECIMAL_DIGIT.ranges),
 
-  /* 164 */ 'decimal-digit-1-9': DECIMAL_DIGIT_1_9,
+  /* 164 */ 'decimal-digit-1-9': charSet(...DECIMAL_DIGIT_1_9.ranges),
 
-  /* 165 */ 'ascii-alpha-character': ASCII_ALPHA_CHARACTER,
+  /* 165 */ 'ascii-alpha-character': charSet(...ASCII_ALPHA_CHARACTER.ranges),
 };
 
 const PATCHES: Grammar = {
@@ -1231,7 +1232,7 @@ const NO_LOOKBEHIND: Grammar = {
 
   /* 103 */ 'plain-scalar-characters': first(
     sequence(
-      negativeLookahead(new CharSet(':')),
+      negativeLookahead(charSet(':')),
       ref('non-space-plain-scalar-character', 'c'),
     ),
     sequence(

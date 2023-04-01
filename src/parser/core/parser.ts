@@ -53,14 +53,6 @@ export class ParseOperation extends EventEmitter<{
   ): ParseResult {
     if (typeof node === 'string') {
       return this.parseRef(index, parameters, {}, node);
-    } else if (node instanceof CharSet) {
-      const codePoint = this.text.codePointAt(index);
-
-      if (codePoint !== undefined && node.has(codePoint)) {
-        return [[], index + charUtf16Width(codePoint)];
-      } else {
-        return null;
-      }
     } else if (node.type === 'EMPTY') {
       return [[], index];
     } else if (node.type === 'START_OF_LINE') {
@@ -82,6 +74,8 @@ export class ParseOperation extends EventEmitter<{
       } else {
         return null;
       }
+    } else if (node.type === 'CHAR_SET') {
+      return this.parseCharSet(index, node.ranges);
     } else if (node.type === 'REF') {
       return this.parseRef(index, parameters, node.parameters, node.name);
     } else if (node.type === 'SEQUENCE') {
@@ -101,6 +95,23 @@ export class ParseOperation extends EventEmitter<{
     }
 
     throw new TypeError(node);
+  }
+
+  parseCharSet(
+    index: number,
+    ranges: readonly (readonly [number, number])[],
+  ) {
+    const codePoint = this.text.codePointAt(index);
+
+    if (codePoint === undefined) return null; // EOF
+
+    for (const [min, max] of ranges) {
+      if (codePoint >= min && codePoint <= max) {
+        return [[], index + charUtf16Width(codePoint)] as const;
+      }
+    }
+
+    return null;
   }
 
   parseRef(
@@ -123,15 +134,19 @@ export class ParseOperation extends EventEmitter<{
         return null;
       }
 
-      const productionBody = this.grammar[name];
-      if (productionBody === undefined) {
+      const production = this.grammar[name];
+      if (production === undefined) {
         console.error(`Stack: ${this.stack.slice().reverse().join(' ')}`);
         throw new TypeError(`No production ${name}`);
       }
 
       this.emit('node.in', { displayName, index });
 
-      const result = this.parse(index, parameters, productionBody);
+      const body = typeof production === 'object' && production.type === 'PRODUCTION'
+        ? production.body
+        : production;
+
+      const result = this.parse(index, parameters, body);
 
       this.emit('node.out', { displayName, index, result });
 
@@ -287,7 +302,7 @@ export class ParseOperation extends EventEmitter<{
     cases: readonly (readonly [Parameters, GrammarNode])[],
   ) {
     for (const [constraints, child] of cases) {
-      if (objectEntries(constraints).every(([p, value]) => parameters[p] === value)) {
+      if (objectEntries(constraints).every(([p, value]) => parameters[p] === undefined || parameters[p] === value)) {
         return this.parse(index, parameters, child);
       }
     }

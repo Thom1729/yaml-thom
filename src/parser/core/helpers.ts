@@ -1,4 +1,4 @@
-import { type CharSet } from './charSet';
+import { normalizeRanges } from './charSet';
 import { type Parameters } from './ast';
 import { objectEntries, strictFromEntries } from '@/util';
 
@@ -12,11 +12,11 @@ export type RefParameters = {
 
 export type GrammarNode =
   | string
-  | CharSet
   | { type: 'EMPTY' }
   | { type: 'START_OF_LINE' }
   | { type: 'END_OF_INPUT' }
   | { type: 'STRING', string: string }
+  | { type: 'CHAR_SET', ranges: readonly (readonly [number, number])[] }
   | { type: 'REF', name: string, parameters: RefParameters }
   | { type: 'SEQUENCE', children: readonly GrammarNode[] }
   | { type: 'FIRST', children: readonly GrammarNode[] }
@@ -27,7 +27,12 @@ export type GrammarNode =
   | { type: 'CONTEXT', cases: readonly (readonly [Parameters, GrammarNode])[] }
 ;
 
-export type ProductionBody = GrammarNode;
+export type ProductionBody = GrammarNode | {
+  type: 'PRODUCTION',
+  number: number | null,
+  parameters: readonly (keyof Parameters)[],
+  body: GrammarNode,
+};
 
 export type Grammar = { [K in string]?: ProductionBody };
 
@@ -39,6 +44,13 @@ export const endOfInput = { type: 'END_OF_INPUT' } as const;
 
 export function str<T extends string>(string: T) {
   return { type: 'STRING', string } as const;
+}
+
+export function charSet(...args: (number | string | readonly [number | string, number | string])[]) {
+  return {
+    type: 'CHAR_SET',
+    ranges: normalizeRanges(args),
+  } as const satisfies GrammarNode;
 }
 
 export function ref<const Name extends string>(name: Name, ...args: (RefParameters | keyof Parameters)[]) {
