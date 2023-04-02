@@ -83,6 +83,10 @@ function *splitStream(node: AstNode<'yaml-stream'>) {
   }
 }
 
+const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
+const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
+const TAG_PREFIX_EXPR = /^(?:[-A-Za-z0-9#;/?:@&=+$_.!~*'()]|%\p{Hex_Digit}{2})(?:[-A-Za-z0-9#;/?:@&=+$,_.!~*'()[\]]|%\p{Hex_Digit}{2})*$/u;
+
 function handleDirectives(text: string, directives: readonly AstNode[]) {
   let hasYamlDirective = false;
   const tagHandles = new Map<string, string>();
@@ -137,10 +141,6 @@ function buildDocument(text: string, directives: readonly AstNode[], body: AstNo
   const op = new AstToSerializationTreeOperation(text, tagHandles);
   return op.buildNode(body);
 }
-
-const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
-const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
-const TAG_PREFIX_EXPR = /^(?:[-A-Za-z0-9#;/?:@&=+$_.!~*'()]|%\p{Hex_Digit}{2})(?:[-A-Za-z0-9#;/?:@&=+$,_.!~*'()[\]]|%\p{Hex_Digit}{2})*$/u;
 
 const DEFAULT_TAG_HANDLES = {
   '!': '!',
