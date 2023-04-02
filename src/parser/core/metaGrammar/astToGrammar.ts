@@ -2,7 +2,7 @@ import { AstNode } from '@/parser';
 
 import { parseHex, single, groupBy, strictFromEntries, isKeyOf, parseDecimal } from '@/util';
 
-import { groupNodes } from '@/parser/core/transformAst';
+import { groupNodes, transformAst } from '../transformAst';
 
 import {
   str,
@@ -29,41 +29,11 @@ import {
 
 import { ContextType, ChompingBehavior } from '@/parser/core/ast';
 
-type AstTransformation<G extends Grammar, R> = {
-  [K in keyof G]?: null | ((
-    node: AstNode<keyof G>,
-    rec: (node: AstNode<string>) => R,
-  ) => R)
-};
-
-function transformAst<
-  const G extends Grammar,
-  const R,
->(
-  ast: AstNode<string & keyof G>,
-  transformation: AstTransformation<G, R>,
-) {
-
-  function rec(node: AstNode<string>) {
-    const f = transformation[node.name];
-
-    if (f === null) {
-      return undefined;
-    } else if (f !== undefined) {
-      return f(node, rec) as R;
-    } else {
-      throw new Error(`${String(node.name)}`);
-    }
-  }
-
-  return rec(ast) as R;
-}
+////
 
 function isNotUndefined<T>(value: T | undefined): value is T {
   return value !== undefined;
 }
-
-////
 
 function collapse<R>(f: (node: [R, ...R[]]) => R) {
   return (
