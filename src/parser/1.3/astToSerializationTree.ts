@@ -25,103 +25,77 @@ import {
 
 import { iterateAst, groupNodes } from '../core/transformAst';
 
-export function *astToSerializationTree(text: string, nodes: AstNode<'yaml-stream'>): Generator<SerializationNode> {
-  const nodeStream = iterateAst(nodes.content, {
-    return: [
-      'tag-directive-line',
-      'yaml-directive-line',
-      'reserved-directive-line',
-      'document-start-indicator',
-      'bare-document',
-      'empty-node',
-      'document-end-indicator',
-    ],
-    recurse: [
-      'start-indicator-and-document',
-      'document-prefix',
-      'document-suffix',
-      'any-document',
-      'directives-and-document',
-      'directive-line',
-    ],
-    ignore: [
-      'comment-lines',
-      'comment-line',
-      'separation-blanks',
-      'line-ending',
-      'blanks-and-comment-line',
-    ],
-  });
-
-  let op = new AstToSerializationTreeOperation(text);
-
-  for (const node of nodeStream) {
-    switch (node.name) {
-      case 'yaml-directive-line':
-      case 'tag-directive-line':
-      case 'reserved-directive-line': {
-        // For better error reporting, ignore node type and look at directive name.
-        op.handleDirective(node);
-        break;
-      }
-
-      case 'empty-node': {
-        yield op.buildNode(node);
-        op = new AstToSerializationTreeOperation(text);
-        break;
-      }
-
-      case 'bare-document': {
-        yield op.buildNode(single(node.content));
-        op = new AstToSerializationTreeOperation(text);
-        break;
-      }
-
-      case 'document-start-indicator': break;
-      case 'document-end-indicator': break;
-
-      default: throw new TypeError(node.name);
-    }
+export function *astToSerializationTree(text: string, node: AstNode<'yaml-stream'>) {
+  for (const { directives, body } of splitStream(node)) {
+    yield buildDocument(text, directives, body);
   }
 }
 
-const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
-const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
-const TAG_PREFIX_EXPR = /^(?:[-A-Za-z0-9#;/?:@&=+$_.!~*'()]|%\p{Hex_Digit}{2})(?:[-A-Za-z0-9#;/?:@&=+$,_.!~*'()[\]]|%\p{Hex_Digit}{2})*$/u;
+function *splitStream(node: AstNode<'yaml-stream'>) {
+  const nodeStream = iterateAst(node.content, {
+    return: [
+      'any-document',
+      'start-indicator-and-document',
+    ],
+    ignore: [
+      'document-prefix',
+      'document-suffix',
+      'byte-order-mark',
+      'comment-line',
+    ],
+  });
 
-const DEFAULT_TAG_HANDLES = {
-  '!': '!',
-  '!!': 'tag:yaml.org,2002:',
-} as Partial<Record<string, string>>;
+  for (const node of nodeStream) {
+    const {
+      directiveLine,
+      blockNode,
+      emptyNode,
+    } = groupNodes(node.content, {
+      return: [
+        'directive-line*',
+        'block-node*',
+        'empty-node*',
+      ],
+      recurse: [
+        'directives-and-document',
+        'start-indicator-and-document',
+        'bare-document',
+      ],
+      ignore: [
+        'comment-lines',
+        'document-start-indicator',
+      ],
+    });
 
-const CHOMPING_BEHAVIOR_LOOKUP = {
-  '-': ChompingBehavior.STRIP,
-  '+': ChompingBehavior.KEEP,
-  '': ChompingBehavior.CLIP,
-};
+    const body = single([...blockNode, ...emptyNode]);
+    const directives = directiveLine.map(directiveAndComments =>
+      single(iterateAst(directiveAndComments.content, {
+        return: [
+          'yaml-directive-line',
+          'tag-directive-line',
+          'reserved-directive-line',
+        ],
+        ignore: ['comment-lines'],
+      }))
+    );
 
-class AstToSerializationTreeOperation {
-  readonly text: string;
-  readonly tagHandles = new Map<string, string>();
-  hasYamlDirective = false;
-
-  constructor(text: string) {
-    this.text = text;
+    yield { directives, body };
   }
+}
 
-  nodeText(node: AstNode) {
-    return this.text.slice(...node.range);
-  }
+function handleDirectives(text: string, directives: readonly AstNode[]) {
+  let hasYamlDirective = false;
+  const tagHandles = new Map<string, string>();
 
-  handleDirective(node: AstNode) {
-    const text = this.nodeText(node);
-    const [name, ...args] = text.split(/[ \t]+/g);
+  for (const directive of directives) {
+    const directiveText = text.slice(...directive.range);
+    const [name, ...args] = directiveText.split(/[ \t]+/g);
 
     if (name === 'YAML') {
-      if (this.hasYamlDirective) {
+      if (hasYamlDirective) {
         throw new Error(`Multiple %YAML directives`);
       } else {
-        this.hasYamlDirective = true;
+        hasYamlDirective = true;
       }
       if (args.length !== 1) throw new Error(`Expect one arg for %YAML directive`);
       const versionString = args[0];
@@ -147,12 +121,49 @@ class AstToSerializationTreeOperation {
       if (TAG_HANDLE_EXPR.exec(handle) === null) throw new Error(`Invalid tag handle ${handle}`);
       if (TAG_PREFIX_EXPR.exec(prefix) === null) throw new Error(`Invalid tag prefix ${prefix}`);
 
-      if (this.tagHandles.has(handle)) throw new Error(`Duplicate %TAG directive for handle ${handle}`);
+      if (tagHandles.has(handle)) throw new Error(`Duplicate %TAG directive for handle ${handle}`);
 
-      this.tagHandles.set(handle, prefix);
+      tagHandles.set(handle, prefix);
     } else {
       // console.warn(`Warning: Reserved directive ${text}`);
     }
+  }
+  return tagHandles;
+}
+
+function buildDocument(text: string, directives: readonly AstNode[], body: AstNode) {
+  const tagHandles = handleDirectives(text, directives);
+
+  const op = new AstToSerializationTreeOperation(text, tagHandles);
+  return op.buildNode(body);
+}
+
+const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
+const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
+const TAG_PREFIX_EXPR = /^(?:[-A-Za-z0-9#;/?:@&=+$_.!~*'()]|%\p{Hex_Digit}{2})(?:[-A-Za-z0-9#;/?:@&=+$,_.!~*'()[\]]|%\p{Hex_Digit}{2})*$/u;
+
+const DEFAULT_TAG_HANDLES = {
+  '!': '!',
+  '!!': 'tag:yaml.org,2002:',
+} as Partial<Record<string, string>>;
+
+const CHOMPING_BEHAVIOR_LOOKUP = {
+  '-': ChompingBehavior.STRIP,
+  '+': ChompingBehavior.KEEP,
+  '': ChompingBehavior.CLIP,
+};
+
+class AstToSerializationTreeOperation {
+  readonly text: string;
+  readonly tagHandles;
+
+  constructor(text: string, tagHandles: Map<string, string>) {
+    this.text = text;
+    this.tagHandles = tagHandles;
+  }
+
+  nodeText(node: AstNode) {
+    return this.text.slice(...node.range);
   }
 
   buildNode(node: AstNode): SerializationNode {
