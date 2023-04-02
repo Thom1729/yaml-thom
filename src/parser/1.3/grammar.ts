@@ -1328,7 +1328,7 @@ const HANDLE_N_MINUS_1 = parseGrammar(String.raw`
 indentation-spaces(0) ::=
   ""
 
-# When n≥0
+# When n≥1
 indentation-spaces(n) ::=
   space-character
   indentation-spaces(n-1)
@@ -1349,7 +1349,7 @@ indentation-spaces-less-than(n) ::=
 indentation-spaces-less-or-equal(0) ::=
   ""
 
-# When n≥0
+# When n≥1
 indentation-spaces-less-or-equal(n) ::=
     (
       space-character

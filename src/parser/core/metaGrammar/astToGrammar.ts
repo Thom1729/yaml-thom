@@ -24,7 +24,6 @@ import {
 
   type Grammar,
   type GrammarNode,
-  RefParameters,
   context,
 } from '@/parser/core/helpers';
 
