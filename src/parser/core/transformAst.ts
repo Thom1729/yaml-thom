@@ -1,5 +1,5 @@
 import type { AstNode } from './ast';
-import type { Grammar } from './helpers';
+// import type { Grammar } from './helpers';
 
 import {
   toCamel, fromSnake,
@@ -9,19 +9,18 @@ import {
 
 ////
 
-type AstTransformation<G extends Grammar, R> = {
-  [K in keyof G]?: null | ((
-    node: AstNode<keyof G>,
-    rec: (node: AstNode<string>) => R,
+type AstTransformation<R> = {
+  [K in string]?: null | ((
+    node: AstNode<K>,
+    rec: (node: AstNode) => R,
   ) => R)
 };
 
 export function transformAst<
-  const G extends Grammar,
   const R,
 >(
-  ast: AstNode<string & keyof G>,
-  transformation: AstTransformation<G, R>,
+  ast: AstNode<string>,
+  transformation: AstTransformation<R>,
 ) {
 
   function rec(node: AstNode<string>) {

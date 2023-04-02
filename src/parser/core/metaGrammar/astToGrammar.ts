@@ -22,7 +22,6 @@ import {
   endOfInput,
   charSet,
 
-  type Grammar,
   type GrammarNode,
   context,
 } from '@/parser/core/helpers';
@@ -38,7 +37,7 @@ function isNotUndefined<T>(value: T | undefined): value is T {
 function collapse<R>(f: (node: [R, ...R[]]) => R) {
   return (
     node: AstNode,
-    rec: (node: AstNode<any>) => R,
+    rec: (node: AstNode) => R,
   ) => {
     const foo = node.content.map(rec).filter(isNotUndefined);
     if (foo.length === 1) {
@@ -124,7 +123,7 @@ function parseBody(body: AstNode, text: string) {
     return text.slice(...node.range);
   }
 
-  return transformAst<Grammar, GrammarNode>(body, {
+  return transformAst<GrammarNode>(body, {
     space: null,
 
     alternation: collapse(children => first(...children)),
