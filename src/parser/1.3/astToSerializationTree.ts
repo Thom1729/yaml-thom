@@ -4,7 +4,6 @@ import {
   SerializationScalar,
   SerializationSequence,
   SerializationMapping,
-  SerializationTag,
   NonSpecificTag,
   type SerializationNode,
   Alias,
@@ -160,8 +159,11 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
     return text.slice(...node.range);
   }
 
-  return Y<SerializationNode, [AstNode]>((rec, x) => {
-    const { content: node, anchor, tag } = findContentAndProperties(x);
+  return Y<SerializationNode, [AstNode]>((rec, outerNode) => {
+    const { content: node, tagNode, anchorNode } = findContentAndProperties(outerNode);
+
+    const tag = tagNode ? nodeTag(tagNode) : null;
+    const anchor = anchorNode ? nodeText(anchorNode).slice(1) : null;
 
     switch (node.name) {
       case 'alias-node': return new Alias(nodeText(node).slice(1));
@@ -175,119 +177,18 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
         return new SerializationScalar(tag ?? NonSpecificTag.exclamation, blockScalarContent(node), anchor);
 
       case 'block-mapping': case 'compact-mapping': case 'flow-mapping': case 'flow-pair': {
-        const pairNodes = Array.from(iterateAst([node], {
-          return: ['block-mapping-entry', 'flow-mapping-entry', 'flow-pair'],
-          recurse: [
-            'block-mapping',
-            'compact-mapping',
-            'flow-mapping',
-            'flow-mapping-context', 'flow-mapping-entries',
-          ],
-          ignore: ['indentation-spaces', 'separation-characters'],
-        }));
-
-        const children = pairNodes.map(child => handleBlockMappingEntry(child).map(rec) as [SerializationNode, SerializationNode]);
-
+        const children = findMappingEntries(node).map(([k, v]) => [rec(k), rec(v)] as const);
         return new SerializationMapping(tag ?? NonSpecificTag.question, children, anchor);
       }
 
       case 'block-sequence': case 'compact-sequence': case 'flow-sequence': {
-        const children = Array.from(iterateAst(node.content, {
-          return: [
-            'block-indented-node',
-            'flow-pair',
-            'flow-node',
-          ],
-          recurse: [
-            'block-sequence-entry',
-            'flow-sequence-context',
-            'flow-sequence-entries',
-            'flow-sequence-entry',
-          ],
-          ignore: [
-            'indentation-spaces',
-            'separation-characters',
-          ],
-        })).map(child => rec(child));
+        const children = findSequenceEntries(node).map(rec);
         return new SerializationSequence(tag ?? NonSpecificTag.question, children, anchor);
       }
 
       default: throw new TypeError(`Unexpected node ${node.name}`);
     }
   })(body);
-
-  function findContentAndProperties(node: AstNode) {
-    const children = Array.from(iterateAst([node], {
-      return: [
-        'alias-node',
-        'empty-node',
-
-        'block-sequence',
-        'compact-sequence',
-        'block-mapping',
-        'compact-mapping',
-        'flow-pair',
-
-        'flow-plain-scalar',
-        'flow-sequence',
-        'flow-mapping',
-        'single-quoted-scalar',
-        'double-quoted-scalar',
-
-        'block-literal-scalar',
-        'block-folded-scalar',
-
-        'node-properties',
-        'block-collection-node-properties',
-      ],
-      recurse: [
-        'block-node',
-        'block-node-in-a-block-node',
-        'block-indented-node',
-        'block-collection',
-        'block-sequence-context',
-        'block-mapping-context',
-        'block-scalar',
-
-        'flow-node-in-a-block-node',
-        'flow-node',
-        'flow-yaml-node',
-        'flow-content',
-        'flow-json-content',
-        'flow-yaml-content',
-
-        'flow-json-node',
-      ],
-      ignore: [
-        'separation-characters',
-        'comment-lines',
-        'indentation-spaces',
-      ],
-    }));
-
-    const content = single(children.filter(node => node.name !== 'node-properties' && node.name !== 'block-collection-node-properties'));
-
-    const nodePropertiesParent = singleOrNull(children.filter(node => node.name === 'node-properties' || node.name === 'block-collection-node-properties'));
-
-    const { anchorProperty, tagProperty } = groupNodes(nodePropertiesParent?.content ?? [], {
-      return: ['anchor-property?', 'tag-property?'],
-      recurse: ['node-properties', 'block-collection-node-properties'],
-      ignore: ['separation-characters'],
-    });
-
-    return {
-      content,
-      anchor: anchorProperty && nodeAnchor(anchorProperty),
-      tag: (tagProperty && nodeTag(tagProperty)) as SerializationTag | null,
-    };
-  }
-
-  function nodeAnchor(node: AstNode<'anchor-property'>) {
-    const { anchorName } = groupNodes(node.content, {
-      return: ['anchor-name%'],
-    }, text);
-    return anchorName;
-  }
 
   function nodeTag(node: AstNode<'tag-property'>) {
     const tagContentNode = single(node.content);
@@ -351,51 +252,152 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
       blockScalarIndentationIndicator === null ? null : parseDecimal(blockScalarIndentationIndicator),
     );
   }
+}
 
-  function handleBlockMappingEntry(node: AstNode) {
-    const kv = Array.from(iterateAst(node.content, {
-      return: [
-        'block-node',
-        'block-indented-node',
-        'empty-node',
-        'flow-node',
-        'flow-json-node',
-        'flow-yaml-node',
-      ],
-      recurse: [
-        'block-mapping-explicit-entry',
-        'block-mapping-explicit-key',
-        'block-mapping-explicit-value',
-        'block-mapping-implicit-entry',
-        'block-mapping-implicit-key',
-        'block-mapping-implicit-value',
-        'implicit-json-key',
-        'implicit-yaml-key',
+function findContentAndProperties(node: AstNode) {
+  const children = Array.from(iterateAst([node], {
+    return: [
+      'alias-node',
+      'empty-node',
 
-        'flow-mapping-explicit-entry',
-        'flow-mapping-implicit-entry',
+      'block-sequence',
+      'compact-sequence',
+      'block-mapping',
+      'compact-mapping',
+      'flow-pair',
 
-        'flow-mapping-json-key-entry',
-        'flow-mapping-yaml-key-entry',
-        'flow-mapping-empty-key-entry',
-        'flow-mapping-adjacent-value',
-        'flow-mapping-separate-value',
+      'flow-plain-scalar',
+      'flow-sequence',
+      'flow-mapping',
+      'single-quoted-scalar',
+      'double-quoted-scalar',
 
-        'flow-pair-entry',
-        'flow-pair-yaml-key-entry',
-        'flow-pair-empty-key-entry',
-        'flow-pair-json-key-entry',
-      ],
-      ignore: [
-        'indentation-spaces',
-        'separation-blanks',
-        'separation-characters',
-        'comment-lines',
-      ],
-    }));
+      'block-literal-scalar',
+      'block-folded-scalar',
 
-    if (kv.length !== 2) throw new Error(kv.toString());
+      'node-properties',
+      'block-collection-node-properties',
+    ],
+    recurse: [
+      'block-node',
+      'block-node-in-a-block-node',
+      'block-indented-node',
+      'block-collection',
+      'block-sequence-context',
+      'block-mapping-context',
+      'block-scalar',
 
-    return kv as [AstNode, AstNode];
-  }
+      'flow-node-in-a-block-node',
+      'flow-node',
+      'flow-yaml-node',
+      'flow-content',
+      'flow-json-content',
+      'flow-yaml-content',
+
+      'flow-json-node',
+    ],
+    ignore: [
+      'separation-characters',
+      'comment-lines',
+      'indentation-spaces',
+    ],
+  }));
+
+  const content = single(children.filter(node => node.name !== 'node-properties' && node.name !== 'block-collection-node-properties'));
+
+  const nodePropertiesParent = singleOrNull(children.filter(node => node.name === 'node-properties' || node.name === 'block-collection-node-properties'));
+
+  const { anchorProperty, tagProperty } = groupNodes(nodePropertiesParent?.content ?? [], {
+    return: ['anchor-property?', 'tag-property?'],
+    recurse: ['node-properties', 'block-collection-node-properties'],
+    ignore: ['separation-characters'],
+  });
+
+  return {
+    content,
+    tagNode: tagProperty,
+    anchorNode: anchorProperty,
+  };
+}
+
+function findSequenceEntries(node:AstNode) {
+  return Array.from(iterateAst(node.content, {
+    return: [
+      'block-indented-node',
+      'flow-pair',
+      'flow-node',
+    ],
+    recurse: [
+      'block-sequence-entry',
+      'flow-sequence-context',
+      'flow-sequence-entries',
+      'flow-sequence-entry',
+    ],
+    ignore: [
+      'indentation-spaces',
+      'separation-characters',
+    ],
+  }));
+}
+
+function findMappingEntries(node: AstNode) {
+  const pairNodes = Array.from(iterateAst([node], {
+    return: ['block-mapping-entry', 'flow-mapping-entry', 'flow-pair'],
+    recurse: [
+      'block-mapping',
+      'compact-mapping',
+      'flow-mapping',
+      'flow-mapping-context', 'flow-mapping-entries',
+    ],
+    ignore: ['indentation-spaces', 'separation-characters'],
+  }));
+
+  return pairNodes.map(child => findPairKv(child));
+}
+
+function findPairKv(node: AstNode) {
+  const kv = Array.from(iterateAst(node.content, {
+    return: [
+      'block-node',
+      'block-indented-node',
+      'empty-node',
+      'flow-node',
+      'flow-json-node',
+      'flow-yaml-node',
+    ],
+    recurse: [
+      'block-mapping-explicit-entry',
+      'block-mapping-explicit-key',
+      'block-mapping-explicit-value',
+      'block-mapping-implicit-entry',
+      'block-mapping-implicit-key',
+      'block-mapping-implicit-value',
+      'implicit-json-key',
+      'implicit-yaml-key',
+
+      'flow-mapping-explicit-entry',
+      'flow-mapping-implicit-entry',
+
+      'flow-mapping-json-key-entry',
+      'flow-mapping-yaml-key-entry',
+      'flow-mapping-empty-key-entry',
+      'flow-mapping-adjacent-value',
+      'flow-mapping-separate-value',
+
+      'flow-pair-entry',
+      'flow-pair-yaml-key-entry',
+      'flow-pair-empty-key-entry',
+      'flow-pair-json-key-entry',
+    ],
+    ignore: [
+      'indentation-spaces',
+      'separation-blanks',
+      'separation-characters',
+      'comment-lines',
+    ],
+  }));
+
+  if (kv.length !== 2) throw new Error(kv.toString());
+
+  return kv as [AstNode, AstNode];
 }

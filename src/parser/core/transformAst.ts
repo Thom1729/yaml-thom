@@ -1,5 +1,4 @@
 import type { AstNode } from './ast';
-// import type { Grammar } from './helpers';
 
 import {
   toCamel, fromSnake,
