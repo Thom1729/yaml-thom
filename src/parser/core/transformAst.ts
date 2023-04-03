@@ -31,7 +31,7 @@ export function transformAst<
     } else if (f !== undefined) {
       return f(node, rec) as R;
     } else {
-      throw new Error(`${String(node.name)}`);
+      throw new TypeError(`Unexpected node named ${node.name}`);
     }
   }
 

@@ -20,6 +20,14 @@ abstract class ValueNode<TagType, ContentType> {
   }
 }
 
+abstract class BaseSerializationValueNode<TagType, ContentType> extends ValueNode<TagType, ContentType> {
+  anchor: string | null;
+  constructor(tag: TagType, content: ContentType, anchor: string | null = null) {
+    super(tag, content);
+    this.anchor = anchor;
+  }
+}
+
 //////////
 
 export class Alias {
@@ -33,14 +41,12 @@ export class Alias {
 
 export type SerializationTag = string | NonSpecificTag;
 
-export class SerializationScalar<TagType extends SerializationTag = SerializationTag> extends ValueNode<TagType, string> {
+export class SerializationScalar<TagType extends SerializationTag = SerializationTag> extends BaseSerializationValueNode<TagType, string> {
   readonly kind = 'scalar';
-  anchor?: string;
 }
 
-export class SerializationSequence<TagType extends SerializationTag = SerializationTag> extends ValueNode<TagType, SerializationNode[]> {
+export class SerializationSequence<TagType extends SerializationTag = SerializationTag> extends BaseSerializationValueNode<TagType, SerializationNode[]> {
   readonly kind = 'sequence';
-  anchor?: string;
 
   *[Symbol.iterator]() {
     yield* this.content;
@@ -49,13 +55,11 @@ export class SerializationSequence<TagType extends SerializationTag = Serializat
   get size() { return this.content.length; }
 }
 
-export class SerializationMapping<TagType extends SerializationTag = SerializationTag> extends ValueNode<TagType, (readonly [SerializationNode, SerializationNode])[]> {
+export class SerializationMapping<TagType extends SerializationTag = SerializationTag> extends BaseSerializationValueNode<TagType, (readonly [SerializationNode, SerializationNode])[]> {
   readonly kind = 'mapping';
 
-  anchor?: string;
-
-  constructor(tag: TagType, content: Iterable<readonly [SerializationNode, SerializationNode]>) {
-    super(tag, Array.from(content));
+  constructor(tag: TagType, content: Iterable<readonly [SerializationNode, SerializationNode]>, anchor: string | null = null) {
+    super(tag, Array.from(content), anchor);
   }
 
   *[Symbol.iterator]() {

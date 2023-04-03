@@ -64,8 +64,8 @@ class PresentOperation {
     this.emit('*' + node.alias);
   }
 
-  presentAnchor(anchor: string | undefined) {
-    if (anchor !== undefined) {
+  presentAnchor(anchor: string | null) {
+    if (anchor !== null) {
       this._space();
       this.emit('&' + anchor);
     }
