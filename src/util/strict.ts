@@ -24,5 +24,5 @@ export type ObjectEntry<T extends object> = {
   [K in keyof Required<T>]-?: readonly [K, T[K]]
 }[keyof T];
 
-export const objectEntries = Object.entries as
+export const strictEntries = Object.entries as
   <T extends object>(o: T) => ObjectEntry<T>[];

@@ -6,7 +6,7 @@ import type {
 
 import { AstNode, Parameters } from './ast';
 import { safeAccessProxy } from '@/util/safeAccessProxy';
-import { single, charUtf16Width, objectEntries, strictFromEntries, isArray } from '@/util';
+import { single, charUtf16Width, strictEntries, strictFromEntries, isArray } from '@/util';
 
 import { EventEmitter } from '@/util/EventEmitter';
 
@@ -129,7 +129,7 @@ export class ParseOperation extends EventEmitter<{
   ) {
     this.stack.push(name);
     try {
-      const parameters = strictFromEntries(objectEntries(refParameters).map(([p, given]) => {
+      const parameters = strictFromEntries(strictEntries(refParameters).map(([p, given]) => {
         try {
           const value = resolveParameter(safeAccessProxy(oldParameters), given);
           return [p, value];
@@ -319,7 +319,7 @@ export class ParseOperation extends EventEmitter<{
     cases: readonly (readonly [Parameters, GrammarNode])[],
   ) {
     for (const [constraints, child] of cases) {
-      if (objectEntries(constraints).every(([p, value]) => parameters[p] === value)) {
+      if (strictEntries(constraints).every(([p, value]) => parameters[p] === value)) {
         return this.parse(index, parameters, child);
       }
     }

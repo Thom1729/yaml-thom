@@ -1,7 +1,7 @@
 import type { AstNode } from './ast';
 
 import {
-  objectEntries, strictFromEntries, strictKeys, strictValues,
+  strictEntries, strictFromEntries, strictKeys, strictValues,
 } from '@/util';
 
 ////
@@ -84,7 +84,7 @@ export function groupNodes<const T extends string>(
   }
 
   const returnNameForNodeName = strictFromEntries(
-    objectEntries(transformation.return).flatMap(([className, nodeNames]) =>
+    strictEntries(transformation.return).flatMap(([className, nodeNames]) =>
       nodeNames.map(nodeName => [nodeName, unquantify(className)] as const)
     )
   );
