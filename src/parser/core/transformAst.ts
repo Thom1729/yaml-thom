@@ -1,42 +1,8 @@
 import type { AstNode } from './ast';
 
 import {
-  toCamel, fromSnake,
-  type ToCamel,
-  type FromSnake,
   objectEntries, strictFromEntries, strictKeys, strictValues,
 } from '@/util';
-
-////
-
-type AstTransformation<R> = {
-  [K in string]?: null | ((
-    node: AstNode<K>,
-    rec: (node: AstNode) => R,
-  ) => R)
-};
-
-export function transformAst<
-  const R,
->(
-  ast: AstNode<string>,
-  transformation: AstTransformation<R>,
-) {
-
-  function rec(node: AstNode<string>) {
-    const f = transformation[node.name];
-
-    if (f === null) {
-      return undefined;
-    } else if (f !== undefined) {
-      return f(node, rec) as R;
-    } else {
-      throw new TypeError(`Unexpected node named ${node.name}`);
-    }
-  }
-
-  return rec(ast) as R;
-}
 
 ////
 

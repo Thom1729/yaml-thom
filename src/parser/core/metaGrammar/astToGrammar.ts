@@ -2,7 +2,7 @@ import { AstNode } from '@/parser';
 
 import { parseHex, single, groupBy, strictFromEntries, isKeyOf, parseDecimal, Y } from '@/util';
 
-import { groupNodes, transformAst } from '../transformAst';
+import { groupNodes } from '../transformAst';
 
 import {
   str,
@@ -29,24 +29,6 @@ import {
 import { ContextType, ChompingBehavior } from '@/parser/core/ast';
 
 ////
-
-function isNotUndefined<T>(value: T | undefined): value is T {
-  return value !== undefined;
-}
-
-function collapse<R>(f: (node: [R, ...R[]]) => R) {
-  return (
-    node: AstNode,
-    rec: (node: AstNode) => R,
-  ) => {
-    const foo = node.content.map(rec).filter(isNotUndefined);
-    if (foo.length === 1) {
-      return single(foo);
-    } else {
-      return f(foo as [R, ...R[]]);
-    }
-  };
-}
 
 export function astToGrammar(ast: AstNode, text: string) {
   const foo = ast.content
@@ -128,133 +110,146 @@ function parseBody(body: AstNode, text: string) {
     return text.slice(...node.range);
   }
 
-  return transformAst<GrammarNode>(body, {
-    space: null,
+  return Y<GrammarNode, [AstNode]>((rec, node): GrammarNode => {
+    switch (node.name) {
+      case 'alternation':
+      case 'sequence':
+      case 'minus': {
+        const [firstChild, ...rest] = node.content.filter(x => x.name !== 'space').map(rec);
+        if (rest.length === 0) {
+          return firstChild;
+        } else {
+          switch (node.name) {
+            case 'alternation': return first(firstChild, ...rest);
+            case 'sequence': return sequence(firstChild, ...rest);
+            case 'minus': return minus(firstChild, ...rest);
+          }
+        }
+        throw new Error('unreachable');
+      }
 
-    alternation: collapse(children => first(...children)),
-    sequence: collapse(children => sequence(...children)),
-    minus: collapse(children => minus(...children)),
+      case 'quantified': {
+        const { atom, quantifier } = groupNodes(node.content, {
+          return: { atom: ['atom'], 'quantifier*%': ['quantifier'] },
+        }, text);
 
-    quantified: (node, rec) => {
-      const { atom, quantifier } = groupNodes(node.content, {
-        return: { atom: ['atom'], 'quantifier*%': ['quantifier'] },
-      }, text);
+        let ret = rec(atom);
 
-      let ret = rec(atom);
-
-      for (const q of quantifier) {
-        switch (q) {
-          case '?': ret = optional(ret); break;
-          case '*': ret = star(ret); break;
-          case '+': ret = plus(ret); break;
-          default: {
-            const match = /\{(\d+)\}/.exec(q);
-            if (match) {
-              const n = parseDecimal(match[1]);
-              ret = repeat(ret, n, n);
-            } else {
-              throw new Error(`Unknown quantifier ${quantifier}`);
+        for (const q of quantifier) {
+          switch (q) {
+            case '?': ret = optional(ret); break;
+            case '*': ret = star(ret); break;
+            case '+': ret = plus(ret); break;
+            default: {
+              const match = /\{(\d+)\}/.exec(q);
+              if (match) {
+                const n = parseDecimal(match[1]);
+                ret = repeat(ret, n, n);
+              } else {
+                throw new Error(`Unknown quantifier ${quantifier}`);
+              }
             }
           }
         }
+
+        return ret;
       }
 
-      return ret;
-    },
+      case 'atom': return rec(single(node.content));
 
-    atom: (node, rec) => rec(single(node.content)),
-
-    parenthesized: (node, rec) => rec(groupNodes(node.content, {
-      return: { alternation: ['alternation'] },
-      ignore: ['space'],
-    }).alternation),
-
-    hexChar: node => charSet(parseHex(nodeText(node).slice(1))),
-
-    charRange: node => {
-      const { hexChar } = groupNodes(node.content, { return: { 'hexChar+%': ['hexChar'] } }, text);
-
-      const range = hexChar.map(c => parseHex(c.slice(1))) as [number, number];
-
-      return charSet(range);
-    },
-
-    string: node => str(nodeText(node).slice(1, -1)),
-
-    special: node => {
-      const text = nodeText(node).slice(1, -1);
-      switch (text) {
-        case 'empty': return empty;
-        case 'start-of-line': return startOfLine;
-        case 'end-of-input': return endOfInput;
-        default: throw new Error(`Unknown special production ${text}`);
-      }
-    },
-
-    lookaround: (node, rec) => {
-      const { lookaroundType, lookaroundOperator, alternation } = groupNodes(node.content, {
-        return: {
-          'lookaroundType%': ['lookaroundType'],
-          'lookaroundOperator%': ['lookaroundOperator'],
-          'alternation': ['alternation'],
-        },
+      case 'parenthesized': return rec(groupNodes(node.content, {
+        return: { alternation: ['alternation'] },
         ignore: ['space'],
-      }, text);
+      }).alternation)
 
-      const child = rec(alternation);
+      case 'hexChar': return charSet(parseHex(nodeText(node).slice(1)));
 
-      if (lookaroundType === 'lookahead') {
-        if (lookaroundOperator === '=') {
-          return lookahead(child);
-        } else {
-          return negativeLookahead(child);
-        }
-      } else {
-        if (lookaroundOperator === '=') {
-          return lookbehind(child);
-        } else {
-          throw new Error(`Negative lookbehind not supported`);
+      case 'charRange': {
+        const { hexChar } = groupNodes(node.content, { return: { 'hexChar+%': ['hexChar'] } }, text);
+
+        const range = hexChar.map(c => parseHex(c.slice(1))) as [number, number];
+
+        return charSet(range);
+      }
+
+      case 'string': return str(nodeText(node).slice(1, -1));
+
+      case 'special': {
+        const text = nodeText(node).slice(1, -1);
+        switch (text) {
+          case 'empty': return empty;
+          case 'start-of-line': return startOfLine;
+          case 'end-of-input': return endOfInput;
+          default: throw new Error(`Unknown special production ${text}`);
         }
       }
-    },
 
-    productionRef: (node) => {
-      const { name, parameters } = groupNodes(node.content, {
-        return: {
-          'name%': ['productionName'],
-          'parameters*%': ['parameter']
-        },
-        recurse: ['productionParameters'],
-      }, text);
+      case 'lookaround': {
+        const { lookaroundType, lookaroundOperator, alternation } = groupNodes(node.content, {
+          return: {
+            'lookaroundType%': ['lookaroundType'],
+            'lookaroundOperator%': ['lookaroundOperator'],
+            'alternation': ['alternation'],
+          },
+          ignore: ['space'],
+        }, text);
 
-      const parameterFunctions = strictFromEntries(
-        parameters.map((paramString) => {
-          switch (paramString) {
-            case '0': return [ 'n', 0 ];
-            case '1': return [ 'n', 1 ];
-            case '-1': return [ 'n', -1 ];
-            case 'n': return [ 'n', 'n' ];
-            case 'n+1': return [ 'n', ['n', 1] ];
-            case 'n-1': return [ 'n', ['n', -1] ];
-            case 'm': return [ 'n', 'm' ];
-            case 'n+m': return [ 'n', ['n', 'm'] ];
-            case 'n+1+m': return [ 'n', ['n', 'm', 1] ];
+        const child = rec(alternation);
 
-            case 'c': return [ 'c', 'c' ];
-            case 'BLOCK-IN': case 'BLOCK-OUT': case 'BLOCK-KEY':
-            case 'FLOW-IN': case 'FLOW-OUT': case 'FLOW-KEY':
-              return [ 'c', paramString ];
-            case 'in-flow(c)': return [ 'c', 'in-flow(c)'];
-
-            case 't': return [ 't', 't' ];
-            case 'STRIP': case 'KEEP': case 'CLIP': return [ 't', paramString ];
-
-            default: throw new Error(`Unknown parameter ${paramString}`);
+        if (lookaroundType === 'lookahead') {
+          if (lookaroundOperator === '=') {
+            return lookahead(child);
+          } else {
+            return negativeLookahead(child);
           }
-        })
-      );
+        } else {
+          if (lookaroundOperator === '=') {
+            return lookbehind(child);
+          } else {
+            throw new Error(`Negative lookbehind not supported`);
+          }
+        }
+      }
 
-      return ref(name, parameterFunctions);
-    },
-  });
+      case 'productionRef': {
+        const { name, parameters } = groupNodes(node.content, {
+          return: {
+            'name%': ['productionName'],
+            'parameters*%': ['parameter']
+          },
+          recurse: ['productionParameters'],
+        }, text);
+
+        const parameterFunctions = strictFromEntries(
+          parameters.map((paramString) => {
+            switch (paramString) {
+              case '0': return [ 'n', 0 ];
+              case '1': return [ 'n', 1 ];
+              case '-1': return [ 'n', -1 ];
+              case 'n': return [ 'n', 'n' ];
+              case 'n+1': return [ 'n', ['n', 1] ];
+              case 'n-1': return [ 'n', ['n', -1] ];
+              case 'm': return [ 'n', 'm' ];
+              case 'n+m': return [ 'n', ['n', 'm'] ];
+              case 'n+1+m': return [ 'n', ['n', 'm', 1] ];
+
+              case 'c': return [ 'c', 'c' ];
+              case 'BLOCK-IN': case 'BLOCK-OUT': case 'BLOCK-KEY':
+              case 'FLOW-IN': case 'FLOW-OUT': case 'FLOW-KEY':
+                return [ 'c', paramString ];
+              case 'in-flow(c)': return [ 'c', 'in-flow(c)'];
+
+              case 't': return [ 't', 't' ];
+              case 'STRIP': case 'KEEP': case 'CLIP': return [ 't', paramString ];
+
+              default: throw new Error(`Unknown parameter ${paramString}`);
+            }
+          })
+        );
+
+        return ref(name, parameterFunctions);
+      }
+      default: throw new TypeError(`Unexpected node named ${node.name}`);
+    }
+  })(body);
 }
