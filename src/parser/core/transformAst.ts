@@ -17,10 +17,10 @@ export function *iterateAst<T extends string>(
   for (const node of nodes) {
     if ((names.return as readonly string[]).includes(node.name)) {
       yield node as AstNode<T>;
-    } else if (names.recurse?.includes(node.name)) {
-      yield* iterateAst(node.content, names);
     } else if (names.ignore?.includes(node.name)) {
       // pass
+    } else if (names.recurse?.includes(node.name)) {
+      yield* iterateAst(node.content, names);
     } else {
       throw new Error(`Encountered unexpected AST node named ${node.name}`);
     }
