@@ -5,4 +5,5 @@ export * from './number';
 export * from './strict';
 export * from './string';
 export * from './typeAssertions';
+export * from './yCombinator';
 export * from './zip';

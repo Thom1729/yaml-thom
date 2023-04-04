@@ -13,6 +13,7 @@ import {
   single,
   assertKeyOf,
   parseDecimal,
+  Y,
 } from '@/util';
 
 import {
@@ -22,7 +23,7 @@ import {
   handleBlockScalarContent,
 } from '../core/scalarContent';
 
-import { iterateAst, groupNodes2 } from '../core/transformAst';
+import { iterateAst, groupNodes } from '../core/transformAst';
 
 export function *astToSerializationTree(text: string, node: AstNode) {
   for (const { directives, body } of splitStream(node)) {
@@ -50,7 +51,7 @@ function *splitStream(node: AstNode) {
     const {
       directives,
       body,
-    } = groupNodes2(node.content, {
+    } = groupNodes(node.content, {
       return: {
         'directives*': ['yaml-directive-line', 'tag-directive-line', 'reserved-directive-line'],
         body: ['block-node', 'empty-node'],
@@ -120,12 +121,6 @@ function handleDirectives(directives: readonly string[]) {
     }
   }
   return tagHandles;
-}
-
-function Y<R, T extends unknown[]>(f: (rec: (...arg: T) => R, ...arg: T) => R) {
-  return function rec(...arg: T): R {
-    return f(rec, ...arg);
-  };
 }
 
 const DEFAULT_TAG_HANDLES = {
@@ -204,7 +199,7 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
       chompingIndicator,
       indentationIndicator,
       content,
-    } = groupNodes2(node.content, {
+    } = groupNodes(node.content, {
       return: {
         'indentationIndicator?%': ['block-scalar-indentation-indicator'],
         'chompingIndicator%': ['block-scalar-chomping-indicator'],
@@ -235,7 +230,7 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
 }
 
 function findContentAndProperties(node: AstNode) {
-  return groupNodes2([node], {
+  return groupNodes([node], {
     return: {
       content: [
         'alias-node',

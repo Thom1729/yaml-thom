@@ -1,6 +1,6 @@
 import { AstNode } from '@/parser';
 
-import { parseHex, single, groupBy, strictFromEntries, isKeyOf, parseDecimal } from '@/util';
+import { parseHex, single, groupBy, strictFromEntries, isKeyOf, parseDecimal, Y } from '@/util';
 
 import { groupNodes, transformAst } from '../transformAst';
 
@@ -54,11 +54,16 @@ export function astToGrammar(ast: AstNode, text: string) {
     .map(productionNode => {
       const {
         productionNumber,
-        productionName: name,
-        parameter: parameters,
+        name,
+        parameters,
         alternation,
       } = groupNodes(productionNode.content, {
-        return: ['productionNumber?%', 'productionName%', 'parameter*%', 'alternation'],
+        return: {
+          'productionNumber?%': ['productionNumber'],
+          'name%': ['productionName'],
+          'parameters*%': ['parameter'],
+          'alternation': ['alternation'],
+        },
         recurse: ['productionRef', 'productionParameters'],
         ignore: ['space'],
       }, text);
@@ -132,7 +137,7 @@ function parseBody(body: AstNode, text: string) {
 
     quantified: (node, rec) => {
       const { atom, quantifier } = groupNodes(node.content, {
-        return: ['atom', 'quantifier*%'],
+        return: { atom: ['atom'], 'quantifier*%': ['quantifier'] },
       }, text);
 
       let ret = rec(atom);
@@ -159,12 +164,15 @@ function parseBody(body: AstNode, text: string) {
 
     atom: (node, rec) => rec(single(node.content)),
 
-    parenthesized: (node, rec) => rec(groupNodes(node.content, { return: ['alternation'], ignore: ['space'] }).alternation),
+    parenthesized: (node, rec) => rec(groupNodes(node.content, {
+      return: { alternation: ['alternation'] },
+      ignore: ['space'],
+    }).alternation),
 
     hexChar: node => charSet(parseHex(nodeText(node).slice(1))),
 
     charRange: node => {
-      const { hexChar } = groupNodes(node.content, { return: ['hexChar+%'] }, text)
+      const { hexChar } = groupNodes(node.content, { return: { 'hexChar+%': ['hexChar'] } }, text);
 
       const range = hexChar.map(c => parseHex(c.slice(1))) as [number, number];
 
@@ -185,7 +193,11 @@ function parseBody(body: AstNode, text: string) {
 
     lookaround: (node, rec) => {
       const { lookaroundType, lookaroundOperator, alternation } = groupNodes(node.content, {
-        return: ['lookaroundType%', 'lookaroundOperator%', 'alternation'],
+        return: {
+          'lookaroundType%': ['lookaroundType'],
+          'lookaroundOperator%': ['lookaroundOperator'],
+          'alternation': ['alternation'],
+        },
         ignore: ['space'],
       }, text);
 
@@ -207,11 +219,11 @@ function parseBody(body: AstNode, text: string) {
     },
 
     productionRef: (node) => {
-      const {
-        productionName: name,
-        parameter: parameters,
-      } = groupNodes(node.content, {
-        return: ['productionName%', 'parameter*%'],
+      const { name, parameters } = groupNodes(node.content, {
+        return: {
+          'name%': ['productionName'],
+          'parameters*%': ['parameter']
+        },
         recurse: ['productionParameters'],
       }, text);
 

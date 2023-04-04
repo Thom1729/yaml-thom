@@ -74,56 +74,6 @@ function unquantify<T extends string>(string: T) {
   return string.replace(/[?*+]?%?$/, '') as Unquantify<T>;
 }
 
-export function groupNodes<const T extends string>(
-  nodes: readonly AstNode[],
-  transformation: {
-    return: readonly T[],
-    recurse?: readonly string[],
-    ignore?: readonly string[],
-  },
-  text?: string,
-) {
-  if (text === undefined && transformation.return.some(q => q.endsWith('%'))) {
-    throw new TypeError('text not given');
-  }
-
-  const byName = Object.fromEntries(
-    transformation.return.map(quantified => [unquantify(quantified), [] as AstNode[]])
-  ) as Record<string, AstNode[]>;
-
-  for (const node of iterateAst(nodes, {
-    return: transformation.return.map(unquantify),
-    recurse: transformation.recurse,
-    ignore: transformation.ignore,
-  })) {
-    byName[node.name].push(node);
-  }
-
-  return Object.fromEntries(
-    transformation.return.map(quantified => {
-      const m = QUANTIFIED_EXPR.exec(quantified);
-      const { name, quantifier = '', string } = m!.groups!;
-      const nodesOrText = string
-        ? byName[name].map(node => (text as string).slice(...node.range))
-        : byName[name];
-
-      const ret = helper(name, nodesOrText, quantifier);
-
-      return [toCamel(fromSnake(name)), ret];
-    })
-  ) as {
-    [K in T as ToCamel<FromSnake<Unquantify<K>>>]:
-      K extends `${string}?%` ? string | null :
-      K extends `${string}*%` ? readonly string[] :
-      K extends `${string}+%` ? readonly [string, ...string[]] :
-      K extends `${string}%` ? string :
-      K extends `${infer Name}?` ? AstNode<Name> | null :
-      K extends `${infer Name}*` ? readonly AstNode<Name>[] :
-      K extends `${infer Name}+` ? readonly [AstNode<Name>, ...AstNode<Name>[]] :
-      AstNode<K>
-  };
-}
-
 function helper(name: string, nodes: readonly unknown[], quantifier: string) {
   switch (quantifier) {
     case '': {
@@ -152,7 +102,7 @@ function helper(name: string, nodes: readonly unknown[], quantifier: string) {
   }
 }
 
-export function groupNodes2<const T extends string>(
+export function groupNodes<const T extends string>(
   nodes: readonly AstNode[],
   transformation: {
     return: { [K in T]: readonly string[] },
