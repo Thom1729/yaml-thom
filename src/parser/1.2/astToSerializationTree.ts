@@ -36,31 +36,55 @@ export function *astToSerializationTree(text: string, node: AstNode) {
   }
 }
 
-const IGNORE = [
-  'l-document-prefix',
-  'l-document-suffix',
+const NODE_INFO = {
+  ignore: [
+    'l-document-prefix',
+    'l-document-suffix',
 
-  'c-byte-order-mark',
-  'c-directive',
-  'c-directives-end',
-  'c-collect-entry',
-  'c-sequence-start',
-  'c-sequence-end',
-  'c-sequence-entry',
-  'c-mapping-start',
-  'c-mapping-end',
-  'c-mapping-key',
-  'c-mapping-value',
-  'c-literal',
-  'c-folded',
+    'c-byte-order-mark',
+    'c-directive',
+    'c-directives-end',
+    'c-collect-entry',
+    'c-sequence-start',
+    'c-sequence-end',
+    'c-sequence-entry',
+    'c-mapping-start',
+    'c-mapping-end',
+    'c-mapping-key',
+    'c-mapping-value',
 
-  's-l-comments',
-  's-b-comment',
-  's-indent',
-  's-separate',
-  's-separate-in-line',
-  'l-comment',
-] as const;
+    's-l-comments',
+    's-b-comment',
+    's-indent',
+    's-separate',
+    's-separate-in-line',
+    'l-comment',
+  ],
+
+  document: ['l-any-document', 'l-explicit-document'],
+  directive: ['ns-yaml-directive', 'ns-tag-directive', 'ns-reserved-directive'],
+
+  nodeWithProperties: [
+    'e-node',
+
+    's-l+block-node',
+    's-l+block-indented',
+
+    'ns-flow-node',
+    'c-flow-json-node',
+    'ns-flow-yaml-node',
+  ],
+  tagProperty: ['c-ns-tag-property'],
+  anchorProperty: ['c-ns-anchor-property'],
+
+  blockScalarFoldingIndicator: ['c-literal', 'c-folded'],
+  blockScalarIndentationIndicator: ['c-indentation-indicator'],
+  blockScalarChompingIndicator: ['c-chomping-indicator'],
+  blockScalarContent: ['l-literal-content', 'l-folded-content'],
+
+  sequenceEntry: ['ns-flow-pair', 'ns-flow-node', 's-l+block-indented'],
+  mappingEntry: ['ns-l-block-map-entry', 'ns-flow-map-entry', 'ns-flow-pair'],
+} as const;
 
 const CONTENT_NODE_CLASSES = {
   alias: ['c-ns-alias-node'],
@@ -81,11 +105,8 @@ const CONTENT_NODE_TO_CLASS = strictFromEntries(
 
 function *splitStream(node: AstNode) {
   const nodeStream = iterateAst(node.content, {
-    return: [
-      'l-any-document',
-      'l-explicit-document'
-    ],
-    ignore: IGNORE,
+    return: NODE_INFO.document,
+    ignore: NODE_INFO.ignore,
   });
 
   for (const node of nodeStream) {
@@ -94,8 +115,8 @@ function *splitStream(node: AstNode) {
       body,
     } = groupNodes(node.content, {
       return: {
-        'directives*': ['ns-yaml-directive', 'ns-tag-directive', 'ns-reserved-directive'],
-        body: ['s-l+block-node', 'e-node'],
+        'directives*': NODE_INFO.directive,
+        body: NODE_INFO.nodeWithProperties,
       },
       recurse: [
         'l-directive-document',
@@ -103,7 +124,7 @@ function *splitStream(node: AstNode) {
         'l-bare-document',
         'l-directive',
       ],
-      ignore: IGNORE,
+      ignore: NODE_INFO.ignore,
     });
 
     yield { directives, body };
@@ -210,19 +231,19 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
 
   function blockScalarContent(node: AstNode) {
     const {
+      foldingIndicator,
       chompingIndicator,
       indentationIndicator,
       content,
     } = groupNodes(node.content, {
       return: {
-        'indentationIndicator?%': ['c-indentation-indicator'],
-        'chompingIndicator%': ['c-chomping-indicator'],
-        'content%': ['l-literal-content', 'l-folded-content'],
+        'foldingIndicator%': NODE_INFO.blockScalarFoldingIndicator,
+        'indentationIndicator?%': NODE_INFO.blockScalarIndentationIndicator,
+        'chompingIndicator%': NODE_INFO.blockScalarChompingIndicator,
+        'content%': NODE_INFO.blockScalarContent,
       },
-      recurse: [
-        'c-b-block-header',
-      ],
-      ignore: IGNORE,
+      recurse: ['c-b-block-header'],
+      ignore: NODE_INFO.ignore,
     }, text);
 
     assertKeyOf(chompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${chompingIndicator}`);
@@ -230,7 +251,7 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
 
     return handleBlockScalarContent(
       content,
-      node.name === 'c-l+folded',
+      foldingIndicator === '>',
       node.parameters.n as number,
       chompingBehavior,
       indentationIndicator === null ? null : parseDecimal(indentationIndicator),
@@ -261,8 +282,8 @@ function findContentAndProperties(node: AstNode) {
   return groupNodes([node], {
     return: {
       content: strictValues(CONTENT_NODE_CLASSES).flatMap(a => a),
-      'tagNode?': ['c-ns-tag-property'],
-      'anchorNode?': ['c-ns-anchor-property'],
+      'tagNode?': NODE_INFO.tagProperty,
+      'anchorNode?': NODE_INFO.anchorProperty,
     },
     recurse: [
       's-l+block-node',
@@ -286,17 +307,13 @@ function findContentAndProperties(node: AstNode) {
       'c-ns-properties',
       'block-collection-node-properties',
     ],
-    ignore: IGNORE,
+    ignore: NODE_INFO.ignore,
   });
 }
 
 function findSequenceEntries(node:AstNode) {
   return Array.from(iterateAst(node.content, {
-    return: [
-      'ns-flow-pair',
-      'ns-flow-node',
-      's-l+block-indented',
-    ],
+    return: NODE_INFO.sequenceEntry,
     recurse: [
       'c-l-block-seq-entry',
 
@@ -304,45 +321,28 @@ function findSequenceEntries(node:AstNode) {
       'ns-s-flow-seq-entries',
       'ns-flow-seq-entry',
     ],
-    ignore: IGNORE,
+    ignore: NODE_INFO.ignore,
   }));
 }
 
-const MAPPING_ENTRY = [
-  'ns-l-block-map-entry',
-  'ns-flow-map-entry',
-  'ns-flow-pair',
-] as const;
-
 function findMappingEntries(node: AstNode) {
   const pairNodes = Array.from(iterateAst([node], {
-    return: MAPPING_ENTRY,
+    return: NODE_INFO.mappingEntry,
     recurse: [
       ...CONTENT_NODE_CLASSES.mapping,
       'ns-s-flow-map-entries',
     ],
-    ignore: IGNORE,
+    ignore: NODE_INFO.ignore,
   }));
 
   return pairNodes.map(child => findPairKv(child));
 }
 
-const MAPPING_VALUE = [
-  'e-node',
-
-  's-l+block-node',
-  's-l+block-indented',
-
-  'ns-flow-node',
-  'c-flow-json-node',
-  'ns-flow-yaml-node',
-] as const;
-
 function findPairKv(node: AstNode) {
   const kv = Array.from(iterateAst(node.content, {
-    return: MAPPING_VALUE,
+    return: NODE_INFO.nodeWithProperties,
     recurse: [
-      ...MAPPING_ENTRY,
+      ...NODE_INFO.mappingEntry,
 
       'c-l-block-map-explicit-entry',
       'c-l-block-map-explicit-key',
@@ -367,7 +367,7 @@ function findPairKv(node: AstNode) {
       'c-s-implicit-json-key',
 
     ],
-    ignore: IGNORE,
+    ignore: NODE_INFO.ignore,
   }));
 
   if (kv.length !== 2) throw new Error(kv.toString());
