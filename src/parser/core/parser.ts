@@ -12,6 +12,16 @@ import { EventEmitter } from '@/util/EventEmitter';
 
 type ParseResult = readonly [readonly AstNode[], number] | null;
 
+class GrammarError extends Error {
+  node: GrammarNode;
+
+  constructor(node: GrammarNode, ...args: ConstructorParameters<ErrorConstructor>) {
+    super(...args);
+    Object.setPrototypeOf(this, GrammarError.prototype);
+    this.node = node;
+  }
+}
+
 export class ParseOperation extends EventEmitter<{
   'node': { displayName: string, index: number, },
   'node.in': object,
@@ -119,9 +129,19 @@ export class ParseOperation extends EventEmitter<{
   ) {
     this.stack.push(name);
     try {
-      const parameters = strictFromEntries(objectEntries(refParameters).map(
-        ([p, given]) => [p, resolveParameter(safeAccessProxy(oldParameters), given)]
-      )) as Parameters;
+      const parameters = strictFromEntries(objectEntries(refParameters).map(([p, given]) => {
+        try {
+          const value = resolveParameter(safeAccessProxy(oldParameters), given);
+          return [p, value];
+        }
+        catch (e) {
+          if (e instanceof Error) {
+            throw new Error(`${e.message}: ${this.stack.join(', ')}`);
+          } else {
+            throw e;
+          }
+        }
+      })) as Parameters;
 
       const params = [parameters.n, parameters.c, parameters.t].filter(p => p !== undefined);
       const displayName = name + (params.length ? `(${params.join(',')})` : '');

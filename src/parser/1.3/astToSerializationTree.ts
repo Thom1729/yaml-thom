@@ -11,7 +11,6 @@ import {
 
 import {
   single,
-  singleOrNull,
   assertKeyOf,
   parseDecimal,
 } from '@/util';
@@ -23,17 +22,17 @@ import {
   handleBlockScalarContent,
 } from '../core/scalarContent';
 
-import { iterateAst, groupNodes } from '../core/transformAst';
+import { iterateAst, groupNodes2 } from '../core/transformAst';
 
-export function *astToSerializationTree(text: string, node: AstNode<'yaml-stream'>) {
+export function *astToSerializationTree(text: string, node: AstNode) {
   for (const { directives, body } of splitStream(node)) {
-    const tagHandles = handleDirectives(text, directives);
+    const tagHandles = handleDirectives(directives.map(node => text.slice(...node.range)));
 
     yield buildDocument(text, body, tagHandles);
   }
 }
 
-function *splitStream(node: AstNode<'yaml-stream'>) {
+function *splitStream(node: AstNode) {
   const nodeStream = iterateAst(node.content, {
     return: [
       'any-document',
@@ -49,37 +48,24 @@ function *splitStream(node: AstNode<'yaml-stream'>) {
 
   for (const node of nodeStream) {
     const {
-      directiveLine,
-      blockNode,
-      emptyNode,
-    } = groupNodes(node.content, {
-      return: [
-        'directive-line*',
-        'block-node*',
-        'empty-node*',
-      ],
+      directives,
+      body,
+    } = groupNodes2(node.content, {
+      return: {
+        'directives*': ['yaml-directive-line', 'tag-directive-line', 'reserved-directive-line'],
+        body: ['block-node', 'empty-node'],
+      },
       recurse: [
         'directives-and-document',
         'start-indicator-and-document',
         'bare-document',
+        'directive-line',
       ],
       ignore: [
         'comment-lines',
         'document-start-indicator',
       ],
     });
-
-    const body = single([...blockNode, ...emptyNode]);
-    const directives = directiveLine.map(directiveAndComments =>
-      single(iterateAst(directiveAndComments.content, {
-        return: [
-          'yaml-directive-line',
-          'tag-directive-line',
-          'reserved-directive-line',
-        ],
-        ignore: ['comment-lines'],
-      }))
-    );
 
     yield { directives, body };
   }
@@ -89,12 +75,11 @@ const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
 const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
 const TAG_PREFIX_EXPR = /^(?:[-A-Za-z0-9#;/?:@&=+$_.!~*'()]|%\p{Hex_Digit}{2})(?:[-A-Za-z0-9#;/?:@&=+$,_.!~*'()[\]]|%\p{Hex_Digit}{2})*$/u;
 
-function handleDirectives(text: string, directives: readonly AstNode[]) {
+function handleDirectives(directives: readonly string[]) {
   let hasYamlDirective = false;
   const tagHandles = new Map<string, string>();
 
-  for (const directive of directives) {
-    const directiveText = text.slice(...directive.range);
+  for (const directiveText of directives) {
     const [name, ...args] = directiveText.split(/[ \t]+/g);
 
     if (name === 'YAML') {
@@ -190,7 +175,7 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
     }
   })(body);
 
-  function nodeTag(node: AstNode<'tag-property'>) {
+  function nodeTag(node: AstNode) {
     const tagContentNode = single(node.content);
 
     switch (tagContentNode.name) {
@@ -216,17 +201,15 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
 
   function blockScalarContent(node: AstNode) {
     const {
-      blockScalarChompingIndicator,
-      blockScalarIndentationIndicator,
-      literalScalarContent,
-      foldedScalarContent,
-    } = groupNodes(node.content, {
-      return: [
-        'block-scalar-indentation-indicator?%',
-        'block-scalar-chomping-indicator%',
-        'literal-scalar-content*',
-        'folded-scalar-content*',
-      ],
+      chompingIndicator,
+      indentationIndicator,
+      content,
+    } = groupNodes2(node.content, {
+      return: {
+        'indentationIndicator?%': ['block-scalar-indentation-indicator'],
+        'chompingIndicator%': ['block-scalar-chomping-indicator'],
+        'content%': ['literal-scalar-content', 'folded-scalar-content'],
+      },
       recurse: [
         'block-literal-scalar',
         'block-folded-scalar',
@@ -238,46 +221,44 @@ function buildDocument(text: string, body: AstNode, tagHandles: Map<string, stri
       ],
     }, text);
 
-    const contentNode = single([...literalScalarContent, ...foldedScalarContent]);
-    const content = nodeText(contentNode);
-
-    assertKeyOf(blockScalarChompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${blockScalarChompingIndicator}`);
-    const chompingBehavior = CHOMPING_BEHAVIOR_LOOKUP[blockScalarChompingIndicator];
+    assertKeyOf(chompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${chompingIndicator}`);
+    const chompingBehavior = CHOMPING_BEHAVIOR_LOOKUP[chompingIndicator];
 
     return handleBlockScalarContent(
       content,
       node.name === 'block-folded-scalar',
       node.parameters.n as number,
       chompingBehavior,
-      blockScalarIndentationIndicator === null ? null : parseDecimal(blockScalarIndentationIndicator),
+      indentationIndicator === null ? null : parseDecimal(indentationIndicator),
     );
   }
 }
 
 function findContentAndProperties(node: AstNode) {
-  const children = Array.from(iterateAst([node], {
-    return: [
-      'alias-node',
-      'empty-node',
+  return groupNodes2([node], {
+    return: {
+      content: [
+        'alias-node',
+        'empty-node',
 
-      'block-sequence',
-      'compact-sequence',
-      'block-mapping',
-      'compact-mapping',
-      'flow-pair',
+        'block-sequence',
+        'compact-sequence',
+        'block-mapping',
+        'compact-mapping',
+        'flow-pair',
 
-      'flow-plain-scalar',
-      'flow-sequence',
-      'flow-mapping',
-      'single-quoted-scalar',
-      'double-quoted-scalar',
+        'flow-plain-scalar',
+        'flow-sequence',
+        'flow-mapping',
+        'single-quoted-scalar',
+        'double-quoted-scalar',
 
-      'block-literal-scalar',
-      'block-folded-scalar',
-
-      'node-properties',
-      'block-collection-node-properties',
-    ],
+        'block-literal-scalar',
+        'block-folded-scalar',
+      ],
+      'tagNode?': ['tag-property'],
+      'anchorNode?': ['anchor-property'],
+    },
     recurse: [
       'block-node',
       'block-node-in-a-block-node',
@@ -295,29 +276,16 @@ function findContentAndProperties(node: AstNode) {
       'flow-yaml-content',
 
       'flow-json-node',
+
+      'node-properties',
+      'block-collection-node-properties',
     ],
     ignore: [
       'separation-characters',
       'comment-lines',
       'indentation-spaces',
     ],
-  }));
-
-  const content = single(children.filter(node => node.name !== 'node-properties' && node.name !== 'block-collection-node-properties'));
-
-  const nodePropertiesParent = singleOrNull(children.filter(node => node.name === 'node-properties' || node.name === 'block-collection-node-properties'));
-
-  const { anchorProperty, tagProperty } = groupNodes(nodePropertiesParent?.content ?? [], {
-    return: ['anchor-property?', 'tag-property?'],
-    recurse: ['node-properties', 'block-collection-node-properties'],
-    ignore: ['separation-characters'],
   });
-
-  return {
-    content,
-    tagNode: tagProperty,
-    anchorNode: anchorProperty,
-  };
 }
 
 function findSequenceEntries(node:AstNode) {

@@ -15,7 +15,7 @@ export function serialize(doc: RepresentationNode) {
   function rec(node: RepresentationNode): SerializationNode {
     const x = cache.get(node);
     if (x !== undefined) {
-      if (x.anchor === undefined) {
+      if (x.anchor === null) {
         x.anchor = (anchorIndex++).toString();
       }
       return new Alias(x.anchor);

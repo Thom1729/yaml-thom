@@ -34,7 +34,7 @@ class CompositionOperation {
   }
 
   setAnchor(node: SerializationValueNode, ret: RepresentationNode) {
-    if (node.anchor !== undefined) {
+    if (node.anchor !== null) {
       this.anchoredNodes.set(node.anchor, ret);
     }
   }

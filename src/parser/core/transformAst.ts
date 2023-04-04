@@ -4,6 +4,7 @@ import {
   toCamel, fromSnake,
   type ToCamel,
   type FromSnake,
+  objectEntries, strictFromEntries, strictKeys, strictValues,
 } from '@/util';
 
 ////
@@ -149,4 +150,64 @@ function helper(name: string, nodes: readonly unknown[], quantifier: string) {
     }
     default: throw new TypeError(`Unexpected quantifier ${quantifier}`);
   }
+}
+
+export function groupNodes2<const T extends string>(
+  nodes: readonly AstNode[],
+  transformation: {
+    return: { [K in T]: readonly string[] },
+    recurse?: readonly string[],
+    ignore?: readonly string[],
+  },
+  text?: string,
+) {
+  const returnSpecs = strictKeys(transformation.return);
+
+  if (text === undefined && returnSpecs.some(q => q.endsWith('%'))) {
+    throw new TypeError('text not given');
+  }
+
+  const returnNameForNodeName = strictFromEntries(
+    objectEntries(transformation.return).flatMap(([className, nodeNames]) =>
+      nodeNames.map(nodeName => [nodeName, unquantify(className)] as const)
+    )
+  );
+
+  const byName = strictFromEntries(
+    strictKeys(transformation.return)
+      .map(s => [unquantify(s), [] as AstNode[]])
+  );
+
+  for (const node of iterateAst(nodes, {
+    return: strictValues(transformation.return).flatMap(a => a),
+    recurse: transformation.recurse,
+    ignore: transformation.ignore,
+  })) {
+    byName[returnNameForNodeName[node.name]].push(node);
+  }
+
+  return Object.fromEntries(
+    returnSpecs.map(quantified => {
+      const m = QUANTIFIED_EXPR.exec(quantified);
+      const { name, quantifier = '', string } = m!.groups!;
+
+      const nodesOrText = string
+        ? byName[name as Unquantify<T>].map(node => (text as string).slice(...node.range))
+        : byName[name as Unquantify<T>];
+
+      const ret = helper(name, nodesOrText, quantifier);
+
+      return [name, ret];
+    })
+  ) as {
+    [K in T as Unquantify<K>]:
+      K extends `${string}?%` ? string | null :
+      K extends `${string}*%` ? readonly string[] :
+      K extends `${string}+%` ? readonly [string, ...string[]] :
+      K extends `${string}%` ? string :
+      K extends `${string}?` ? AstNode | null :
+      K extends `${string}*` ? readonly AstNode[] :
+      K extends `${string}+` ? readonly [AstNode, ...AstNode[]] :
+      AstNode
+  };
 }

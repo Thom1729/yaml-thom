@@ -40,5 +40,5 @@ import { present } from '@/presenter';
 
 const result = present(serialized);
 
-logger.log('Presented:')
-logger.indented(() => logger.log(result));
+logger.log('\nPresented:');
+logger.indented(() => logger.logCode(result));
