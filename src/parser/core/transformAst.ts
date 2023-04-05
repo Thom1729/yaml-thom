@@ -6,7 +6,7 @@ import {
 
 ////
 
-export function *iterateAst<T extends string>(
+function *_iterateAst<T extends string>(
   nodes: Iterable<AstNode>,
   names: {
     return: readonly T[],
@@ -20,14 +20,28 @@ export function *iterateAst<T extends string>(
     } else if (names.ignore?.includes(node.name)) {
       // pass
     } else if (names.recurse?.includes(node.name)) {
-      yield* iterateAst(node.content, names);
+      yield* _iterateAst(node.content, names);
     } else {
-      throw new Error(`Encountered unexpected AST node named ${node.name}`);
+      yield* _iterateAst(node.content, names);
+      // throw new Error(`Encountered unexpected AST node named ${node.name}`);
     }
   }
 }
 
+export function iterateAst<T extends string>(
+  nodes: Iterable<AstNode>,
+  names: {
+    return: readonly T[],
+    recurse?: readonly string[] | undefined,
+    ignore?: readonly string[] | undefined,
+  },
+) {
+  return Array.from(_iterateAst(nodes, names));
+}
+
 ////
+
+export type Quantify<T extends string> = `${T}${'?' | '*' | '+' | ''}${'%' | ''}`;
 
 type Unquantify<T extends string> =
   T extends `${infer U extends string}${'?' | '*' | '+' | ''}${'%' | ''}`
@@ -36,7 +50,7 @@ type Unquantify<T extends string> =
 
 const QUANTIFIED_EXPR = /^(?<name>.*?)(?<quantifier>[?*+])?(?<string>%)?$/;
 
-function unquantify<T extends string>(string: T) {
+export function unquantify<T extends string>(string: T) {
   return string.replace(/[?*+]?%?$/, '') as Unquantify<T>;
 }
 
