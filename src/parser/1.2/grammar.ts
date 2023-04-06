@@ -1175,7 +1175,6 @@ s-ns-plain-next-line(n,c) ::=
 
 const INTRODUCE_T = {
   'c-l+literal': {
-    type: 'PRODUCTION',
     number: 174,
     parameters: ['n'],
     body: first(
@@ -1188,7 +1187,6 @@ const INTRODUCE_T = {
   },
 
   'c-l+folded': {
-    type: 'PRODUCTION',
     number: 174,
     parameters: ['n'],
     body: first(
@@ -1203,7 +1201,6 @@ const INTRODUCE_T = {
 
 const INTRODUCE_INDENTATION = {
   'l+block-sequence': {
-    type: 'PRODUCTION',
     number: 183,
     parameters: ['n'],
     body: detectIndentation(n => n + 1, plus(sequence(
@@ -1213,7 +1210,6 @@ const INTRODUCE_INDENTATION = {
   },
 
   's-l+block-indented': {
-    type: 'PRODUCTION',
     number: 185,
     parameters: ['n'],
     body: first(
@@ -1233,7 +1229,6 @@ const INTRODUCE_INDENTATION = {
   },
 
   'l+block-mapping': {
-    type: 'PRODUCTION',
     number: 187,
     parameters: ['n'],
     body: detectIndentation(n => n + 1, plus(sequence(

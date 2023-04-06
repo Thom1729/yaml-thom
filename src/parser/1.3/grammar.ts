@@ -1255,7 +1255,6 @@ plain-scalar-next-line(n,c) ::=
 
 const INTRODUCE_T = {
   'block-literal-scalar': {
-    type: 'PRODUCTION',
     number: 31,
     parameters: ['n'],
     body: first(
@@ -1268,7 +1267,6 @@ const INTRODUCE_T = {
   },
 
   'block-folded-scalar': {
-    type: 'PRODUCTION',
     number: 35,
     parameters: ['n'],
     body: first(
@@ -1283,7 +1281,6 @@ const INTRODUCE_T = {
 
 const INTRODUCE_INDENTATION = {
   'block-mapping': {
-    type: 'PRODUCTION',
     number: 18,
     parameters: ['n'],
     body: detectIndentation(n => n + 1, plus(sequence(
@@ -1293,7 +1290,6 @@ const INTRODUCE_INDENTATION = {
   },
 
   'block-sequence': {
-    type: 'PRODUCTION',
     number: 27,
     parameters: ['n'],
     body: detectIndentation(n => n + 1, plus(sequence(
@@ -1303,7 +1299,6 @@ const INTRODUCE_INDENTATION = {
   },
 
   'block-indented-node': {
-    type: 'PRODUCTION',
     number: 29,
     parameters: ['n'],
     body: first(

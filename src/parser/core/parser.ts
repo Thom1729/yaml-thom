@@ -159,11 +159,7 @@ export class ParseOperation extends EventEmitter<{
 
       this.emit('node.in', { displayName, index });
 
-      const body = production.type === 'PRODUCTION'
-        ? production.body
-        : production;
-
-      const result = this.parse(index, parameters, body);
+      const result = this.parse(index, parameters, production.body);
 
       this.emit('node.out', { displayName, index, result });
 
