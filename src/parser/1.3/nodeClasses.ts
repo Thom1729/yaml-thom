@@ -1,4 +1,4 @@
-export const NODE_CLASSES = {
+export const nodeClasses = {
   document: ['any-document', 'start-indicator-and-document'],
   directive: ['yaml-directive-line', 'tag-directive-line', 'reserved-directive-line'],
 

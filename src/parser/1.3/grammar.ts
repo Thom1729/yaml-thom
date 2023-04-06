@@ -1533,7 +1533,7 @@ block-collection-node-properties(n,c) ::=
 //   ),
 // } as const satisfies Grammar;
 
-export const GRAMMAR = {
+export const grammar = {
   ...GENERATED_BASE,
 
   ...FORBIDDEN_CONTENT,
@@ -1549,3 +1549,5 @@ export const GRAMMAR = {
   // ...NO_LOOKBEHIND,
   // ...ANNOTATIONS,
 } satisfies Grammar;
+
+export const rootProduction = 'yaml-stream';

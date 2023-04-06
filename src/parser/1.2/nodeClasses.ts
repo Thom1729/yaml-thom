@@ -1,4 +1,4 @@
-export const NODE_CLASSES = {
+export const nodeClasses = {
   document: ['l-any-document', 'l-explicit-document'],
   directive: ['ns-yaml-directive', 'ns-tag-directive', 'ns-reserved-directive'],
 

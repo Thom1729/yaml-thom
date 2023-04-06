@@ -1,12 +1,12 @@
 import { AstNode, ChompingBehavior } from '../core/ast';
 
 import {
+  Alias,
   SerializationScalar,
   SerializationSequence,
   SerializationMapping,
   NonSpecificTag,
   type SerializationNode,
-  Alias,
 } from '@/nodes';
 
 import {

@@ -160,7 +160,7 @@ function parseBody(body: AstNode, text: string) {
       case 'parenthesized': return rec(groupNodes(node.content, {
         return: { alternation: ['alternation'] },
         ignore: ['space'],
-      }).alternation)
+      }).alternation);
 
       case 'hexChar': return charSet(parseHex(nodeText(node).slice(1)));
 

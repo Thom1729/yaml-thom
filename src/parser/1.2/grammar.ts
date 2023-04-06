@@ -1,5 +1,4 @@
 import {
-  str,
   ref,
   sequence,
   first,
@@ -1331,7 +1330,7 @@ block-collection-node-properties(n,c) ::=
     )
 `);
 
-export const GRAMMAR = {
+export const grammar = {
   ...GENERATED_BASE,
 
   ...FORBIDDEN_CONTENT,
@@ -1345,3 +1344,5 @@ export const GRAMMAR = {
   ...BLOCK_SCALAR_INDICATORS_FIX,
   ...BLOCK_COLLECTION_NODE_PROPERTIES_FIX,
 } satisfies Grammar;
+
+export const rootProduction = 'l-yaml-stream';
