@@ -9,29 +9,31 @@ export type RefParameters = {
   | 'in-flow(c)'
 };
 
-export type GrammarNode =
-  | { type: 'EMPTY' }
-  | { type: 'START_OF_LINE' }
-  | { type: 'END_OF_INPUT' }
-  | { type: 'STRING', string: string }
-  | { type: 'CHAR_SET', ranges: readonly (readonly [number, number])[] }
-  | { type: 'REF', name: string, parameters: RefParameters }
-  | { type: 'SEQUENCE', children: readonly GrammarNode[] }
-  | { type: 'FIRST', children: readonly GrammarNode[] }
-  | { type: 'REPEAT', child: GrammarNode, min: number, max: number | null }
-  | { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
-  | { type: 'LOOKBEHIND', child: GrammarNode }
-  | { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode }
-  | { type: 'CONTEXT', cases: readonly (readonly [Parameters, GrammarNode])[] }
-;
+type _GrammarNode =
+| { type: 'EMPTY' }
+| { type: 'START_OF_LINE' }
+| { type: 'END_OF_INPUT' }
+| { type: 'STRING', string: string }
+| { type: 'CHAR_SET', ranges: readonly (readonly [number, number])[] }
+| { type: 'REF', name: string, parameters: RefParameters }
+| { type: 'SEQUENCE', children: readonly GrammarNode[] }
+| { type: 'FIRST', children: readonly GrammarNode[] }
+| { type: 'REPEAT', child: GrammarNode, min: number, max: number | null }
+| { type: 'LOOKAHEAD', child: GrammarNode, positive: boolean }
+| { type: 'LOOKBEHIND', child: GrammarNode }
+| { type: 'DETECT_INDENTATION', min: number | ((n: number) => number), child: GrammarNode }
+| { type: 'CONTEXT', cases: readonly (readonly [Parameters, GrammarNode])[] };
 
-export type ProductionBody = {
-  number?: number | null,
-  parameters?: readonly (keyof Parameters)[],
-  body: GrammarNode,
+export type GrammarNode<T extends _GrammarNode['type'] = _GrammarNode['type']> =
+  _GrammarNode & { type: T };
+
+export type Grammar = {
+  [K in string]?: {
+    number?: number | null,
+    parameters?: readonly (keyof Parameters)[],
+    body: GrammarNode,
+  }
 };
-
-export type Grammar = { [K in string]?: ProductionBody };
 
 export const empty = { type: 'EMPTY' } as const;
 export const startOfLine = { type: 'START_OF_LINE' } as const;

@@ -28,3 +28,12 @@ export function assertKeyOf<K extends string | number | symbol, T extends object
 ): asserts key is K & keyof T {
   if (!Object.hasOwn(obj, key)) throw new TypeError(message);
 }
+
+export function assertNotUndefined<T>(
+  value: T,
+  message?: string,
+): asserts value is Exclude<T, undefined> {
+  if (value === undefined) {
+    throw new TypeError(message ?? `assertNotUndefined`);
+  }
+}

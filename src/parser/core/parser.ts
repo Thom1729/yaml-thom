@@ -5,8 +5,7 @@ import type {
 } from './helpers';
 
 import { AstNode, Parameters } from './ast';
-import { safeAccessProxy } from '@/util/safeAccessProxy';
-import { single, charUtf16Width, strictEntries, strictFromEntries, isArray } from '@/util';
+import { single, charUtf16Width, strictEntries, strictFromEntries, isArray, assertNotUndefined } from '@/util';
 
 import { EventEmitter } from '@/util/EventEmitter';
 
@@ -41,7 +40,11 @@ export class ParseOperation extends EventEmitter<{
   }
 
   parseAll<T extends string>(name: T) {
-    const result = this.parseRef(0, {}, {}, name);
+    const result = this.parseRef(0, {}, {
+      type: 'REF',
+      name,
+      parameters: {},
+    });
 
     if (result === null) throw new Error('parse failed');
 
@@ -84,7 +87,7 @@ export class ParseOperation extends EventEmitter<{
     } else if (node.type === 'CHAR_SET') {
       return this.parseCharSet(index, node.ranges);
     } else if (node.type === 'REF') {
-      return this.parseRef(index, parameters, node.parameters, node.name);
+      return this.parseRef(index, parameters, node);
     } else if (node.type === 'SEQUENCE') {
       return this.parseSequence(index, parameters, node.children);
     } else if (node.type === 'FIRST') {
@@ -96,9 +99,9 @@ export class ParseOperation extends EventEmitter<{
     } else if (node.type === 'LOOKBEHIND') {
       return this.parseLookbehind(index, parameters, node.child);
     } else if (node.type === 'DETECT_INDENTATION') {
-      return this.parseDetectIndentation(index, parameters, node.min, node.child);
+      return this.parseDetectIndentation(index, parameters, node);
     } else if (node.type === 'CONTEXT') {
-      return this.parseContext(index, parameters, node.cases);
+      return this.parseContext(index, parameters, node);
     }
 
     throw new TypeError(node);
@@ -123,43 +126,39 @@ export class ParseOperation extends EventEmitter<{
 
   parseRef(
     index: number,
-    oldParameters: Parameters,
-    refParameters: RefParameters,
-    name: string,
+    parameters: Parameters,
+    node: GrammarNode<'REF'>,
   ) {
-    this.stack.push(name);
+    this.stack.push(node.name);
+
+    const getParameter = safeGetter(parameters);
+
     try {
-      const parameters = strictFromEntries(strictEntries(refParameters).map(([p, given]) => {
+      const newParameters = strictFromEntries(strictEntries(node.parameters).map(([p, given]) => {
         try {
-          const value = resolveParameter(safeAccessProxy(oldParameters), given);
-          return [p, value];
-        }
-        catch (e) {
-          if (e instanceof Error) {
-            throw new Error(`${e.message}: ${this.stack.join(', ')}`);
-          } else {
-            throw e;
-          }
+          return [p, resolveParameter(given, getParameter)];
+        } catch (e) {
+          throw new GrammarError(node, `${e instanceof Error ? e.message : 'NotAnError'}: ${this.stack.join(', ')}`);
         }
       })) as Parameters;
 
-      const params = [parameters.n, parameters.c, parameters.t].filter(p => p !== undefined);
-      const displayName = name + (params.length ? `(${params.join(',')})` : '');
+      const params = [newParameters.n, newParameters.c, newParameters.t].filter(p => p !== undefined);
+      const displayName = node.name + (params.length ? `(${params.join(',')})` : '');
 
       const backtrackCacheKey = `${index}:${displayName}`;
       if (this.backtrackCache.has(backtrackCacheKey)) {
         return null;
       }
 
-      const production = this.grammar[name];
+      const production = this.grammar[node.name];
       if (production === undefined) {
         console.error(`Stack: ${this.stack.slice().reverse().join(' ')}`);
-        throw new TypeError(`No production ${name}`);
+        throw new TypeError(`No production ${node.name}`);
       }
 
       this.emit('node.in', { displayName, index });
 
-      const result = this.parse(index, parameters, production.body);
+      const result = this.parse(index, newParameters, production.body);
 
       this.emit('node.out', { displayName, index, result });
 
@@ -167,8 +166,8 @@ export class ParseOperation extends EventEmitter<{
         const [content, j] = result;
         return [
           [{
-            name,
-            parameters,
+            name: node.name,
+            parameters: newParameters,
             content,
             range: [index, j]
           }],
@@ -287,13 +286,13 @@ export class ParseOperation extends EventEmitter<{
   parseDetectIndentation(
     index: number,
     parameters: Parameters,
-    min: number | ((n: number) => number),
-    child: GrammarNode,
+    node: GrammarNode<'DETECT_INDENTATION'>,
   ) {
+    const { min, child } = node;
     let minValue;
     if (typeof min === 'function') {
       const n = parameters.n;
-      if (n === undefined) throw new Error(`n not defined`);
+      if (n === undefined) throw new GrammarError(node, `n not defined`);
       minValue = min(n);
     } else {
       minValue = min;
@@ -312,33 +311,42 @@ export class ParseOperation extends EventEmitter<{
   parseContext(
     index: number,
     parameters: Parameters,
-    cases: readonly (readonly [Parameters, GrammarNode])[],
+    node: GrammarNode<'CONTEXT'>,
   ) {
-    for (const [constraints, child] of cases) {
+    for (const [constraints, child] of node.cases) {
       if (strictEntries(constraints).every(([p, value]) => parameters[p] === value)) {
         return this.parse(index, parameters, child);
       }
     }
-    throw new Error(`Unhandled case`);
+    throw new GrammarError(node, `Unhandled case`);
   }
 }
 
+function safeGetter<T extends object>(obj: T) {
+  return function <K extends keyof T>(parameterName: K) {
+    const value = obj[parameterName];
+    assertNotUndefined(value);
+    return value as Required<T>[K];
+  };
+}
+
 function resolveParameter(
-  oldParameters: Required<Parameters>,
   given: RefParameters[keyof RefParameters],
+  getParameter: <T extends keyof Parameters>(parameterName: T) => Required<Parameters>[T],
 ) {
   if (given === 'in-flow(c)') {
-    switch (oldParameters.c) {
+    const c = getParameter('c');
+    switch (c) {
       case 'FLOW-OUT': case 'FLOW-IN': return 'FLOW-IN';
       case 'BLOCK-KEY': case 'FLOW-KEY': return 'FLOW-KEY';
-      default: throw new Error(`Unhandled context ${oldParameters.c} in in-flow(c)`);
+      default: throw new TypeError(`Unhandled context ${c} in in-flow(c)`);
     }
   } else if (given === 'n' || given === 'm' || given === 'c' || given === 't') {
-    return oldParameters[given];
+    return getParameter(given);
   } else if (isArray(given)) {
     return given
-      .map(x => (typeof x === 'string') ? oldParameters[x] : x)
-      .reduce((a,b) => a+b, 0);
+      .map(x => (typeof x === 'string') ? getParameter(x) : x)
+      .reduce((a, b) => a + b, 0);
   } else {
     return given;
   }
