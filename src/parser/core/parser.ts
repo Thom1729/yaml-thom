@@ -169,7 +169,7 @@ export class ParseOperation extends EventEmitter<{
             name: node.name,
             parameters: newParameters,
             content,
-            range: [index, j]
+            range: [index, j],
           }],
           j,
         ] as const;
