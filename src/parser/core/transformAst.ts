@@ -2,6 +2,7 @@ import type { AstNode } from './ast';
 
 import {
   strictEntries, strictFromEntries, strictKeys, strictValues,
+  type TypedRegExp,
 } from '@/util';
 
 ////
@@ -48,7 +49,7 @@ type Unquantify<T extends string> =
     ? U
     : T;
 
-const QUANTIFIED_EXPR = /^(?<name>.*?)(?<quantifier>[?*+])?(?<string>%)?$/;
+const QUANTIFIED_EXPR = /^(?<name>.*?)(?<quantifier>[?*+])?(?<string>%)?$/ as TypedRegExp<'name'|'quantifier'|'string'>;
 
 export function unquantify<T extends string>(string: T) {
   return string.replace(/[?*+]?%?$/, '') as Unquantify<T>;
@@ -119,7 +120,8 @@ export function groupNodes<const T extends string>(
   return Object.fromEntries(
     returnSpecs.map(quantified => {
       const m = QUANTIFIED_EXPR.exec(quantified);
-      const { name, quantifier = '', string } = m!.groups!;
+      if (m === null) throw new TypeError(`Invalid name ${quantified}`);
+      const { name, quantifier = '', string } = m.groups;
 
       const nodesOrText = string
         ? byName[name as Unquantify<T>].map(node => (text as string).slice(...node.range))
