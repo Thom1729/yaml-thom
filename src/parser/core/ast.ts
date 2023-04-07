@@ -1,10 +1,8 @@
-export type Range = readonly [number, number];
-
 export interface AstNode<T = string> {
   name: T;
   parameters: Parameters,
   content: readonly AstNode[];
-  range: Range,
+  range: readonly [number, number],
 }
 
 export interface Parameters {
@@ -21,7 +19,6 @@ export const ContextType = {
   'FLOW-IN': 'FLOW-IN',
   'FLOW-OUT': 'FLOW-OUT',
   'FLOW-KEY': 'FLOW-KEY',
-  'ANNOTATION-IN': 'ANNOTATION-IN', // Experimental
 } as const;
 export type ContextType = typeof ContextType[keyof typeof ContextType];
 

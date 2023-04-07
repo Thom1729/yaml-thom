@@ -1,7 +1,7 @@
 import { grammar } from './grammarGrammar';
 import { astToGrammar } from './astToGrammar';
 
-import type { Grammar } from '../helpers';
+import type { Grammar } from '../grammarType';
 
 import { ParseOperation } from '../parser';
 

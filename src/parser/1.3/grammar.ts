@@ -1,5 +1,4 @@
 import {
-  str,
   ref,
   sequence,
   first,
@@ -7,7 +6,7 @@ import {
   detectIndentation,
 
   type Grammar,
-} from '../core/helpers';
+} from '../core/grammarType';
 
 import { ChompingBehavior } from '../core/ast';
 

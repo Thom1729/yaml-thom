@@ -2,7 +2,7 @@ import type {
   Grammar,
   GrammarNode,
   RefParameters,
-} from './helpers';
+} from './grammarType';
 
 import { AstNode, Parameters } from './ast';
 import { single, charUtf16Width, strictEntries, strictFromEntries, isArray, assertNotUndefined } from '@/util';

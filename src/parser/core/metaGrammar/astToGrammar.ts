@@ -24,7 +24,7 @@ import {
 
   type GrammarNode,
   context,
-} from '@/parser/core/helpers';
+} from '../grammarType';
 
 import { ContextType, ChompingBehavior } from '@/parser/core/ast';
 

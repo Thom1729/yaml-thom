@@ -11,7 +11,7 @@ import {
   charSet,
 
   type Grammar,
-} from '@/parser/core/helpers';
+} from '../grammarType';
 
 export const grammar = {
   anyChar: {
