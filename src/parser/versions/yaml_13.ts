@@ -1412,7 +1412,6 @@ block-collection-node-properties(n,c) ::=
       [ lookahead = comment-line ]
     )
 `);
-
 // const NO_LOOKBEHIND: Grammar = {
 //   /* 100 */ 'plain-scalar-next-line': sequence(
 //     ref('flow-folded-whitespace', 'n'),

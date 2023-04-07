@@ -41,7 +41,7 @@ function runTest(test: TestCase) {
 
   try {
     const expectedTree = Array.from(eventsToSerializationTree(test.tree));
-    const actualTree = Array.from(parseStream(test.yaml));
+    const actualTree = Array.from(parseStream(test.yaml, { version: '1.3' }));
 
     const inequal = [] as Difference[];
     if (expectedTree.length !== actualTree.length) {

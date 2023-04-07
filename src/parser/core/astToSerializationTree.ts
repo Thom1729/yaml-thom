@@ -7,7 +7,7 @@ import {
   SerializationMapping,
   NonSpecificTag,
   type SerializationNode,
-  SerializationTag,
+  type SerializationTag,
 } from '@/nodes';
 
 import {
@@ -37,14 +37,19 @@ const CONTENT_CLASS_NAMES = [
   'sequence',
 ] as const;
 
+const NODE_PROPERTY_CLASS_NAMES = [
+  'anchorProperty',
+  'tagProperty',
+] as const;
+
 type ContentNodeClass = (typeof CONTENT_CLASS_NAMES)[number];
+type NodePropertyClass = (typeof NODE_PROPERTY_CLASS_NAMES)[number];
 type NodeClass =
 | ContentNodeClass
+| NodePropertyClass
 | 'document'
 | 'directive'
 | 'nodeWithProperties'
-| 'tagProperty'
-| 'anchorProperty'
 | 'blockScalarIndentationIndicator'
 | 'blockScalarChompingIndicator'
 | 'blockScalarContent'
@@ -63,21 +68,28 @@ const CHOMPING_BEHAVIOR_LOOKUP = {
   '': ChompingBehavior.CLIP,
 };
 
-type InternalNodeClass = NodeClass | 'contentNode';
+type InternalNodeClass = NodeClass | 'contentNode' | 'nodeProperty';
 type InternalNodeClasses = Record<InternalNodeClass, readonly string[]>
 
 export class AstToSerializationTree {
   nodeClasses: InternalNodeClasses;
   classForContentNode: Record<string, ContentNodeClass>;
+  classForPropertyNode: Record<string, NodePropertyClass>;
 
   constructor(nodeClasses: NodeClasses) {
     this.nodeClasses = {
       ...nodeClasses,
       contentNode: CONTENT_CLASS_NAMES.flatMap(c => nodeClasses[c]),
+      nodeProperty: NODE_PROPERTY_CLASS_NAMES.flatMap(c => nodeClasses[c]),
     };
 
     this.classForContentNode = strictFromEntries(
       CONTENT_CLASS_NAMES
+        .flatMap((className) => nodeClasses[className].map(nodeName => [nodeName as string, className]))
+    );
+
+    this.classForPropertyNode = strictFromEntries(
+      NODE_PROPERTY_CLASS_NAMES
         .flatMap((className) => nodeClasses[className].map(nodeName => [nodeName as string, className]))
     );
   }
@@ -162,14 +174,27 @@ export class AstToSerializationTree {
   }
 
   buildNode(text: string, body: AstNode, tagHandles: Map<string, string>): SerializationNode {
-    const {
-      contentNode,
-      tagProperty,
-      anchorProperty,
-    } = this.groupNodes([body], ['contentNode', 'tagProperty?%', 'anchorProperty?%'], text);
+    function nodeText(node: AstNode) {
+      return text.slice(...node.range);
+    }
 
-    const tag = tagProperty ? nodeTag(tagProperty, tagHandles) : null;
-    const anchor = anchorProperty ? anchorProperty.slice(1) : null;
+    const { contentNode, nodeProperty } = this.groupNodes([body], ['contentNode', 'nodeProperty*'], text);
+
+    let tag = null;
+    let anchor = null;
+
+    for (const property of (nodeProperty as AstNode[]).reverse()) {
+      const nodeClass = this.classForPropertyNode[property.name];
+      if (nodeClass === 'tagProperty') {
+        if (tag !== null) throw new Error(`multiple tag properties`);
+        tag = nodeTag(nodeText(property), tagHandles);
+      } else if (nodeClass === 'anchorProperty') {
+        if (anchor !== null) throw new Error(`multiple anchor properties`);
+        anchor = nodeText(property).slice(1);
+      } else {
+        throw new TypeError(property.name);
+      }
+    }
 
     return this.buildContent(text, contentNode, tagHandles, tag, anchor);
   }

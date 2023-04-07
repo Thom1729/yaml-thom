@@ -17,14 +17,10 @@ logger.indented(() => logger.logCode(inputText));
 
 /////////
 
-import { GRAMMAR } from '@/parser/1.3/grammar';
-import { ParseOperation } from '@/parser/core/parser';
-import { astToSerializationTree } from '@/parser/1.3/astToSerializationTree';
 import { serialize } from '@/serializer';
+import { parseStream } from '@/parser';
 
-const ast = new ParseOperation(GRAMMAR, inputText).parseAll('yaml-stream');
-
-const serializationTree = Array.from(astToSerializationTree(inputText, ast))[0];
+const serializationTree = Array.from(parseStream(inputText))[0];
 
 //////////
 
