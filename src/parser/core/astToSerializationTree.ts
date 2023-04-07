@@ -7,6 +7,7 @@ import {
   SerializationMapping,
   NonSpecificTag,
   type SerializationNode,
+  SerializationTag,
 } from '@/nodes';
 
 import {
@@ -105,20 +106,11 @@ export class AstToSerializationTree {
   /////
 
   *handleStream(text: string, node: AstNode) {
-    for (const { directives, body } of this.splitStream(node)) {
-      const tagHandles = this.handleDirectives(directives.map(node => text.slice(...node.range)));
+    for (const document of this.iterateAst(node.content, 'document')) {
+      const { directive, nodeWithProperties } = this.groupNodes(document.content, ['directive*', 'nodeWithProperties']);
+      const tagHandles = this.handleDirectives(directive.map(node => text.slice(...node.range)));
 
-      yield this.buildDocument(text, body, tagHandles);
-    }
-  }
-
-  *splitStream(node: AstNode) {
-    const nodeStream = this.iterateAst(node.content, 'document');
-
-    for (const node of nodeStream) {
-      const b = this.groupNodes(node.content, ['directive*', 'nodeWithProperties']);
-
-      yield { directives: b.directive, body: b.nodeWithProperties };
+      yield this.buildNode(text, nodeWithProperties, tagHandles);
     }
   }
 
@@ -169,11 +161,7 @@ export class AstToSerializationTree {
     return tagHandles;
   }
 
-  buildDocument(text: string, body: AstNode, tagHandles: Map<string, string>): SerializationNode {
-    function nodeText(node: AstNode) {
-      return text.slice(...node.range);
-    }
-
+  buildNode(text: string, body: AstNode, tagHandles: Map<string, string>): SerializationNode {
     const {
       contentNode,
       tagProperty,
@@ -183,63 +171,77 @@ export class AstToSerializationTree {
     const tag = tagProperty ? nodeTag(tagProperty, tagHandles) : null;
     const anchor = anchorProperty ? anchorProperty.slice(1) : null;
 
-    switch (this.classForContentNode[contentNode.name]) {
+    return this.buildContent(text, contentNode, tagHandles, tag, anchor);
+  }
+
+  buildContent(
+    text: string,
+    contentNode: AstNode,
+    tagHandles: Map<string, string>,
+    tag: SerializationTag | null,
+    anchor: string | null,
+  ): SerializationNode {
+    function nodeText(node: AstNode) {
+      return text.slice(...node.range);
+    }
+
+    const nodeClass = this.classForContentNode[contentNode.name];
+    switch (nodeClass) {
       case 'alias': return new Alias(nodeText(contentNode).slice(1));
 
       case 'emptyScalar': return new SerializationScalar(tag ?? NonSpecificTag.question, '', anchor);
-      case 'plainScalar': return new SerializationScalar(tag ?? NonSpecificTag.question, handlePlainScalarContent(nodeText(contentNode)), anchor);
-      case 'singleQuotedScalar': return new SerializationScalar(tag ?? NonSpecificTag.exclamation, handleSingleQuotedScalarContent(nodeText(contentNode).slice(1, -1)), anchor);
-      case 'doubleQuotedScalar': return new SerializationScalar(tag ?? NonSpecificTag.exclamation, handleDoubleQuotedScalarContent(nodeText(contentNode).slice(1, -1)), anchor);
+      case 'plainScalar': {
+        const content = handlePlainScalarContent(nodeText(contentNode));
+        return new SerializationScalar(tag ?? NonSpecificTag.question, content, anchor);
+      }
+      case 'singleQuotedScalar': {
+        const content = handleSingleQuotedScalarContent(nodeText(contentNode).slice(1, -1));
+        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor);
+      }
+      case 'doubleQuotedScalar': {
+        const content = handleDoubleQuotedScalarContent(nodeText(contentNode).slice(1, -1));
+        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor);
+      }
+      case 'literalScalar': case 'foldedScalar': {
+        const {
+          blockScalarChompingIndicator,
+          blockScalarIndentationIndicator,
+          blockScalarContent,
+        } = this.groupNodes(contentNode.content, [
+          'blockScalarIndentationIndicator?%',
+          'blockScalarChompingIndicator%',
+          'blockScalarContent%'
+        ], text);
 
-      case 'literalScalar':
-        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, this.blockScalarContent(text, contentNode, false), anchor);
-      case 'foldedScalar':
-        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, this.blockScalarContent(text, contentNode, true), anchor);
+        assertKeyOf(blockScalarChompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${blockScalarChompingIndicator}`);
+        const chompingBehavior = CHOMPING_BEHAVIOR_LOOKUP[blockScalarChompingIndicator];
+
+        const content = handleBlockScalarContent(
+          blockScalarContent,
+          nodeClass === 'foldedScalar',
+          contentNode.parameters.n as number,
+          chompingBehavior,
+          blockScalarIndentationIndicator === null ? null : parseDecimal(blockScalarIndentationIndicator),
+        );
+
+        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor);
+      }
 
       case 'mapping': {
         const children = this.iterateAst([contentNode], 'mappingEntry')
-          .map(child => {
-            const kv = this.iterateAst(child.content, 'nodeWithProperties');
-
-            if (kv.length !== 2) throw new Error(kv.toString());
-
-            return kv as [AstNode, AstNode];
-          })
-          .map(([k, v]) => [this.buildDocument(text, k, tagHandles), this.buildDocument(text, v, tagHandles)] as const);
+          .map(child => this.iterateAst(child.content, 'nodeWithProperties'))
+          .map(([k, v]) => [this.buildNode(text, k, tagHandles), this.buildNode(text, v, tagHandles)] as const);
 
         return new SerializationMapping(tag ?? NonSpecificTag.question, children, anchor);
       }
 
       case 'sequence': {
-        const children = this.iterateAst(contentNode.content, 'nodeWithProperties').map(child => this.buildDocument(text, child, tagHandles));
+        const children = this.iterateAst(contentNode.content, 'nodeWithProperties').map(child => this.buildNode(text, child, tagHandles));
         return new SerializationSequence(tag ?? NonSpecificTag.question, children, anchor);
       }
 
       default: throw new TypeError(`Unexpected node ${contentNode.name}`);
     }
-  }
-
-  blockScalarContent(text: string, node: AstNode, folded: boolean) {
-    const {
-      blockScalarChompingIndicator,
-      blockScalarIndentationIndicator,
-      blockScalarContent,
-    } = this.groupNodes(node.content, [
-      'blockScalarIndentationIndicator?%',
-      'blockScalarChompingIndicator%',
-      'blockScalarContent%'
-    ], text);
-
-    assertKeyOf(blockScalarChompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${blockScalarChompingIndicator}`);
-    const chompingBehavior = CHOMPING_BEHAVIOR_LOOKUP[blockScalarChompingIndicator];
-
-    return handleBlockScalarContent(
-      blockScalarContent,
-      folded,
-      node.parameters.n as number,
-      chompingBehavior,
-      blockScalarIndentationIndicator === null ? null : parseDecimal(blockScalarIndentationIndicator),
-    );
   }
 }
 
