@@ -22,7 +22,7 @@ import {
   handleBlockScalarContent,
 } from '../core/scalarContent';
 
-import { iterateAst, groupNodes, unquantify, Quantify } from '../core/transformAst';
+import { iterateAst, groupNodes, unquantify, type Quantify } from '../core/transformAst';
 
 const CONTENT_CLASS_NAMES = [
   'alias',
@@ -39,7 +39,6 @@ const CONTENT_CLASS_NAMES = [
 type ContentNodeClass = (typeof CONTENT_CLASS_NAMES)[number];
 type NodeClass =
 | ContentNodeClass
-
 | 'document'
 | 'directive'
 | 'nodeWithProperties'
@@ -49,18 +48,13 @@ type NodeClass =
 | 'blockScalarChompingIndicator'
 | 'blockScalarContent'
 | 'mappingEntry'
-| 'ignore'
+| 'ignore';
 
-| 'contentNode';
+export type NodeClasses = Record<NodeClass, readonly string[]>;
 
 const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
 const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
 const TAG_PREFIX_EXPR = /^(?:[-A-Za-z0-9#;/?:@&=+$_.!~*'()]|%\p{Hex_Digit}{2})(?:[-A-Za-z0-9#;/?:@&=+$,_.!~*'()[\]]|%\p{Hex_Digit}{2})*$/u;
-
-const DEFAULT_TAG_HANDLES = {
-  '!': '!',
-  '!!': 'tag:yaml.org,2002:',
-} as Partial<Record<string, string>>;
 
 const CHOMPING_BEHAVIOR_LOOKUP = {
   '-': ChompingBehavior.STRIP,
@@ -68,33 +62,16 @@ const CHOMPING_BEHAVIOR_LOOKUP = {
   '': ChompingBehavior.CLIP,
 };
 
-function nodeTag(tagText: string, tagHandles: Map<string, string>) {
-  if (tagText === '!') {
-    return NonSpecificTag.exclamation;
-  } else if (tagText.startsWith('!<')) {
-    return tagText.slice(2, -1);
-  } else {
-    const i = (tagText.indexOf('!', 1) + 1) || 1;
-    const handle = tagText.slice(0, i);
-    const suffix = decodeURIComponent(tagText.slice(i));
-
-    const prefix = tagHandles.get(handle) ?? DEFAULT_TAG_HANDLES[handle];
-    if (prefix === undefined) {
-      throw new Error(`Unknown tag handle ${handle}`);
-    } else {
-      return prefix + suffix;
-    }
-  }
-}
+type InternalNodeClass = NodeClass | 'contentNode';
+type InternalNodeClasses = Record<InternalNodeClass, readonly string[]>
 
 export class AstToSerializationTree {
-  nodeClasses: Record<NodeClass, readonly string[]>;
+  nodeClasses: InternalNodeClasses;
   classForContentNode: Record<string, ContentNodeClass>;
 
-  constructor(nodeClasses: Record<Exclude<NodeClass, 'contentNode'>, readonly string[]>) {
+  constructor(nodeClasses: NodeClasses) {
     this.nodeClasses = {
       ...nodeClasses,
-
       contentNode: CONTENT_CLASS_NAMES.flatMap(c => nodeClasses[c]),
     };
 
@@ -113,11 +90,11 @@ export class AstToSerializationTree {
     });
   }
 
-  groupNodes<const T extends Quantify<NodeClass>>(nodes: readonly AstNode[], nodeClasses: readonly T[], text?: string) {
+  groupNodes<const T extends Quantify<InternalNodeClass>>(nodes: readonly AstNode[], nodeClasses: readonly T[], text?: string) {
     return groupNodes(nodes, {
       return: strictFromEntries(
         nodeClasses.map(c => {
-          const classes = this.nodeClasses[unquantify(c) as NodeClass];
+          const classes = this.nodeClasses[unquantify(c) as InternalNodeClass];
           return [c, classes];
         })
       ),
@@ -263,5 +240,29 @@ export class AstToSerializationTree {
       chompingBehavior,
       blockScalarIndentationIndicator === null ? null : parseDecimal(blockScalarIndentationIndicator),
     );
+  }
+}
+
+const DEFAULT_TAG_HANDLES = {
+  '!': '!',
+  '!!': 'tag:yaml.org,2002:',
+} as Partial<Record<string, string>>;
+
+function nodeTag(tagText: string, tagHandles: Map<string, string>) {
+  if (tagText === '!') {
+    return NonSpecificTag.exclamation;
+  } else if (tagText.startsWith('!<')) {
+    return tagText.slice(2, -1);
+  } else {
+    const i = (tagText.indexOf('!', 1) + 1) || 1;
+    const handle = tagText.slice(0, i);
+    const suffix = decodeURIComponent(tagText.slice(i));
+
+    const prefix = tagHandles.get(handle) ?? DEFAULT_TAG_HANDLES[handle];
+    if (prefix === undefined) {
+      throw new Error(`Unknown tag handle ${handle}`);
+    } else {
+      return prefix + suffix;
+    }
   }
 }
