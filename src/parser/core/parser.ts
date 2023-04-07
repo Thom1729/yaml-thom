@@ -323,9 +323,9 @@ export class ParseOperation extends EventEmitter<{
 }
 
 function safeGetter<T extends object>(obj: T) {
-  return function <K extends keyof T>(parameterName: K) {
+  return function <K extends string & keyof T>(parameterName: K) {
     const value = obj[parameterName];
-    assertNotUndefined(value);
+    assertNotUndefined(value, parameterName);
     return value as Required<T>[K];
   };
 }

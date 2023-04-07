@@ -1253,31 +1253,21 @@ plain-scalar-next-line(n,c) ::=
   plain-scalar-line-characters(c)
 `);
 
-const INTRODUCE_T = {
-  'block-literal-scalar': {
-    number: 31,
-    parameters: ['n'],
-    body: first(
-      ...Object.values(ChompingBehavior).map(t => sequence(
-        str('|'),
-        ref('block-scalar-indicators', { t }),
-        ref('literal-scalar-content', { n: ['n', 1], t }),
-      ))
-    ),
-  },
+const INTRODUCE_T = parseGrammar(String.raw`
+[31] block-literal-scalar(n) ::=
+  ${Object.values(ChompingBehavior).map(t => `(
+    '|'
+    block-scalar-indicators(${t})
+    literal-scalar-content(n+1,${t})
+  )`).join(' | ')}
 
-  'block-folded-scalar': {
-    number: 35,
-    parameters: ['n'],
-    body: first(
-      ...Object.values(ChompingBehavior).map(t => sequence(
-        str('>'),
-        ref('block-scalar-indicators', { t }),
-        ref('folded-scalar-content', { n: ['n', 1], t }),
-      ))
-    ),
-  },
-} as const satisfies Grammar;
+[35] block-folded-scalar(n) ::=
+  ${Object.values(ChompingBehavior).map(t => `(
+    '>'
+    block-scalar-indicators(${t})
+    folded-scalar-content(n+1,${t})
+  )`).join(' | ')}
+`);
 
 const INTRODUCE_INDENTATION = {
   'block-mapping': {

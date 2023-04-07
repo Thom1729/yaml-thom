@@ -1173,31 +1173,21 @@ s-ns-plain-next-line(n,c) ::=
   nb-ns-plain-in-line(c)
 `);
 
-const INTRODUCE_T = {
-  'c-l+literal': {
-    number: 174,
-    parameters: ['n'],
-    body: first(
-      ...Object.values(ChompingBehavior).map(t => sequence(
-        ref('c-literal'),
-        ref('c-b-block-header', { t }),
-        ref('l-literal-content', { n: ['n', 1], t }),
-      ))
-    ),
-  },
+const INTRODUCE_T = parseGrammar(String.raw`
+[17] c-l+literal(n) ::=
+  ${Object.values(ChompingBehavior).map(t => `(
+    c-literal
+    c-b-block-header(${t})
+    l-literal-content(n+1,${t})
+  )`).join(' | ')}
 
-  'c-l+folded': {
-    number: 174,
-    parameters: ['n'],
-    body: first(
-      ...Object.values(ChompingBehavior).map(t => sequence(
-        ref('c-folded'),
-        ref('c-b-block-header', { t }),
-        ref('l-folded-content', { n: ['n', 1], t }),
-      ))
-    ),
-  },
-} as const satisfies Grammar;
+[174] c-l+folded(n) ::=
+  ${Object.values(ChompingBehavior).map(t => `(
+    c-folded
+    c-b-block-header(${t})
+    l-folded-content(n+1,${t})
+  )`).join(' | ')}
+`);
 
 const INTRODUCE_INDENTATION = {
   'l+block-sequence': {
