@@ -14,7 +14,7 @@ describe(groupNodes, () => {
 
   test('', () => {
     const result = groupNodes(ast.content, {
-      return: ['bar+'],
+      return: { 'bar+': ['bar'] },
     });
 
     expect(result.bar).toEqual([
@@ -25,7 +25,7 @@ describe(groupNodes, () => {
 
   test('', () => {
     const result = groupNodes([ast], {
-      return: ['foo'],
+      return: { foo: ['foo'] },
     });
 
     expect(result.foo).toEqual(node('foo', [
@@ -36,7 +36,7 @@ describe(groupNodes, () => {
 
   test('', () => {
     const result = groupNodes([ast], {
-      return: ['bar*'],
+      return: { 'bar*': ['bar'] },
       ignore: ['foo'],
     });
 
