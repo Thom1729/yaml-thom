@@ -19,6 +19,7 @@ export const ContextType = {
   'FLOW-IN': 'FLOW-IN',
   'FLOW-OUT': 'FLOW-OUT',
   'FLOW-KEY': 'FLOW-KEY',
+  'ANNOTATION-IN': 'ANNOTATION-IN',
 } as const;
 export type ContextType = typeof ContextType[keyof typeof ContextType];
 

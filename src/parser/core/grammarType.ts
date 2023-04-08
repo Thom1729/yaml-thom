@@ -29,7 +29,7 @@ export type GrammarNode<T extends _GrammarNode['type'] = _GrammarNode['type']> =
 
 export type Grammar = {
   [K in string]?: {
-    number?: number | null,
+    number: number | null,
     parameters?: readonly (keyof Parameters)[],
     body: GrammarNode,
   }

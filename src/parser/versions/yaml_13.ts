@@ -6,11 +6,13 @@ import {
   detectIndentation,
 
   type Grammar,
+  context,
 } from '../core/grammarType';
 
 import { ChompingBehavior } from '../core/ast';
 
 import { parseGrammar } from '../core/metaGrammar';
+import { assertNotUndefined, strictEntries } from '@/util';
 
 const GENERATED_BASE = parseGrammar(String.raw`
 [1]
@@ -1412,126 +1414,127 @@ block-collection-node-properties(n,c) ::=
       [ lookahead = comment-line ]
     )
 `);
-// const NO_LOOKBEHIND: Grammar = {
-//   /* 100 */ 'plain-scalar-next-line': sequence(
-//     ref('flow-folded-whitespace', 'n'),
-//     negativeLookahead('forbidden-content'), // TODO
-//     negativeLookahead(str('#')),
-//     ref('plain-scalar-characters', 'c'),
-//     ref('plain-scalar-line-characters', 'c'),
-//   ),
 
-//   /* 101 */ 'plain-scalar-line-characters':
-//     star(sequence(
-//       star('blank-character'),
-//       negativeLookahead(str('#')),
-//       plus(ref('plain-scalar-characters', 'c')),
-//     )),
+const ANNOTATIONS = parseGrammar(String.raw`
+[53]
+flow-content(n,ANNOTATION-IN) ::=
+    flow-yaml-content(n,ANNOTATION-IN)
+  | flow-json-content(n,FLOW-IN)
 
-//   /* 103 */ 'plain-scalar-characters': first(
-//     sequence(
-//       negativeLookahead(charSet(':')),
-//       ref('non-space-plain-scalar-character', 'c'),
-//     ),
-//     sequence(
-//       str(':'),
-//       lookahead(ref('non-space-plain-scalar-character', 'c'))
-//     ),
-//   ),
-// };
+[97]
+flow-plain-scalar(n,ANNOTATION-IN) ::= plain-scalar-multi-line(n,ANNOTATION-IN)
 
-// const ANNOTATION_INDICATORS = new CharSet('(', ')');
+[104]
+non-space-plain-scalar-character(ANNOTATION-IN) ::= annotation-plain-scalar-character
 
-// const ANNOTATIONS = {
-//   'block-collection-node-properties': sequence(
-//     first(ref('annotation-property', 'n', 'c'), 'anchor-property', 'tag-property'),
-//     first(
-//       sequence(
-//         ref('separation-characters', 'n', 'c'),
-//         ref('block-collection-node-properties', 'n', 'c'),
-//       ),
-//       lookahead('comment-line'),
-//     ),
-//   ),
+annotation-plain-scalar-character ::=
+    flow-plain-scalar-character
+  - '('
+  - ')'
 
-//   /* 87 */ 'flow-sequence-context': context('c', {
-//     'FLOW-OUT': ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
-//     'FLOW-IN' : ref('flow-sequence-entries', 'n', { c: 'FLOW-IN' }),
-//     'BLOCK-KEY': ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
-//     'FLOW-KEY' : ref('flow-sequence-entries', 'n', { c: 'FLOW-KEY' }),
-//     'ANNOTATION-IN' : ref('flow-sequence-entries', 'n', { c: 'ANNOTATION-IN' }),
-//   }),
+[102]
+plain-scalar-first-character(ANNOTATION-IN) ::=
+    plain-scalar-first-character(FLOW-IN)
+  - '('
+  - ')'
 
-//   /* 97 */ 'flow-plain-scalar': context('c', {
-//     'FLOW-OUT': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-OUT' }),
-//     'FLOW-IN': ref('plain-scalar-multi-line', 'n', { c: 'FLOW-IN' }),
-//     'BLOCK-KEY': ref('plain-scalar-single-line', { c: 'BLOCK-KEY' }),
-//     'FLOW-KEY': ref('plain-scalar-single-line', { c: 'FLOW-KEY' }),
-//     'ANNOTATION-IN': ref('plain-scalar-multi-line', 'n', { c: 'ANNOTATION-IN' }),
-//   }),
+[122]
+separation-characters(n,ANNOTATION-IN) ::= separation-lines(n)
 
-//   /* 104 */ 'non-space-plain-scalar-character': context('c', {
-//     'FLOW-OUT': 'block-plain-scalar-character',
-//     'FLOW-IN': 'flow-plain-scalar-character',
-//     'BLOCK-KEY': 'block-plain-scalar-character',
-//     'FLOW-KEY': 'flow-plain-scalar-character',
-//     'ANNOTATION-IN': 'annotation-plain-scalar-character',
-//   }),
+##########
 
-//   /* 122 */ 'separation-characters': context('c', {
-//     'BLOCK-OUT': ref('separation-lines', 'n'),
-//     'BLOCK-IN': ref('separation-lines', 'n'),
-//     'FLOW-OUT': ref('separation-lines', 'n'),
-//     'FLOW-IN': ref('separation-lines', 'n'),
-//     'ANNOTATION-IN': ref('separation-lines', 'n'),
-//     'BLOCK-KEY': 'separation-blanks',
-//     'FLOW-KEY': 'separation-blanks',
-//   }),
+annotation-property(n,c) ::=
+  '@'
+  annotation-name
+  annotation-arguments(n,c)?
 
-//   'annotation-plain-scalar-character': NON_SPACE_CHARACTER
-//     .minus(FLOW_COLLECTION_INDICATORS)
-//     .minus(ANNOTATION_INDICATORS),
+annotation-name ::= annotation-character+
 
-//   'node-properties': sequence(
-//     first(ref('annotation-property', 'n', 'c'), 'anchor-property', 'tag-property'),
-//     optional(sequence(
-//       ref('separation-characters', 'n', 'c'),
-//       ref('node-properties', 'n', 'c'),
-//     )),
-//   ),
+annotation-character ::=
+    uri-character
+  - '@'
+  - '('
+  - flow-collection-indicators
 
-//   'annotation-property': sequence(
-//     str('@'),
-//     'annotation-name',
-//     optional(ref('annotation-arguments', 'n', 'c')),
-//   ),
+annotation-arguments(n,c) ::=
+  '('
+  separation-characters(n,c)?
+  flow-sequence-entries(n, ANNOTATION-IN)?
+  ')'
 
-//   'annotation-name': plus(ANCHOR_CHARACTER.minus(new CharSet('(', ')'))),
+##########
 
-//   'annotation-arguments': sequence(
-//     str('('),
-//     optional('separation-characters'),
-//     optional(ref('flow-sequence-context', 'n', { c: 'ANNOTATION-IN' })),
-//     str(')'),
-//   ),
-// } as const satisfies Grammar;
+[138]
+node-properties(n,c) ::=
+  node-property(n,c)
+  (
+    separation-characters(n,c)
+    node-property(n,c)
+  )*
 
-const grammar = {
-  ...GENERATED_BASE,
+block-collection-node-properties(n,c) ::=
+  node-property(n,c)
+  (
+    separation-characters(n,c)
+    node-property(n,c)
+    [ lookahead = comment-line ]
+  )*
+  [ lookahead = comment-line ]
 
-  ...FORBIDDEN_CONTENT,
-  ...INTRODUCE_T,
-  ...INTRODUCE_INDENTATION,
-  ...HANDLE_N_MINUS_1,
+node-property(n,c) ::=
+    anchor-property
+  | tag-property
+  | annotation-property(n,c)
+`);
 
-  ...FLOW_MAPPING_CONTEXT_FIX,
-  ...UNBOUNDED_REPETITION_FIX,
-  ...FLOW_MAPPING_IMPLICIT_ENTRY_FIX,
-  ...BLOCK_SCALAR_INDICATORS_FIX,
-  ...BLOCK_COLLECTION_NODE_PROPERTIES_FIX,
-  // ...NO_LOOKBEHIND,
-  // ...ANNOTATIONS,
-} satisfies Grammar;
+import type { Parameters } from '../core/ast';
+
+function mergeGrammars(first: Grammar, ...rest: Grammar[]) {
+  const ret = { ...first };
+  for (const grammar of rest) {
+    for (const [name, production] of strictEntries(grammar)) {
+      assertNotUndefined(production);
+      const original = ret[name];
+      if (original === undefined) {
+        ret[name] = production;
+      } else {
+        if (production.number !== ret[name]?.number) {
+          throw new Error(`Trying to replace ${name} [${ret[name]?.number}] with [${production.number}]`);
+        }
+
+        const originalCases = original.body.type === 'CONTEXT'
+          ? original.body.cases
+          : [[{} as Parameters, original.body]] as const;
+
+        const newCases = production.body.type === 'CONTEXT'
+          ? production.body.cases
+          : [[{} as Parameters, production.body]] as const;
+
+        ret[name] = {
+          ...production,
+          body: context(...newCases, ...originalCases),
+        };
+      }
+    }
+  }
+  return ret;
+}
+
+const grammar = mergeGrammars(
+  GENERATED_BASE,
+
+  FORBIDDEN_CONTENT,
+  INTRODUCE_T,
+  INTRODUCE_INDENTATION,
+  HANDLE_N_MINUS_1,
+
+  FLOW_MAPPING_CONTEXT_FIX,
+  UNBOUNDED_REPETITION_FIX,
+  FLOW_MAPPING_IMPLICIT_ENTRY_FIX,
+  BLOCK_SCALAR_INDICATORS_FIX,
+  BLOCK_COLLECTION_NODE_PROPERTIES_FIX,
+  ANNOTATIONS,
+) satisfies Grammar;
 
 const nodeClasses = {
   document: ['any-document', 'start-indicator-and-document'],
@@ -1548,6 +1551,9 @@ const nodeClasses = {
   ],
   tagProperty: ['tag-property'],
   anchorProperty: ['anchor-property'],
+  annotationProperty: ['annotation-property'],
+  annotationName: ['annotation-name'],
+  annotationArguments: ['annotation-arguments'],
 
   blockScalarIndentationIndicator: ['block-scalar-indentation-indicator'],
   blockScalarChompingIndicator: ['block-scalar-chomping-indicator'],

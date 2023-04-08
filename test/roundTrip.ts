@@ -20,7 +20,7 @@ logger.indented(() => logger.logCode(inputText));
 import { serialize } from '@/serializer';
 import { parseStream } from '@/parser';
 
-const serializationTree = Array.from(parseStream(inputText))[0];
+const serializationTree = Array.from(parseStream(inputText, { version: '1.3' }))[0];
 
 //////////
 

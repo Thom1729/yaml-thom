@@ -15,20 +15,25 @@ import {
 
 export const grammar = {
   anyChar: {
+    number: null,
     body: charSet([0, 0x10_FFFF]),
   },
   decimalDigit: {
+    number: null,
     body: charSet(['0', '9']),
   },
   hexDigit: {
+    number: null,
     body: charSet(['0', '9'], ['a', 'f'], ['A', 'F']),
   },
 
   productionNameChar: {
+    number: null,
     body: charSet(['a', 'z'], ['0', '9']),
   },
 
   comment: {
+    number: null,
     body: sequence(
       str('#'),
       star(minus(ref('anyChar'), str('\n'))),
@@ -37,6 +42,7 @@ export const grammar = {
   },
 
   space: {
+    number: null,
     body: plus(first(
       ref('comment'),
       sequence(
@@ -53,6 +59,7 @@ export const grammar = {
   },
 
   hexChar: {
+    number: null,
     body: sequence(
       str('x'),
       plus(ref('hexDigit')),
@@ -60,6 +67,7 @@ export const grammar = {
   },
 
   charRange: {
+    number: null,
     body: sequence(
       str('['),
       ref('hexChar'),
@@ -70,6 +78,7 @@ export const grammar = {
   },
 
   string: {
+    number: null,
     body: first(
       sequence(str('\''), star(minus(ref('anyChar'), str('\''))), str('\'')),
       sequence(str('"'), star(minus(ref('anyChar'), str('"'))), str('"')),
@@ -77,6 +86,7 @@ export const grammar = {
   },
 
   productionName: {
+    number: null,
     body: sequence(
       plus(ref('productionNameChar')),
       star(sequence(
@@ -87,6 +97,7 @@ export const grammar = {
   },
 
   productionParameters: {
+    number: null,
     body: sequence(
       str('('),
       optional(ref('space')),
@@ -104,6 +115,7 @@ export const grammar = {
   },
 
   parameter: {
+    number: null,
     body: first(
       str('in-flow(c)'),
       plus(minus(ref('anyChar'), str(')'), str(','))),
@@ -111,6 +123,7 @@ export const grammar = {
   },
 
   productionRef: {
+    number: null,
     body: sequence(
       ref('productionName'),
       optional(ref('productionParameters')),
@@ -118,6 +131,7 @@ export const grammar = {
   },
 
   grammar: {
+    number: null,
     body: sequence(
       optional(ref('space')),
       ref('production'),
@@ -130,6 +144,7 @@ export const grammar = {
   },
 
   production: {
+    number: null,
     body: sequence(
       optional(sequence(
         ref('productionNumber'),
@@ -145,6 +160,7 @@ export const grammar = {
   },
 
   productionNumber: {
+    number: null,
     body: sequence(
       str('['),
       plus(ref('decimalDigit')),
@@ -153,6 +169,7 @@ export const grammar = {
   },
 
   alternation: {
+    number: null,
     body: sequence(
       ref('sequence'),
       star(sequence(
@@ -165,6 +182,7 @@ export const grammar = {
   },
 
   sequence: {
+    number: null,
     body: sequence(
       ref('minus'),
       star(sequence(
@@ -175,6 +193,7 @@ export const grammar = {
   },
 
   minus: {
+    number: null,
     body: sequence(
       ref('quantified'),
       star(sequence(
@@ -187,6 +206,7 @@ export const grammar = {
   },
 
   quantified: {
+    number: null,
     body: sequence(
       ref('atom'),
       star(ref('quantifier')),
@@ -194,6 +214,7 @@ export const grammar = {
   },
 
   quantifier: {
+    number: null,
     body: first(
       str('?'),
       str('*'),
@@ -203,6 +224,7 @@ export const grammar = {
   },
 
   atom: {
+    number: null,
     body: first(
       ref('hexChar'),
       ref('charRange'),
@@ -215,6 +237,7 @@ export const grammar = {
   },
 
   special: {
+    number: null,
     body: sequence(
       str('<'),
       ref('productionName'),
@@ -223,6 +246,7 @@ export const grammar = {
   },
 
   parenthesized: {
+    number: null,
     body: sequence(
       str('('),
       optional(ref('space')),
@@ -233,6 +257,7 @@ export const grammar = {
   },
 
   lookaround: {
+    number: null,
     body: sequence(
       str('['),
       ref('space'),
@@ -247,9 +272,11 @@ export const grammar = {
   },
 
   lookaroundType: {
+    number: null,
     body: first(str('lookahead'), str('lookbehind')),
   },
   lookaroundOperator: {
+    number: null,
     body: first(str('='), str('≠')),
   },
 } as const satisfies Grammar;

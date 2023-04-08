@@ -40,6 +40,7 @@ const CONTENT_CLASS_NAMES = [
 const NODE_PROPERTY_CLASS_NAMES = [
   'anchorProperty',
   'tagProperty',
+  'annotationProperty',
 ] as const;
 
 type ContentNodeClass = (typeof CONTENT_CLASS_NAMES)[number];
@@ -54,7 +55,9 @@ type NodeClass =
 | 'blockScalarChompingIndicator'
 | 'blockScalarContent'
 | 'mappingEntry'
-| 'ignore';
+| 'ignore'
+| 'annotationName'
+| 'annotationArguments';
 
 export type NodeClasses = Record<NodeClass, readonly string[]>;
 
@@ -174,16 +177,55 @@ export class AstToSerializationTree {
   }
 
   buildNode(text: string, body: AstNode, tagHandles: Map<string, string>): SerializationNode {
+    const { contentNode, nodeProperty } = this.groupNodes([body], ['contentNode', 'nodeProperty*'], text);
+
+    const { tag, anchor, annotations } = this.handleNodeProperties(text, nodeProperty, tagHandles);
+
+    let node = this.buildContent(text, contentNode, tagHandles, tag, anchor);
+
+    for (const { annotationName, annotationArguments, anchor } of annotations) {
+      const args = annotationArguments
+        ? this.iterateAst(annotationArguments.content, 'nodeWithProperties')
+          .map(arg => this.buildNode(text, arg, tagHandles))
+        : [];
+
+      node = new SerializationMapping('tag:yaml.org,2002:annotation', [
+        [
+          new SerializationScalar('tag:yaml.org,2002:str', 'name'),
+          new SerializationScalar('tag:yaml.org,2002:str', annotationName),
+        ],
+        [
+          new SerializationScalar('tag:yaml.org,2002:str', 'arguments'),
+          new SerializationSequence('tag:yaml.org,2002:seq', args),
+        ],
+        [
+          new SerializationScalar('tag:yaml.org,2002:str', 'content'),
+          node,
+        ],
+      ], anchor);
+    }
+
+    return node;
+  }
+
+  handleNodeProperties(
+    text: string,
+    nodeProperties: readonly AstNode[],
+    tagHandles: Map<string, string>,
+  ) {
     function nodeText(node: AstNode) {
       return text.slice(...node.range);
     }
 
-    const { contentNode, nodeProperty } = this.groupNodes([body], ['contentNode', 'nodeProperty*'], text);
+    let tag: SerializationTag | null = null;
+    let anchor: string | null = null;
+    const annotations: {
+      annotationName: string,
+      annotationArguments: AstNode | null,
+      anchor: string | null,
+    }[] = [];
 
-    let tag = null;
-    let anchor = null;
-
-    for (const property of (nodeProperty as AstNode[])) {
+    for (const property of (nodeProperties as AstNode[])) {
       const nodeClass = this.classForPropertyNode[property.name];
       if (nodeClass === 'tagProperty') {
         if (tag !== null) throw new Error(`multiple tag properties`);
@@ -191,12 +233,17 @@ export class AstToSerializationTree {
       } else if (nodeClass === 'anchorProperty') {
         if (anchor !== null) throw new Error(`multiple anchor properties`);
         anchor = nodeText(property).slice(1);
+      } else if (nodeClass === 'annotationProperty') {
+        if (tag !== null) throw new Error(`tag property before annotation property`);
+        const stuff = this.groupNodes(property.content, ['annotationName%', 'annotationArguments?'], text);
+        annotations.unshift({ ...stuff, anchor });
+        anchor = null;
       } else {
         throw new TypeError(property.name);
       }
     }
 
-    return this.buildContent(text, contentNode, tagHandles, tag, anchor);
+    return { tag, anchor, annotations } as const;
   }
 
   buildContent(

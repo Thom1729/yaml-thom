@@ -11,14 +11,40 @@ import { EventEmitter } from '@/util/EventEmitter';
 
 type ParseResult = readonly [readonly AstNode[], number] | null;
 
+interface GrammarErrorArgs {
+  node: GrammarNode;
+  stack: readonly ParseStackEntry[];
+  parameters: object;
+  cause: unknown;
+}
+
+function formatRef(name: string, parameters: Parameters) {
+  let ret = name;
+  const parameterEntries = strictEntries(parameters);
+  if (parameterEntries.length) {
+    ret += '(' + parameterEntries.map(([name, value]) => `${name}: ${value}`).join(', ') + ')';
+  }
+  return ret;
+}
+
 class GrammarError extends Error {
   node: GrammarNode;
+  parserStack: readonly ParseStackEntry[];
+  parameters: object;
 
-  constructor(node: GrammarNode, ...args: ConstructorParameters<ErrorConstructor>) {
-    super(...args);
+  constructor({ node, stack, parameters, cause }: GrammarErrorArgs) {
+    const stackString = stack.map(entry => formatRef(entry.node.name, entry.parameters)).join('\n');
+    super(`Failed to parse ${node.type} node in ${stack[stack.length - 1].node.name} at:\n${stackString}`, { cause });
     Object.setPrototypeOf(this, GrammarError.prototype);
     this.node = node;
+    this.parserStack = stack;
+    this.parameters = parameters;
   }
+}
+
+interface ParseStackEntry {
+  node: GrammarNode<'REF'>,
+  parameters: Parameters,
 }
 
 export class ParseOperation extends EventEmitter<{
@@ -31,7 +57,7 @@ export class ParseOperation extends EventEmitter<{
 
   readonly backtrackCache = new Set<string>();
 
-  readonly stack: string[] = [];
+  readonly stack: ParseStackEntry[] = [];
 
   constructor(grammar: Grammar, text: string) {
     super();
@@ -63,48 +89,61 @@ export class ParseOperation extends EventEmitter<{
     parameters: Parameters,
     node: GrammarNode,
   ): ParseResult {
-    if (node.type === 'EMPTY') {
-      return [[], index];
-    } else if (node.type === 'START_OF_LINE') {
-      if (index === 0 || this.text[index - 1] === '\r' || this.text[index - 1] === '\n') {
+    try {
+      if (node.type === 'EMPTY') {
         return [[], index];
-      } else {
-        return null;
+      } else if (node.type === 'START_OF_LINE') {
+        if (index === 0 || this.text[index - 1] === '\r' || this.text[index - 1] === '\n') {
+          return [[], index];
+        } else {
+          return null;
+        }
+      } else if (node.type === 'END_OF_INPUT') {
+        if (index === this.text.length) {
+          return [[], index];
+        } else {
+          return null;
+        }
+      } else if (node.type === 'STRING') {
+        const j = index + node.string.length;
+        if (this.text.slice(index, j) === node.string) {
+          return [[], j];
+        } else {
+          return null;
+        }
+      } else if (node.type === 'CHAR_SET') {
+        return this.parseCharSet(index, node.ranges);
+      } else if (node.type === 'REF') {
+        return this.parseRef(index, parameters, node);
+      } else if (node.type === 'SEQUENCE') {
+        return this.parseSequence(index, parameters, node.children);
+      } else if (node.type === 'FIRST') {
+        return this.parseFirst(index, parameters, node.children);
+      } else if (node.type === 'REPEAT') {
+        return this.parseRepeat(index, parameters, node.child, node.min, node.max);
+      } else if (node.type === 'LOOKAHEAD') {
+        return this.parseLookahead(index, parameters, node.child, node.positive);
+      } else if (node.type === 'LOOKBEHIND') {
+        return this.parseLookbehind(index, parameters, node.child);
+      } else if (node.type === 'DETECT_INDENTATION') {
+        return this.parseDetectIndentation(index, parameters, node);
+      } else if (node.type === 'CONTEXT') {
+        return this.parseContext(index, parameters, node);
       }
-    } else if (node.type === 'END_OF_INPUT') {
-      if (index === this.text.length) {
-        return [[], index];
-      } else {
-        return null;
-      }
-    } else if (node.type === 'STRING') {
-      const j = index + node.string.length;
-      if (this.text.slice(index, j) === node.string) {
-        return [[], j];
-      } else {
-        return null;
-      }
-    } else if (node.type === 'CHAR_SET') {
-      return this.parseCharSet(index, node.ranges);
-    } else if (node.type === 'REF') {
-      return this.parseRef(index, parameters, node);
-    } else if (node.type === 'SEQUENCE') {
-      return this.parseSequence(index, parameters, node.children);
-    } else if (node.type === 'FIRST') {
-      return this.parseFirst(index, parameters, node.children);
-    } else if (node.type === 'REPEAT') {
-      return this.parseRepeat(index, parameters, node.child, node.min, node.max);
-    } else if (node.type === 'LOOKAHEAD') {
-      return this.parseLookahead(index, parameters, node.child, node.positive);
-    } else if (node.type === 'LOOKBEHIND') {
-      return this.parseLookbehind(index, parameters, node.child);
-    } else if (node.type === 'DETECT_INDENTATION') {
-      return this.parseDetectIndentation(index, parameters, node);
-    } else if (node.type === 'CONTEXT') {
-      return this.parseContext(index, parameters, node);
-    }
 
-    throw new TypeError(node);
+      throw new TypeError(node);
+    } catch (e) {
+      if (e instanceof GrammarError) {
+        throw e;
+      } else {
+        throw new GrammarError({
+          node,
+          stack: this.stack,
+          parameters,
+          cause: e,
+        });
+      }
+    }
   }
 
   parseCharSet(
@@ -129,56 +168,50 @@ export class ParseOperation extends EventEmitter<{
     parameters: Parameters,
     node: GrammarNode<'REF'>,
   ) {
-    this.stack.push(node.name);
-
     const getParameter = safeGetter(parameters);
 
-    try {
-      const newParameters = strictFromEntries(strictEntries(node.parameters).map(([p, given]) => {
-        try {
-          return [p, resolveParameter(given, getParameter)];
-        } catch (e) {
-          throw new GrammarError(node, `${e instanceof Error ? e.message : 'NotAnError'}: ${this.stack.join(', ')}`);
-        }
-      })) as Parameters;
+    const newParameters = strictFromEntries(
+      strictEntries(node.parameters).map(([p, given]) => [p, resolveParameter(given, getParameter)])
+    ) as Parameters;
 
-      const params = [newParameters.n, newParameters.c, newParameters.t].filter(p => p !== undefined);
-      const displayName = node.name + (params.length ? `(${params.join(',')})` : '');
+    this.stack.push({ node, parameters: newParameters });
 
-      const backtrackCacheKey = `${index}:${displayName}`;
-      if (this.backtrackCache.has(backtrackCacheKey)) {
-        return null;
-      }
+    const params = [newParameters.n, newParameters.c, newParameters.t].filter(p => p !== undefined);
+    const displayName = node.name + (params.length ? `(${params.join(',')})` : '');
 
-      const production = this.grammar[node.name];
-      if (production === undefined) {
-        console.error(`Stack: ${this.stack.slice().reverse().join(' ')}`);
-        throw new TypeError(`No production ${node.name}`);
-      }
-
-      this.emit('node.in', { displayName, index });
-
-      const result = this.parse(index, newParameters, production.body);
-
-      this.emit('node.out', { displayName, index, result });
-
-      if (result) {
-        const [content, j] = result;
-        return [
-          [{
-            name: node.name,
-            parameters: newParameters,
-            content,
-            range: [index, j],
-          }],
-          j,
-        ] as const;
-      } else {
-        this.backtrackCache.add(backtrackCacheKey);
-        return null;
-      }
-    } finally {
+    const backtrackCacheKey = `${index}:${displayName}`;
+    if (this.backtrackCache.has(backtrackCacheKey)) {
       this.stack.pop();
+      return null;
+    }
+
+    const production = this.grammar[node.name];
+    if (production === undefined) {
+      throw new Error(`No production ${node.name}`);
+    }
+
+    this.emit('node.in', { displayName, index });
+
+    const result = this.parse(index, newParameters, production.body);
+
+    this.emit('node.out', { displayName, index, result });
+
+    if (result) {
+      const [content, j] = result;
+      this.stack.pop();
+      return [
+        [{
+          name: node.name,
+          parameters: newParameters,
+          content,
+          range: [index, j],
+        }],
+        j,
+      ] as const;
+    } else {
+      this.backtrackCache.add(backtrackCacheKey);
+      this.stack.pop();
+      return null;
     }
   }
 
@@ -292,7 +325,7 @@ export class ParseOperation extends EventEmitter<{
     let minValue;
     if (typeof min === 'function') {
       const n = parameters.n;
-      if (n === undefined) throw new GrammarError(node, `n not defined`);
+      if (n === undefined) throw new Error(`n not defined`);
       minValue = min(n);
     } else {
       minValue = min;
@@ -318,14 +351,14 @@ export class ParseOperation extends EventEmitter<{
         return this.parse(index, parameters, child);
       }
     }
-    throw new GrammarError(node, `Unhandled case`);
+    throw new Error(`Unhandled case`);
   }
 }
 
 function safeGetter<T extends object>(obj: T) {
   return function <K extends string & keyof T>(parameterName: K) {
     const value = obj[parameterName];
-    assertNotUndefined(value, parameterName);
+    assertNotUndefined(value, `Parameter ${parameterName} is undefined`);
     return value as Required<T>[K];
   };
 }

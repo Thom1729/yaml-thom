@@ -6,7 +6,11 @@ import type { Grammar } from '../grammarType';
 import { ParseOperation } from '../parser';
 
 export function parseGrammar(text: string): Grammar {
-  const ast = new ParseOperation(grammar, text).parseAll('grammar');
+  try {
+    const ast = new ParseOperation(grammar, text).parseAll('grammar');
 
-  return astToGrammar(ast, text) as Grammar;
+    return astToGrammar(ast, text);
+  } catch (e) {
+    throw new Error(`Failed to parse grammar`, { cause: e });
+  }
 }

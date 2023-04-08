@@ -1323,7 +1323,6 @@ const grammar = {
   ...INTRODUCE_INDENTATION,
   ...HANDLE_N_MINUS_1,
 
-  // ...FLOW_MAPPING_CONTEXT_FIX,
   ...UNBOUNDED_REPETITION_FIX,
   ...FLOW_MAPPING_IMPLICIT_ENTRY_FIX,
   ...BLOCK_SCALAR_INDICATORS_FIX,
@@ -1348,6 +1347,9 @@ const nodeClasses = {
   ],
   tagProperty: ['c-ns-tag-property'],
   anchorProperty: ['c-ns-anchor-property'],
+  annotationProperty: [],
+  annotationName: [],
+  annotationArguments: [],
 
   blockScalarFoldingIndicator: ['c-literal', 'c-folded'],
   blockScalarIndentationIndicator: ['c-indentation-indicator'],

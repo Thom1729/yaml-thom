@@ -22,6 +22,7 @@ import {
   endOfInput,
   charSet,
 
+  type Grammar,
   type GrammarNode,
   context,
 } from '../grammarType';
@@ -30,7 +31,7 @@ import { ContextType, ChompingBehavior } from '@/parser/core/ast';
 
 ////
 
-export function astToGrammar(ast: AstNode, text: string) {
+export function astToGrammar(ast: AstNode, text: string): Grammar {
   const foo = ast.content
     .filter(node => node.name === 'production')
     .map(productionNode => {
@@ -95,7 +96,7 @@ export function astToGrammar(ast: AstNode, text: string) {
 
 function valueToParam(p: string) {
   if (p === 'n' || p === 'c' || p === 't' || p === 'n+1') {
-    return [p, undefined] as const;
+    return [p as 'n' | 'c' | 't', undefined] as const;
   } else if (isKeyOf(p, ContextType)) {
     return ['c', p] as const;
   } else if (isKeyOf(p, ChompingBehavior)) {
@@ -222,27 +223,29 @@ function parseBody(body: AstNode, text: string) {
 
         const parameterFunctions = strictFromEntries(
           parameters.map((paramString) => {
-            switch (paramString) {
-              case '0': return [ 'n', 0 ];
-              case '1': return [ 'n', 1 ];
-              case '-1': return [ 'n', -1 ];
-              case 'n': return [ 'n', 'n' ];
-              case 'n+1': return [ 'n', ['n', 1] ];
-              case 'n-1': return [ 'n', ['n', -1] ];
-              case 'm': return [ 'n', 'm' ];
-              case 'n+m': return [ 'n', ['n', 'm'] ];
-              case 'n+1+m': return [ 'n', ['n', 'm', 1] ];
+            if (isKeyOf(paramString, ContextType)) {
+              return [ 'c', paramString ];
+            } else if (isKeyOf(paramString, ChompingBehavior)) {
+              return [ 't', paramString ];
+            } else {
+              switch (paramString) {
+                case '0': return [ 'n', 0 ];
+                case '1': return [ 'n', 1 ];
+                case '-1': return [ 'n', -1 ];
+                case 'n': return [ 'n', 'n' ];
+                case 'n+1': return [ 'n', ['n', 1] ];
+                case 'n-1': return [ 'n', ['n', -1] ];
+                case 'm': return [ 'n', 'm' ];
+                case 'n+m': return [ 'n', ['n', 'm'] ];
+                case 'n+1+m': return [ 'n', ['n', 'm', 1] ];
 
-              case 'c': return [ 'c', 'c' ];
-              case 'BLOCK-IN': case 'BLOCK-OUT': case 'BLOCK-KEY':
-              case 'FLOW-IN': case 'FLOW-OUT': case 'FLOW-KEY':
-                return [ 'c', paramString ];
-              case 'in-flow(c)': return [ 'c', 'in-flow(c)'];
+                case 'c': return [ 'c', 'c' ];
+                case 'in-flow(c)': return [ 'c', 'in-flow(c)'];
 
-              case 't': return [ 't', 't' ];
-              case 'STRIP': case 'KEEP': case 'CLIP': return [ 't', paramString ];
+                case 't': return [ 't', 't' ];
 
-              default: throw new Error(`Unknown parameter ${paramString}`);
+                default: throw new Error(`Unknown parameter ${paramString}`);
+              }
             }
           })
         );
