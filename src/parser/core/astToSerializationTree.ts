@@ -183,7 +183,7 @@ export class AstToSerializationTree {
     let tag = null;
     let anchor = null;
 
-    for (const property of (nodeProperty as AstNode[]).reverse()) {
+    for (const property of (nodeProperty as AstNode[])) {
       const nodeClass = this.classForPropertyNode[property.name];
       if (nodeClass === 'tagProperty') {
         if (tag !== null) throw new Error(`multiple tag properties`);
