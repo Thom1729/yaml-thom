@@ -1416,32 +1416,7 @@ block-collection-node-properties(n,c) ::=
 `);
 
 const ANNOTATIONS = parseGrammar(String.raw`
-[53]
-flow-content(n,ANNOTATION-IN) ::=
-    flow-yaml-content(n,ANNOTATION-IN)
-  | flow-json-content(n,FLOW-IN)
-
-[97]
-flow-plain-scalar(n,ANNOTATION-IN) ::= plain-scalar-multi-line(n,ANNOTATION-IN)
-
-[104]
-non-space-plain-scalar-character(ANNOTATION-IN) ::= annotation-plain-scalar-character
-
-annotation-plain-scalar-character ::=
-    flow-plain-scalar-character
-  - '('
-  - ')'
-
-[102]
-plain-scalar-first-character(ANNOTATION-IN) ::=
-    plain-scalar-first-character(FLOW-IN)
-  - '('
-  - ')'
-
-[122]
-separation-characters(n,ANNOTATION-IN) ::= separation-lines(n)
-
-##########
+######## The annotation syntax itself
 
 annotation-property(n,c) ::=
   '@'
@@ -1452,9 +1427,10 @@ annotation-name ::= annotation-character+
 
 annotation-character ::=
     uri-character
+  - flow-collection-indicators
   - '@'
   - '('
-  - flow-collection-indicators
+  - ')'
 
 annotation-arguments(n,c) ::=
   '('
@@ -1462,7 +1438,7 @@ annotation-arguments(n,c) ::=
   flow-sequence-entries(n, ANNOTATION-IN)?
   ')'
 
-##########
+######## Simplifying node properties and adding annotations
 
 [138]
 node-properties(n,c) ::=
@@ -1485,6 +1461,31 @@ node-property(n,c) ::=
     anchor-property
   | tag-property
   | annotation-property(n,c)
+
+######## Plain scalars at the top level of args can't contain parens
+
+[53]
+flow-content(n,ANNOTATION-IN) ::=
+    flow-yaml-content(n,ANNOTATION-IN)
+  | flow-json-content(n,FLOW-IN)
+
+[97]
+flow-plain-scalar(n,ANNOTATION-IN) ::= plain-scalar-multi-line(n,ANNOTATION-IN)
+
+[102]
+plain-scalar-first-character(ANNOTATION-IN) ::=
+    plain-scalar-first-character(FLOW-IN)
+  - '('
+  - ')'
+
+[104]
+non-space-plain-scalar-character(ANNOTATION-IN) ::=
+    flow-plain-scalar-character
+  - '('
+  - ')'
+
+[122]
+separation-characters(n,ANNOTATION-IN) ::= separation-lines(n)
 `);
 
 import type { Parameters } from '../core/ast';
