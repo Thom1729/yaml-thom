@@ -1,0 +1,4 @@
+context:
+  foo: Hello, World!
+input: @var( default: 42, x: 1 ) foo
+expected: Hello, World!

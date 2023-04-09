@@ -3,8 +3,9 @@ import type { SerializationNode as Node }  from '@/nodes';
 import chalk from 'chalk';
 
 class PrettyPrinter {
-  write(string: string) {
-    process.stdout.write(string);
+  write: (string: string) => void;
+  constructor(write: (string: string) => void) {
+    this.write = write;
   }
 
   line(level: number) {
@@ -27,14 +28,14 @@ class PrettyPrinter {
       return;
     }
 
-    if (node.anchor !== undefined) {
+    if (node.anchor !== null) {
       this.write(chalk.magenta('&' + node.anchor));
       this.write(' ');
     }
 
     this.write(chalk.yellow(node.kind));
 
-    if (node.tag !== undefined) {
+    if (node.tag !== null) {
       this.write(chalk.gray('<'));
       if (typeof node.tag === 'symbol') {
         this.write(chalk.cyan(node.tag.description));
@@ -71,6 +72,6 @@ class PrettyPrinter {
   }
 }
 
-export function prettyPrint(node: Node, level: number = 0) {
-  new PrettyPrinter().prettyPrint(node, level, new Map());
+export function prettyPrint(write: (string: string) => void, node: Node, level: number = 0) {
+  new PrettyPrinter(write).prettyPrint(node, level, new Map());
 }

@@ -7,6 +7,7 @@ if (testName === undefined) {
   process.exit(1);
 }
 
+import { prettyPrint } from './prettyPrint';
 import { Logger } from './logger';
 const logger = new Logger(process.stdout);
 
@@ -32,9 +33,5 @@ const representationGraph = compose(serializationTree);
 
 const serialized = serialize(representationGraph);
 
-import { present } from '@/presenter';
-
-const result = present(serialized);
-
 logger.log('\nPresented:');
-logger.indented(() => logger.logCode(result));
+prettyPrint(logger.write.bind(logger), serialized);

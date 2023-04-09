@@ -199,7 +199,7 @@ export class AstToSerializationTree {
           new SerializationSequence('tag:yaml.org,2002:seq', args),
         ],
         [
-          new SerializationScalar('tag:yaml.org,2002:str', 'content'),
+          new SerializationScalar('tag:yaml.org,2002:str', 'value'),
           node,
         ],
       ], anchor);

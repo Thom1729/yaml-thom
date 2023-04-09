@@ -2,6 +2,13 @@ import { inspect } from 'util';
 import { repeat } from '@/util';
 import chalk from 'chalk';
 
+const INVISIBLES = {
+  ' ': '·',
+  '\n': '↵',
+};
+
+const INVISIBLES_EXPR = new RegExp(String.raw`(?:${Object.keys(INVISIBLES).join('|')})`, 'gu');
+
 export class Logger {
   stream: NodeJS.WriteStream;
 
@@ -18,7 +25,7 @@ export class Logger {
 
     const indentation = repeat(this.level, this.indent);
     if (this.bol) this.stream.write(indentation);
-    this.stream.write(s.replace(/\n(?!$)/g, '\n' + indentation));
+    this.stream.write(s.replace(/\n(?!$)/gm, '\n' + indentation));
     this.bol = s.endsWith('\n');
   }
 
@@ -29,10 +36,9 @@ export class Logger {
   logCode(code: string) {
     for (const line of code.split(/^/gm)) {
       const replaced = line
-        .replace(/ /g, '␣')
-        .replace(/\n|$/, s => s.length ? '↵' : '∎')
+        .replace(INVISIBLES_EXPR, c => chalk.dim(INVISIBLES[c as keyof typeof INVISIBLES]))
       ;
-      this.write(chalk.green(replaced + '\n'));
+      this.write(chalk.green(replaced + (line.endsWith('\n') ? '' : '∎') + '\n'));
     }
   }
 

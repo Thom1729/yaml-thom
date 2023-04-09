@@ -1,0 +1,6 @@
+input: @let( a: 1, b: 2, b: 3 )
+- @var a
+- @var b
+expected:
+- 1
+- 3
