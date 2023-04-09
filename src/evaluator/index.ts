@@ -5,9 +5,23 @@ import {
   RepresentationSequence,
 } from '@/nodes';
 
-import { isStr, isSeq, isMap, isAnnotation } from './helpers';
+import { isStr, isSeq, isAnnotation } from './helpers';
 
-function getAnnotationInfo(annotation: RepresentationMapping) {
+import STDLIB from './stdlib';
+
+interface Annotation {
+  name: string,
+  value: RepresentationNode,
+  arguments: readonly RepresentationNode[],
+}
+
+export type AnnotationFunction = (
+  annotation: Annotation,
+  context: RepresentationMapping,
+  evaluate: (node: RepresentationNode, context: RepresentationMapping) => RepresentationNode,
+) => RepresentationNode;
+
+function getAnnotationInfo(annotation: RepresentationMapping): Annotation {
   let name = null, annotated = null, args = null;
 
   for (const [key, value] of annotation) {
@@ -41,14 +55,14 @@ export function evaluate(
   context: RepresentationMapping,
 ): RepresentationNode {
   if (isAnnotation(node)) {
-    const { name, value, arguments: args } = getAnnotationInfo(node);
+    const annotation = getAnnotationInfo(node);
 
-    const f = ANNOTATION_FUNCTIONS[name];
+    const f = STDLIB[annotation.name];
     if (f === undefined) {
-      throw new TypeError(`Unknown annotation ${name}`);
+      throw new TypeError(`Unknown annotation ${annotation.name}`);
     }
 
-    return f(value, args, context);
+    return f(annotation, context, evaluate);
   }
 
   // TODO: keep track of evaluated nodes
@@ -71,30 +85,3 @@ export function evaluate(
     );
   }
 }
-
-type AnnotationFunction = (
-  node: RepresentationNode,
-  args: RepresentationNode[],
-  context: RepresentationMapping,
-) => RepresentationNode;
-
-const ANNOTATION_FUNCTIONS: Partial<Record<string, AnnotationFunction>> = {
-  var(node, args, context) {
-    const result = context.get(evaluate(node, context));
-    if (result === null) throw new TypeError(`No var ${node.content}`);
-    return result;
-  },
-
-  let(node, args, context) {
-    let c = context;
-    for (const arg of args) {
-      if (!isMap(arg)) throw new TypeError('let args should be maps');
-      if (arg.size !== 1) throw new TypeError(`let arg had ${arg.size} keys`);
-
-      const [[keyNode, valueNode]] = arg;
-
-      c = c.merge([[evaluate(keyNode, c), evaluate(valueNode, c)]]);
-    }
-    return evaluate(node, c);
-  },
-};

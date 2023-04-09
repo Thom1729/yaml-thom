@@ -28,7 +28,7 @@ function loadAnnotationTest(name: string) {
     if (!isMap(testProperties.context)) throw new TypeError(`context must be map`);
     context = testProperties.context;
   } else {
-    context = new RepresentationMapping('', []);
+    context = new RepresentationMapping('tag:yaml.org,2002:map', []);
   }
 
   return {
