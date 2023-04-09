@@ -5,7 +5,7 @@ import {
   RepresentationSequence,
 } from '@/nodes';
 
-import { isStr, isSeq, isAnnotation } from './helpers';
+import { assertStr, assertSeq, isAnnotation } from './helpers';
 
 import STDLIB from './stdlib';
 
@@ -25,15 +25,15 @@ function getAnnotationInfo(annotation: RepresentationMapping): Annotation {
   let name = null, annotated = null, args = null;
 
   for (const [key, value] of annotation) {
-    if (!isStr(key)) throw new TypeError(`Expected str, got ${key.kind}<${key.tag}>`);
+    assertStr(key, `Expected str, got ${key.kind}<${key.tag}>`);
 
     if (key.content === 'name') {
-      if (!isStr(value)) throw new TypeError(`Expected str, got ${value.kind}<${value.tag}>`);
+      assertStr(value, `Expected str, got ${value.kind}<${value.tag}>`);
       name = value.content;
     } else if (key.content === 'value') {
       annotated = value;
     } else if (key.content === 'arguments') {
-      if (!isSeq(value)) throw new TypeError(`Expected args to be seq`);
+      assertSeq(value, `Expected args to be seq`);
       args = value.content;
     } else {
       throw new TypeError(`Unexpected key ${key.content}`);

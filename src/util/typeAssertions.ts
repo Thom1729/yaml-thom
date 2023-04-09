@@ -1,7 +1,10 @@
-export function assertionFunction<U>(
-  predicate: (value: unknown) => value is U,
+export function assertionFunction<V, U extends V>(
+  predicate: (value: V) => value is U,
 ) {
-  return <T>(value: T, message?: string): asserts value is T & U => {
+  // return <T extends V>(value: T, message?: string): asserts value is T & U => {
+  //   if (!predicate(value)) throw new TypeError(message);
+  // };
+  return (value: V, message?: string): asserts value is U => {
     if (!predicate(value)) throw new TypeError(message);
   };
 }
@@ -11,6 +14,14 @@ export function isString(value: unknown): value is string {
 }
 
 export const assertString = assertionFunction(isString);
+
+export function isNotNull<T>(value: T): value is Exclude<T, null> {
+  return value === null;
+}
+
+export function assertNotNull<T>(value: T, message?: string): asserts value is Exclude<T, null> {
+  if (value === null) throw new TypeError(message);
+}
 
 export const isArray = Array.isArray as (arg: unknown) => arg is ReadonlyArray<unknown> | Array<unknown>;
 
