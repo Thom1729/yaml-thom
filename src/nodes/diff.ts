@@ -24,42 +24,42 @@ export interface Difference {
 }
 
 export function *diffSerializations(
-  a: SerializationNode,
-  b: SerializationNode,
+  expected: SerializationNode,
+  actual: SerializationNode,
   path: PathEntry[] = [],
 ): Generator<Difference> {
   function difference(message: string) {
-    return { path, expected: a, actual: b, message };
+    return { path, expected, actual, message };
   }
 
-  if (a.kind !== b.kind) {
+  if (expected.kind !== actual.kind) {
     yield difference('KIND');
-  } else if (a.kind === 'alias') {
-    if (a.alias !== (b as Alias).alias) yield difference('ALIAS');
+  } else if (expected.kind === 'alias') {
+    if (expected.alias !== (actual as Alias).alias) yield difference('ALIAS');
   } else {
-    if (a.tag !== (b as SerializationValueNode).tag) {
+    if (expected.tag !== (actual as SerializationValueNode).tag) {
       yield difference('TAG');
-    } if (a.anchor !== (b as SerializationValueNode).anchor) {
+    } if (expected.anchor !== (actual as SerializationValueNode).anchor) {
       yield difference('ANCHOR');
-    } else if (a.kind === 'scalar') {
-      if (a.content !== (b as SerializationScalar).content) yield difference('CONTENT');
-    } else if (a.kind === 'sequence') {
-      if (a.size !== (b as SerializationSequence).size) {
+    } else if (expected.kind === 'scalar') {
+      if (expected.content !== (actual as SerializationScalar).content) yield difference('CONTENT');
+    } else if (expected.kind === 'sequence') {
+      if (expected.size !== (actual as SerializationSequence).size) {
         yield difference('SIZE');
       } else {
         let i = 0;
-        for (const [aChild, bChild] of zip(a, b as SerializationSequence)) {
-          yield* diffSerializations(aChild, bChild, [...path, i]);
+        for (const [expectedChild, actualChild] of zip(expected, actual as SerializationSequence)) {
+          yield* diffSerializations(expectedChild, actualChild, [...path, i]);
           i++;
         }
       }
     } else {
-      if (a.size !== (b as SerializationMapping).size) {
+      if (expected.size !== (actual as SerializationMapping).size) {
         yield difference('SIZE');
       } else {
-        for (const [[aKey, aValue], [bKey, bValue]] of zip(a, (b as SerializationMapping))) {
-          yield* diffSerializations(aKey, bKey, [...path, null]);
-          yield* diffSerializations(aValue, bValue, [...path, aKey]);
+        for (const [[expectedKey, actualKey], [bKey, bValue]] of zip(expected, (actual as SerializationMapping))) {
+          yield* diffSerializations(expectedKey, bKey, [...path, null]);
+          yield* diffSerializations(actualKey, bValue, [...path, expectedKey]);
         }
       }
     }

@@ -21,8 +21,17 @@ import {
   objectHasOwn,
 } from '@/util';
 
-export function compose(document: SerializationNode): RepresentationNode {
-  return new CompositionOperation(coreSchema).composeNode(document);
+export interface ComposeOptions {
+  schema?: Schema;
+}
+
+const DEFAULT_COMPOSE_OPTIONS = {
+  schema: coreSchema,
+};
+
+export function compose(document: SerializationNode, options: ComposeOptions = {}): RepresentationNode {
+  const { schema } = {...DEFAULT_COMPOSE_OPTIONS, ...options };
+  return new CompositionOperation(schema).composeNode(document);
 }
 
 class CompositionOperation {

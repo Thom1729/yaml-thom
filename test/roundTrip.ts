@@ -19,9 +19,9 @@ logger.indented(() => logger.logCode(inputText));
 /////////
 
 import { serialize } from '@/serializer';
-import { parseStream } from '@/parser';
+import { parseSingleDocument } from '@/parser';
 
-const serializationTree = Array.from(parseStream(inputText, { version: '1.3' }))[0];
+const serializationTree = parseSingleDocument(inputText, { version: '1.3' });
 
 //////////
 

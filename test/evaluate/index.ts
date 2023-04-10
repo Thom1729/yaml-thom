@@ -1,6 +1,5 @@
 import { loadText } from '..';
-import { parseStream } from '@/parser';
-import { compose } from '@/composer';
+import { loadSingleDocument } from '@/index';
 import {
   RepresentationMapping,
   type SerializationNode,
@@ -22,7 +21,7 @@ interface AnnotationTest {
 
 function loadAnnotationTest(name: string): AnnotationTest {
   const inputText = loadText('evaluate', 'annotations', `${name}.yaml`);
-  const test = compose(Array.from(parseStream(inputText))[0]);
+  const test = loadSingleDocument(inputText, { version: '1.3' });
   const testProperties = extractStringMap(test, ['context?', 'input', 'expected']);
 
   return {
@@ -36,7 +35,7 @@ function loadAnnotationTest(name: string): AnnotationTest {
 function runAnnotationTest({ context, input, expected }: AnnotationTest) {
   const actual = evaluate(input, new RepresentationMapping('tag:yaml.org,2002:map', context));
 
-  const diffs = Array.from(diffSerializations(actual as SerializationNode, expected as SerializationNode));
+  const diffs = Array.from(diffSerializations(expected as SerializationNode, actual as SerializationNode));
 
   return { actual, diffs };
 }
@@ -58,23 +57,23 @@ const [, , ...testNames] = process.argv;
 
 for (const testName of (testNames.length ? testNames : allTests)) {
   const test = loadAnnotationTest(testName);
-  const { actual, diffs } = runAnnotationTest(test);
+  const { diffs } = runAnnotationTest(test);
 
   if (diffs.length) {
     logger.log(testName);
 
-    logger.log('Actual');
-    prettyPrint(logger.write.bind(logger), actual as SerializationNode);
-    logger.log('Expected');
-    prettyPrint(logger.write.bind(logger), test.expected as SerializationNode);
-    // logger.indented(() => {
-    //   for (const { path, actual, expected, message } of result.diffs) {
-    //     logger.log(`${path}: ${message}`);
-    //     logger.log('Actual');
-    //     prettyPrint(logger.write.bind(logger), actual);
-    //     logger.log('Expected');
-    //     prettyPrint(logger.write.bind(logger), expected);
-    //   }
-    // });
+    // logger.log('Actual');
+    // prettyPrint(logger.write.bind(logger), actual as SerializationNode);
+    // logger.log('Expected');
+    // prettyPrint(logger.write.bind(logger), test.expected as SerializationNode);
+    logger.indented(() => {
+      for (const { path, actual, expected, message } of diffs) {
+        logger.log(`${path}: ${message}`);
+        logger.log('Actual');
+        prettyPrint(logger.write.bind(logger), actual);
+        logger.log('Expected');
+        prettyPrint(logger.write.bind(logger), expected);
+      }
+    });
   }
 }
