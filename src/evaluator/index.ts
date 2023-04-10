@@ -21,19 +21,37 @@ export type AnnotationFunction = (
   evaluate: (node: RepresentationNode, context: RepresentationMapping) => RepresentationNode,
 ) => RepresentationNode;
 
+export class EvaluationError extends Error {
+  node: RepresentationNode;
+
+  constructor(node: RepresentationNode, msg: string, cause: unknown) {
+    super(msg, { cause });
+    Object.setPrototypeOf(this, EvaluationError.prototype);
+    this.node = node;
+  }
+}
+
 export function evaluate(
   node: RepresentationNode,
   context: RepresentationMapping,
 ): RepresentationNode {
   if (isAnnotation(node)) {
-    const annotation = extractAnnotationInfo(node);
+    try {
+      const annotation = extractAnnotationInfo(node);
 
-    const f = STDLIB[annotation.name];
-    if (f === undefined) {
-      throw new TypeError(`Unknown annotation ${annotation.name}`);
+      const f = STDLIB[annotation.name];
+      if (f === undefined) {
+        throw new TypeError(`Unknown annotation ${annotation.name}`);
+      }
+
+      return f(annotation, context, evaluate);
+    } catch (e) {
+      if (e instanceof EvaluationError) {
+        throw e;
+      } else {
+        throw new EvaluationError(node, '', e);
+      }
     }
-
-    return f(annotation, context, evaluate);
   }
 
   // TODO: keep track of evaluated nodes
