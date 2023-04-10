@@ -78,7 +78,6 @@ if (testNames.length === 0) {
 for (const testName of testNames) {
   for (const test of loadAnnotationTest(testName)) {
     const { status, diffs, error } = runAnnotationTest(test);
-    console.log(test.name, status)
 
     if (status !== 'success') {
       logger.log(testName);
