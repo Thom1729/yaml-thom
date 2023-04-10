@@ -6,36 +6,18 @@ import {
   SerializationNode,
 } from '@/nodes';
 
-import { assertStr, assertMap } from '@/evaluator/helpers';
+import { extractMapEntries, extractStringMap } from '@/evaluator/helpers';
 
 function loadAnnotationTest(name: string) {
   const inputText = loadText('evaluate', 'annotations', `${name}.yaml`);
   const test = compose(Array.from(parseStream(inputText))[0]);
-
-  assertMap(test, `Expected map, got ${test.kind} tagged ${test.tag}`);
-
-  const testProperties = strictFromEntries(Array.from(test).map(([key, value]) => {
-    assertStr(key, `meta key is not string`);
-    if (key.content !== 'context' && key.content !== 'input'  && key.content !== 'expected') {
-      throw new TypeError(`unexpected key ${key.content}`);
-    }
-
-    return [key.content, value];
-  }));
-
-  let context;
-  if (testProperties.context !== undefined) {
-    assertMap(testProperties.context, `context must be map`);
-    context = testProperties.context;
-  } else {
-    context = new RepresentationMapping('tag:yaml.org,2002:map', []);
-  }
+  const testProperties = extractStringMap(test, ['context?', 'input', 'expected']);
 
   return {
     name,
-    test: testProperties.input,
+    input: testProperties.input,
     expected: testProperties.expected,
-    context,
+    context: testProperties.context ? extractMapEntries(testProperties.context) : [],
   };
 }
 
@@ -44,14 +26,12 @@ function loadAnnotationTest(name: string) {
 import { evaluate } from '@/evaluator';
 import { prettyPrint } from '../prettyPrint';
 import { diffSerializations } from '@/nodes/diff';
-import { strictFromEntries } from '@/util';
 
 const [, , testName] = process.argv;
 
-const { test, expected, context } = loadAnnotationTest(testName);
+const { input, expected, context } = loadAnnotationTest(testName);
 
-
-const result = evaluate(test, context);
+const result = evaluate(input, new RepresentationMapping('tag:yaml.org,2002:map', context));
 
 const diffs = diffSerializations(result as SerializationNode, expected as SerializationNode);
 

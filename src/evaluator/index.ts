@@ -5,7 +5,7 @@ import {
   RepresentationSequence,
 } from '@/nodes';
 
-import { assertStr, assertSeq, isAnnotation } from './helpers';
+import { extractStrContent, extractSeqItems, extractStringMap, isAnnotation } from './helpers';
 
 import STDLIB from './stdlib';
 
@@ -22,31 +22,12 @@ export type AnnotationFunction = (
 ) => RepresentationNode;
 
 function getAnnotationInfo(annotation: RepresentationMapping): Annotation {
-  let name = null, annotated = null, args = null;
-
-  for (const [key, value] of annotation) {
-    assertStr(key, `Expected str, got ${key.kind}<${key.tag}>`);
-
-    if (key.content === 'name') {
-      assertStr(value, `Expected str, got ${value.kind}<${value.tag}>`);
-      name = value.content;
-    } else if (key.content === 'value') {
-      annotated = value;
-    } else if (key.content === 'arguments') {
-      assertSeq(value, `Expected args to be seq`);
-      args = value.content;
-    } else {
-      throw new TypeError(`Unexpected key ${key.content}`);
-    }
-  }
-
-  if (name === null) throw new TypeError('missing name');
-  if (annotated === null) throw new TypeError('missing value');
+  const { name, value, arguments: args } = extractStringMap(annotation, ['name', 'value', 'arguments']);
 
   return {
-    name,
-    value: annotated,
-    arguments: args ?? [],
+    name: extractStrContent(name),
+    value: value,
+    arguments: extractSeqItems(args),
   };
 }
 

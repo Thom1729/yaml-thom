@@ -1,10 +1,7 @@
 export function assertionFunction<V, U extends V>(
   predicate: (value: V) => value is U,
 ) {
-  // return <T extends V>(value: T, message?: string): asserts value is T & U => {
-  //   if (!predicate(value)) throw new TypeError(message);
-  // };
-  return (value: V, message?: string): asserts value is U => {
+  return <T extends V>(value: T, message?: string): asserts value is T & U => {
     if (!predicate(value)) throw new TypeError(message);
   };
 }
