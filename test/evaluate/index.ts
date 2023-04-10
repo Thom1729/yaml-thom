@@ -1,5 +1,5 @@
 import { loadText } from '..';
-import { loadSingleDocument } from '@/index';
+import { loadStream } from '@/index';
 import {
   RepresentationMapping,
   type SerializationNode,
@@ -14,30 +14,47 @@ import { extractMapEntries, extractStringMap } from '@/evaluator/helpers';
 
 interface AnnotationTest {
   name: string;
-  input: RepresentationNode;
-  expected: RepresentationNode;
   context: readonly (readonly [RepresentationNode, RepresentationNode])[];
+  input: RepresentationNode;
+  expected: RepresentationNode | undefined;
+  error: boolean | undefined;
 }
 
-function loadAnnotationTest(name: string): AnnotationTest {
+function *loadAnnotationTest(name: string): Generator<AnnotationTest> {
   const inputText = loadText('evaluate', 'annotations', `${name}.yaml`);
-  const test = loadSingleDocument(inputText, { version: '1.3' });
-  const testProperties = extractStringMap(test, ['context?', 'input', 'expected']);
+  for (const test of loadStream(inputText, { version: '1.3' })) {
+    const testProperties = extractStringMap(test, ['context?', 'input', 'expected?', 'error?']);
 
-  return {
-    name,
-    input: testProperties.input,
-    expected: testProperties.expected,
-    context: testProperties.context ? extractMapEntries(testProperties.context) : [],
-  };
+    yield {
+      name,
+      input: testProperties.input,
+      expected: testProperties.expected,
+      context: testProperties.context ? extractMapEntries(testProperties.context) : [],
+      error: Boolean(testProperties.error),
+    };
+  }
 }
 
-function runAnnotationTest({ context, input, expected }: AnnotationTest) {
-  const actual = evaluate(input, new RepresentationMapping('tag:yaml.org,2002:map', context));
+function runAnnotationTest(test: AnnotationTest) {
+  let status: 'success' | 'failure' = 'success';
+  let actual = null;
+  let error = null;
 
-  const diffs = Array.from(diffSerializations(expected as SerializationNode, actual as SerializationNode));
+  const context = new RepresentationMapping('tag:yaml.org,2002:map', test.context);
+  try {
+    actual = evaluate(test.input, context);
+  } catch (e) {
+    error = e;
+    if (!test.error) status = 'failure';
+  }
 
-  return { actual, diffs };
+  const diffs = actual !== undefined && test.expected !== undefined
+    ? Array.from(diffSerializations(test.expected as SerializationNode, actual as SerializationNode))
+    : undefined;
+
+  if (diffs?.length) status = 'failure';
+
+  return { status, actual, diffs, error };
 }
 
 //////////
@@ -49,31 +66,37 @@ const logger = new Logger(process.stdout);
 import path from 'path';
 import fs from 'fs';
 
-const allTests = fs.readdirSync(path.join(__dirname, 'annotations'))
-  .filter(s => s.endsWith('.yaml'))
-  .map(s => s.slice(0, -5));
+let [, , ...testNames] = process.argv;
 
-const [, , ...testNames] = process.argv;
+if (testNames.length === 0) {
+  testNames = fs.readdirSync(path.join(__dirname, 'annotations'))
+    .filter(s => s.endsWith('.yaml'))
+    .map(s => s.slice(0, -5));
+}
 
-for (const testName of (testNames.length ? testNames : allTests)) {
-  const test = loadAnnotationTest(testName);
-  const { diffs } = runAnnotationTest(test);
 
-  if (diffs.length) {
-    logger.log(testName);
+for (const testName of testNames) {
+  for (const test of loadAnnotationTest(testName)) {
+    const { status, diffs, error } = runAnnotationTest(test);
+    console.log(test.name, status)
 
-    // logger.log('Actual');
-    // prettyPrint(logger.write.bind(logger), actual as SerializationNode);
-    // logger.log('Expected');
-    // prettyPrint(logger.write.bind(logger), test.expected as SerializationNode);
-    logger.indented(() => {
-      for (const { path, actual, expected, message } of diffs) {
-        logger.log(`${path}: ${message}`);
-        logger.log('Actual');
-        prettyPrint(logger.write.bind(logger), actual);
-        logger.log('Expected');
-        prettyPrint(logger.write.bind(logger), expected);
-      }
-    });
+    if (status !== 'success') {
+      logger.log(testName);
+
+      logger.indented(() => {
+        if (error) {
+          logger.log(error);
+        }
+        if (diffs?.length) {
+          for (const { path, actual, expected, message } of diffs) {
+            logger.log(`${path}: ${message}`);
+            logger.log('Actual');
+            prettyPrint(logger.write.bind(logger), actual);
+            logger.log('Expected');
+            prettyPrint(logger.write.bind(logger), expected);
+          }
+        }
+      });
+    }
   }
 }
