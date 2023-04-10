@@ -1,7 +1,12 @@
+import {
+  type RepresentationNode,
+  RepresentationSequence,
+  RepresentationMapping,
+} from '@/nodes';
 import type { AnnotationFunction } from '.';
 
-import { assertMap } from './helpers';
-import { single, assertNotNull } from '@/util';
+import { assertMap, isAnnotation, extractAnnotationInfo } from './helpers';
+import { single, assertNotNull, Y } from '@/util';
 
 const STDLIB: Partial<Record<string, AnnotationFunction>> = {
   var(annotation, context, evaluate) {
@@ -22,6 +27,35 @@ const STDLIB: Partial<Record<string, AnnotationFunction>> = {
     }
     return evaluate(annotation.value, newContext);
   },
+
+  quote(annotation) {
+    return annotation.value;
+  },
+
+  eval(annotation, context, evaluate) {
+    return evaluate(evaluate(annotation.value, context), context);
+  },
+
+  quasiquote(annotation, context, evaluate) {
+    return Y<RepresentationNode, [RepresentationNode]>((rec, node): RepresentationNode => {
+      if (isAnnotation(node)) {
+        const a = extractAnnotationInfo(node);
+        if (a.name === 'unquote') {
+          return evaluate(a.value, context);
+        }
+      }
+
+      switch (node.kind) {
+        case 'scalar': return node;
+        case 'sequence': return new RepresentationSequence(node.tag, Array.from(node).map(rec));
+        case 'mapping': return new RepresentationMapping(node.tag, Array.from(node).map(([k, v]) => [rec(k), rec(v)]));
+      }
+    })(annotation.value);
+  },
+
+  unquote() {
+    throw new Error(`Can't evaluate unquote.`);
+  }
 };
 
 export default STDLIB;

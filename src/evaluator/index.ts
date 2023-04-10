@@ -5,7 +5,7 @@ import {
   RepresentationSequence,
 } from '@/nodes';
 
-import { extractStrContent, extractSeqItems, extractStringMap, isAnnotation } from './helpers';
+import { isAnnotation, extractAnnotationInfo } from './helpers';
 
 import STDLIB from './stdlib';
 
@@ -21,22 +21,12 @@ export type AnnotationFunction = (
   evaluate: (node: RepresentationNode, context: RepresentationMapping) => RepresentationNode,
 ) => RepresentationNode;
 
-function getAnnotationInfo(annotation: RepresentationMapping): Annotation {
-  const { name, value, arguments: args } = extractStringMap(annotation, ['name', 'value', 'arguments']);
-
-  return {
-    name: extractStrContent(name),
-    value: value,
-    arguments: extractSeqItems(args),
-  };
-}
-
 export function evaluate(
   node: RepresentationNode,
   context: RepresentationMapping,
 ): RepresentationNode {
   if (isAnnotation(node)) {
-    const annotation = getAnnotationInfo(node);
+    const annotation = extractAnnotationInfo(node);
 
     const f = STDLIB[annotation.name];
     if (f === undefined) {

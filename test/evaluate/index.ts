@@ -34,11 +34,11 @@ function loadAnnotationTest(name: string): AnnotationTest {
 }
 
 function runAnnotationTest({ context, input, expected }: AnnotationTest) {
-  const result = evaluate(input, new RepresentationMapping('tag:yaml.org,2002:map', context));
+  const actual = evaluate(input, new RepresentationMapping('tag:yaml.org,2002:map', context));
 
-  const diffs = Array.from(diffSerializations(result as SerializationNode, expected as SerializationNode));
+  const diffs = Array.from(diffSerializations(actual as SerializationNode, expected as SerializationNode));
 
-  return { result, diffs };
+  return { actual, diffs };
 }
 
 //////////
@@ -58,18 +58,23 @@ const [, , ...testNames] = process.argv;
 
 for (const testName of (testNames.length ? testNames : allTests)) {
   const test = loadAnnotationTest(testName);
-  const result = runAnnotationTest(test);
+  const { actual, diffs } = runAnnotationTest(test);
 
-  if (result.diffs.length) {
+  if (diffs.length) {
     logger.log(testName);
-    logger.indented(() => {
-      for (const { path, actual, expected, message} of result.diffs) {
-        logger.log(`${path}: ${message}`);
-        logger.log('Actual');
-        prettyPrint(logger.write.bind(logger), actual);
-        logger.log('Expected');
-        prettyPrint(logger.write.bind(logger), expected);
-      }
-    });
+
+    logger.log('Actual');
+    prettyPrint(logger.write.bind(logger), actual as SerializationNode);
+    logger.log('Expected');
+    prettyPrint(logger.write.bind(logger), test.expected as SerializationNode);
+    // logger.indented(() => {
+    //   for (const { path, actual, expected, message } of result.diffs) {
+    //     logger.log(`${path}: ${message}`);
+    //     logger.log('Actual');
+    //     prettyPrint(logger.write.bind(logger), actual);
+    //     logger.log('Expected');
+    //     prettyPrint(logger.write.bind(logger), expected);
+    //   }
+    // });
   }
 }

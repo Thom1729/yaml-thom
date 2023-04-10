@@ -59,9 +59,17 @@ export function extractMapEntries(node: RepresentationNode) {
 }
 
 export function extractStringMap<T extends string>(node: RepresentationNode, keys: readonly T[]) {
+  assertMap(node);
+  return _extractStringMap(Array.from(node), keys);
+}
+
+export function _extractStringMap<T extends string>(
+  pairs: readonly (readonly [RepresentationNode, RepresentationNode])[],
+  keys: readonly T[],
+) {
   const keySet = new Set(keys.map(k => k.endsWith('?') ? k.slice(0, -1) : k));
   const ret = Object.fromEntries(
-    extractMapEntries(node).map(([keyNode, value]) => {
+    pairs.map(([keyNode, value]) => {
       const key = extractStrContent(keyNode);
       if (!keySet.has(key)) throw new TypeError(`Unexpected key ${key}`);
 
@@ -75,5 +83,15 @@ export function extractStringMap<T extends string>(node: RepresentationNode, key
   return ret as {
     [K in T as (K extends `${infer L}?` ? L : K)]:
       RepresentationNode | (K extends `${string}?` ? undefined : never)
+  };
+}
+
+export function extractAnnotationInfo(annotation: RepresentationMapping) {
+  const { name, value, arguments: args } = extractStringMap(annotation, ['name', 'value', 'arguments']);
+
+  return {
+    name: extractStrContent(name),
+    value: value,
+    arguments: extractSeqItems(args),
   };
 }

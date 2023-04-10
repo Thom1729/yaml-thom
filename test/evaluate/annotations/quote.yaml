@@ -1,0 +1,10 @@
+input:
+  - @quote @foo 42
+  - @eval @quote 42
+  - @quasiquote @eval @quote 42
+  - @quasiquote @unquote @eval @quote 42
+expected:
+  - @foo 42
+  - 42
+  - @eval @quote 42
+  - 42
