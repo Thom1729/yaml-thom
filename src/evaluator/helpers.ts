@@ -59,12 +59,13 @@ export function extractMapEntries(node: RepresentationNode) {
 }
 
 export function extractStringMap<T extends string>(node: RepresentationNode, keys: readonly T[]) {
+  const keySet = new Set(keys.map(k => k.endsWith('?') ? k.slice(0, -1) : k));
   const ret = Object.fromEntries(
-    extractMapEntries(node).map(([key, value]) => {
-      assertStr(key);
-      if (!(keys as readonly string[]).includes(key.content)) throw new TypeError(`Unexpected key ${key.content}`);
+    extractMapEntries(node).map(([keyNode, value]) => {
+      const key = extractStrContent(keyNode);
+      if (!keySet.has(key)) throw new TypeError(`Unexpected key ${key}`);
 
-      return [key.content as T, value];
+      return [key, value];
     })
   );
 
