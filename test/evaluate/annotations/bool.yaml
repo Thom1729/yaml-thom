@@ -1,0 +1,17 @@
+input:
+  - @and []
+  - @and [true]
+  - @and [true, false]
+expected:
+  - true
+  - true
+  - false
+---
+input:
+  - @or []
+  - @or [false]
+  - @or [false, true]
+expected:
+  - false
+  - false
+  - true

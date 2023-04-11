@@ -25,6 +25,11 @@ export function isBool(node: RepresentationNode): node is RepresentationScalar<'
   return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:bool';
 }
 
+export function assertBool(node: RepresentationNode, message?: string): asserts node is RepresentationScalar<'tag:yaml.org,2002:bool'> {
+  if (node.kind !== 'scalar' || node.tag !== 'tag:yaml.org,2002:bool') throw new TypeError(message ?? 'expected bool');
+}
+
+
 export function isInt(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:int'> {
   return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:int';
 }
@@ -106,6 +111,11 @@ export function extractAnnotationInfo(annotation: RepresentationMapping) {
     value: value,
     arguments: extractSeqItems(args),
   };
+}
+
+export function extractBool(node: RepresentationNode) {
+  assertBool(node);
+  return node.content === 'true';
 }
 
 //////////
