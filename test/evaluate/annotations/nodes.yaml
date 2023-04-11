@@ -1,0 +1,74 @@
+input:
+  - @kind foo
+  - @kind []
+  - @kind {}
+expected:
+  - scalar
+  - sequence
+  - mapping
+
+---
+input:
+  - @tag foo
+  - @tag []
+  - @tag {}
+expected:
+  - tag:yaml.org,2002:str
+  - tag:yaml.org,2002:seq
+  - tag:yaml.org,2002:map
+
+---
+input:
+  - @isStr foo
+  - @isStr 42
+expected:
+  - true
+  - false
+
+---
+input:
+  - @isNull null
+  - @isNull "null"
+expected:
+  - true
+  - false
+
+---
+input:
+  - @isBool true
+  - @isBool "true"
+expected:
+  - true
+  - false
+
+---
+input:
+  - @isInt 1
+  - @isInt 1.0
+expected:
+  - true
+  - false
+
+---
+input:
+  - @isFloat 1.0
+  - @isFloat 1
+expected:
+  - true
+  - false
+
+---
+input:
+  - @isMap {}
+  - @isMap []
+expected:
+  - true
+  - false
+
+---
+input:
+  - @isSeq []
+  - @isSeq {}
+expected:
+  - true
+  - false

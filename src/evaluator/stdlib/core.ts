@@ -1,14 +1,11 @@
 import type { RepresentationNode } from '@/nodes';
-import type { AnnotationFunction } from '.';
 
-import { assertMap, isAnnotation, extractAnnotationInfo } from './helpers';
+import { assertMap, isAnnotation, extractAnnotationInfo } from '../helpers';
 import { assertNotNull, Y } from '@/util';
 
-function assertNoArgs(args: readonly RepresentationNode[]) {
-  if (args.length > 0) throw new TypeError('No arguments expected');
-}
+import { assertNoArgs, type Library } from './util';
 
-const STDLIB: Partial<Record<string, AnnotationFunction>> = {
+export default {
   var(value, args, context, evaluate) {
     assertNoArgs(args);
     const key = evaluate(value, context);
@@ -59,6 +56,4 @@ const STDLIB: Partial<Record<string, AnnotationFunction>> = {
   unquote() {
     throw new Error(`Can't evaluate unquote.`);
   }
-};
-
-export default STDLIB;
+} satisfies Library;

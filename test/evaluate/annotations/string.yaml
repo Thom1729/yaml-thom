@@ -1,0 +1,12 @@
+input:
+  - @uppercase Foo
+  - @lowercase Foo
+expected:
+  - FOO
+  - foo
+
+---
+input:
+  - @join [a, b, c]
+expected:
+  - abc

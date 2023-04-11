@@ -1,4 +1,4 @@
-import type {
+import {
   RepresentationScalar,
   RepresentationSequence,
   RepresentationMapping,
@@ -19,6 +19,18 @@ export function isNull(node: RepresentationNode): node is RepresentationScalar<'
 
 export function assertNull(node: RepresentationNode, message?: string): asserts node is RepresentationScalar<'tag:yaml.org,2002:null'> {
   if (node.kind !== 'scalar' || node.tag !== 'tag:yaml.org,2002:null') throw new TypeError(message ?? 'expected null');
+}
+
+export function isBool(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:bool'> {
+  return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:bool';
+}
+
+export function isInt(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:int'> {
+  return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:int';
+}
+
+export function isFloat(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:float'> {
+  return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:float';
 }
 
 export function isSeq(node: RepresentationNode): node is RepresentationSequence<'tag:yaml.org,2002:seq'> {
@@ -94,4 +106,18 @@ export function extractAnnotationInfo(annotation: RepresentationMapping) {
     value: value,
     arguments: extractSeqItems(args),
   };
+}
+
+//////////
+
+export function str(value: string) {
+  return new RepresentationScalar('tag:yaml.org,2002:str', value);
+}
+
+export function bool(value: boolean) {
+  return new RepresentationScalar('tag:yaml.org,2002:bool', value.toString());
+}
+
+export function nullValue() {
+  return new RepresentationScalar('tag:yaml.org,2002:null', 'null');
 }
