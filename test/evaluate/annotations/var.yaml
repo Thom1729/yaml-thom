@@ -1,0 +1,7 @@
+input: @var foo
+error: true
+---
+context:
+  foo: 42
+input: @var foo
+expected: 42
