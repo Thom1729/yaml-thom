@@ -14,7 +14,8 @@ interface Annotation {
 }
 
 export type AnnotationFunction = (
-  annotation: Annotation,
+  value: RepresentationNode,
+  args: readonly RepresentationNode[],
   context: RepresentationMapping,
   evaluate: (node: RepresentationNode, context: RepresentationMapping) => RepresentationNode,
 ) => RepresentationNode;
@@ -49,7 +50,7 @@ export function evaluate(
     }
 
     try {
-      return f(annotation, context, evaluate);
+      return f(annotation.value, annotation.arguments, context, evaluate);
     } catch (e) {
       if (e instanceof EvaluationError) {
         throw e;

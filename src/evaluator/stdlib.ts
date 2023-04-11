@@ -4,33 +4,41 @@ import type { AnnotationFunction } from '.';
 import { assertMap, isAnnotation, extractAnnotationInfo } from './helpers';
 import { assertNotNull, Y } from '@/util';
 
+function assertNoArgs(args: readonly RepresentationNode[]) {
+  if (args.length > 0) throw new TypeError('No arguments expected');
+}
+
 const STDLIB: Partial<Record<string, AnnotationFunction>> = {
-  var(annotation, context, evaluate) {
-    const key = evaluate(annotation.value, context);
+  var(value, args, context, evaluate) {
+    assertNoArgs(args);
+    const key = evaluate(value, context);
     const result = context.get(key);
     assertNotNull(result, `var ${key} not found`);
     return result;
   },
 
-  let(annotation, context, evaluate) {
+  let(value, args, context, evaluate) {
     let newContext = context;
-    for (const arg of annotation.arguments) {
+    for (const arg of args) {
       assertMap(arg, 'let args should be maps');
 
       newContext = newContext.merge(arg.map(node => evaluate(node, newContext)));
     }
-    return evaluate(annotation.value, newContext);
+    return evaluate(value, newContext);
   },
 
-  quote(annotation) {
-    return annotation.value;
+  quote(value, args) {
+    assertNoArgs(args);
+    return value;
   },
 
-  eval(annotation, context, evaluate) {
-    return evaluate(evaluate(annotation.value, context), context);
+  eval(value, args, context, evaluate) {
+    assertNoArgs(args);
+    return evaluate(evaluate(value, context), context);
   },
 
-  quasiquote(annotation, context, evaluate) {
+  quasiquote(value, args, context, evaluate) {
+    assertNoArgs(args);
     // TODO handle cycles
     return Y<RepresentationNode, [RepresentationNode]>((rec, node): RepresentationNode => {
       if (isAnnotation(node)) {
@@ -45,7 +53,7 @@ const STDLIB: Partial<Record<string, AnnotationFunction>> = {
         case 'sequence': return node.map(rec);
         case 'mapping': return node.map(rec);
       }
-    })(annotation.value);
+    })(value);
   },
 
   unquote() {
