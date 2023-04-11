@@ -5,7 +5,7 @@ import { inspect } from 'util';
 import { parseStream } from '@/parser';
 import { zip } from '@/util';
 
-import { diffSerializations, pathToString, type Difference } from '@/nodes/diff';
+import { diff, pathToString, type Difference } from '@/nodes/diff';
 
 import {
   DirectoryTestLoader,
@@ -14,6 +14,7 @@ import {
 } from './testSuite';
 
 import { Logger } from './logger';
+import type { SerializationNode } from '@/nodes';
 
 const logger = new Logger(process.stdout);
 
@@ -22,7 +23,7 @@ const testLoader = new DirectoryTestLoader(path.join(__dirname, '../..', 'yaml-t
 
 interface TestResult {
   test: TestCase;
-  inequal?: Difference[];
+  inequal?: Difference<SerializationNode>[];
   error?: unknown;
 }
 
@@ -43,7 +44,7 @@ function runTest(test: TestCase) {
     const expectedTree = Array.from(eventsToSerializationTree(test.tree));
     const actualTree = Array.from(parseStream(test.yaml, { version: '1.3' }));
 
-    const inequal = [] as Difference[];
+    const inequal = [] as Difference<SerializationNode>[];
     if (expectedTree.length !== actualTree.length) {
       console.error(expectedTree.length, actualTree.length);
       console.error(test.tree);
@@ -52,7 +53,7 @@ function runTest(test: TestCase) {
       expectedTree.slice(0, Math.min(expectedTree.length, actualTree.length)),
       actualTree.slice(0, Math.min(expectedTree.length, actualTree.length)),
     )) {
-      inequal.push(...diffSerializations(expectedDocument, actualDocument));
+      inequal.push(...diff(expectedDocument, actualDocument));
     }
     const status = inequal.length > 0 ? 'failure' : 'success';
     return makeResult(status, { inequal });

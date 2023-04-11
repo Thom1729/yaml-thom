@@ -1,9 +1,10 @@
-import type { SerializationNode as Node }  from '@/nodes';
+import type { SerializationNode, SerializationValueNode, RepresentationNode }  from '@/nodes';
 
 import chalk from 'chalk';
 
 class PrettyPrinter {
   write: (string: string) => void;
+
   constructor(write: (string: string) => void) {
     this.write = write;
   }
@@ -15,7 +16,11 @@ class PrettyPrinter {
     }
   }
 
-  prettyPrint(node: Node, level: number = 0, seen: Map<Node, string>) {
+  prettyPrint(
+    node: SerializationNode | RepresentationNode,
+    level: number = 0,
+    seen: Map<SerializationNode | RepresentationNode, string>,
+  ) {
     if (seen.get(node)) {
       this.write('…');
       return;
@@ -28,8 +33,9 @@ class PrettyPrinter {
       return;
     }
 
-    if (node.anchor !== null) {
-      this.write(chalk.magenta('&' + node.anchor));
+    const anchor = (node as SerializationValueNode).anchor;
+    if (anchor !== null && anchor !== undefined) {
+      this.write(chalk.magenta('&' + anchor));
       this.write(' ');
     }
 
@@ -72,6 +78,9 @@ class PrettyPrinter {
   }
 }
 
-export function prettyPrint(write: (string: string) => void, node: Node, level: number = 0) {
-  new PrettyPrinter(write).prettyPrint(node, level, new Map());
+export function prettyPrint(
+  write: (string: string) => void,
+  node: SerializationNode | RepresentationNode
+) {
+  new PrettyPrinter(write).prettyPrint(node, 0, new Map());
 }

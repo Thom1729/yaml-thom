@@ -84,6 +84,10 @@ import { equals } from './equality';
 
 export class RepresentationScalar<TagType extends string = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
+
+  clone() {
+    return new RepresentationScalar(this.tag, this.content);
+  }
 }
 
 export class RepresentationSequence<TagType extends string = string> extends ValueNode<TagType, RepresentationNode[]> {
@@ -94,6 +98,10 @@ export class RepresentationSequence<TagType extends string = string> extends Val
   }
 
   get size() { return this.content.length; }
+
+  map(callback: (item: RepresentationNode) => RepresentationNode) {
+    return new RepresentationSequence(this.tag, this.content.map(callback));
+  }
 }
 
 export class RepresentationMapping<TagType extends string = string> extends ValueNode<TagType, (readonly [RepresentationNode, RepresentationNode])[]> {
@@ -116,7 +124,11 @@ export class RepresentationMapping<TagType extends string = string> extends Valu
     return null;
   }
 
-  merge(other: Iterable<[RepresentationNode, RepresentationNode]>) {
+  map(callback: (item: RepresentationNode) => RepresentationNode) {
+    return new RepresentationMapping(this.tag, this.content.map(([key, value]) => [callback(key), callback(value)]));
+  }
+
+  merge(other: Iterable<readonly [RepresentationNode, RepresentationNode]>) {
     const content: (readonly [RepresentationNode, RepresentationNode])[] = [...other, ...this.content];
     return new RepresentationMapping(this.tag, content);
   }

@@ -1,12 +1,8 @@
-import {
-  type RepresentationNode,
-  RepresentationSequence,
-  RepresentationMapping,
-} from '@/nodes';
+import type { RepresentationNode } from '@/nodes';
 import type { AnnotationFunction } from '.';
 
 import { assertMap, isAnnotation, extractAnnotationInfo } from './helpers';
-import { single, assertNotNull, Y } from '@/util';
+import { assertNotNull, Y } from '@/util';
 
 const STDLIB: Partial<Record<string, AnnotationFunction>> = {
   var(annotation, context, evaluate) {
@@ -21,9 +17,7 @@ const STDLIB: Partial<Record<string, AnnotationFunction>> = {
     for (const arg of annotation.arguments) {
       assertMap(arg, 'let args should be maps');
 
-      const [keyNode, valueNode] = single(arg, `let arg had ${arg.size} keys`);
-
-      newContext = newContext.merge([[evaluate(keyNode, newContext), evaluate(valueNode, newContext)]]);
+      newContext = newContext.merge(arg.map(node => evaluate(node, newContext)));
     }
     return evaluate(annotation.value, newContext);
   },
@@ -37,18 +31,19 @@ const STDLIB: Partial<Record<string, AnnotationFunction>> = {
   },
 
   quasiquote(annotation, context, evaluate) {
+    // TODO handle cycles
     return Y<RepresentationNode, [RepresentationNode]>((rec, node): RepresentationNode => {
       if (isAnnotation(node)) {
-        const a = extractAnnotationInfo(node);
-        if (a.name === 'unquote') {
-          return evaluate(a.value, context);
+        const childAnnotation = extractAnnotationInfo(node);
+        if (childAnnotation.name === 'unquote') {
+          return evaluate(childAnnotation.value, context);
         }
       }
 
       switch (node.kind) {
-        case 'scalar': return node;
-        case 'sequence': return new RepresentationSequence(node.tag, Array.from(node).map(rec));
-        case 'mapping': return new RepresentationMapping(node.tag, Array.from(node).map(([k, v]) => [rec(k), rec(v)]));
+        case 'scalar': return node.clone();
+        case 'sequence': return node.map(rec);
+        case 'mapping': return node.map(rec);
       }
     })(annotation.value);
   },

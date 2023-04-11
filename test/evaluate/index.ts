@@ -2,13 +2,12 @@ import { loadText } from '..';
 import { loadStream } from '@/index';
 import {
   RepresentationMapping,
-  type SerializationNode,
   type RepresentationNode,
 } from '@/nodes';
 
 import { evaluate } from '@/evaluator';
 import { prettyPrint } from '../prettyPrint';
-import { diffSerializations } from '@/nodes/diff';
+import { diff } from '@/nodes/diff';
 
 import { extractMapEntries, extractStringMap } from '@/evaluator/helpers';
 
@@ -48,9 +47,9 @@ function runAnnotationTest(test: AnnotationTest) {
     if (!test.error) status = 'failure';
   }
 
-  const diffs = actual !== undefined && test.expected !== undefined
-    ? Array.from(diffSerializations(test.expected as SerializationNode, actual as SerializationNode))
-    : undefined;
+  const diffs = actual !== null && test.expected !== undefined
+    ? Array.from(diff(test.expected, actual))
+    : null;
 
   if (diffs?.length) status = 'failure';
 

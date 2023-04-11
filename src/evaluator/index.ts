@@ -1,8 +1,6 @@
-import {
-  type RepresentationNode,
-  RepresentationScalar,
+import type {
+  RepresentationNode,
   RepresentationMapping,
-  RepresentationSequence,
 } from '@/nodes';
 
 import { isAnnotation, extractAnnotationInfo } from './helpers';
@@ -63,21 +61,8 @@ export function evaluate(
 
   // TODO: keep track of evaluated nodes
   switch (node.kind) {
-    case 'scalar': return new RepresentationScalar(
-      node.tag,
-      node.content,
-    );
-    case 'sequence': return new RepresentationSequence(
-      node.tag,
-      node.content.map(
-        child => evaluate(child, context)
-      )
-    );
-    case 'mapping': return new RepresentationMapping(
-      node.tag,
-      node.content.map(
-        ([key, value]) => [evaluate(key, context), evaluate(value, context)]
-      )
-    );
+    case 'scalar': return node.clone();
+    case 'sequence': return node.map(child => evaluate(child, context));
+    case 'mapping': return node.map(child => evaluate(child, context));
   }
 }
