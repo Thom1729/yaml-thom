@@ -33,6 +33,10 @@ export function isInt(node: RepresentationNode): node is RepresentationScalar<'t
   return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:int';
 }
 
+export function assertInt(node: RepresentationNode, message?: string): asserts node is RepresentationScalar<'tag:yaml.org,2002:int'> {
+  if (!isInt(node)) throw new TypeError(message ?? 'expected int');
+}
+
 export function isFloat(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:float'> {
   return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:float';
 }
@@ -117,16 +121,29 @@ export function extractBool(node: RepresentationNode) {
   return node.content === 'true';
 }
 
+export function extractInt(node: RepresentationNode) {
+  assertInt(node);
+  return BigInt(node.content);
+}
+
 //////////
 
 export function str(value: string) {
   return new RepresentationScalar('tag:yaml.org,2002:str', value);
 }
 
+export function nullValue() {
+  return new RepresentationScalar('tag:yaml.org,2002:null', 'null');
+}
+
 export function bool(value: boolean) {
   return new RepresentationScalar('tag:yaml.org,2002:bool', value.toString());
 }
 
-export function nullValue() {
-  return new RepresentationScalar('tag:yaml.org,2002:null', 'null');
+export function int(value: bigint) {
+  return new RepresentationScalar('tag:yaml.org,2002:int', value.toString());
+}
+
+export function seq(items: Iterable<RepresentationNode>) {
+  return new RepresentationSequence('tag:yaml.org,2002:int', Array.from(items));
 }

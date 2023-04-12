@@ -19,6 +19,16 @@ expected:
 
 ---
 input:
+  - @size foo
+  - @size [bar]
+  - @size {? baz, ? xyzzy}
+expected:
+  - 3
+  - 1
+  - 2
+
+---
+input:
   - @isStr foo
   - @isStr 42
 expected:

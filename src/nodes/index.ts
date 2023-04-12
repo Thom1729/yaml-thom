@@ -85,6 +85,8 @@ import { equals } from './equality';
 export class RepresentationScalar<TagType extends string = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
 
+  get size() { return this.content.length; }
+
   clone() {
     return new RepresentationScalar(this.tag, this.content);
   }
@@ -98,6 +100,10 @@ export class RepresentationSequence<TagType extends string = string> extends Val
   }
 
   get size() { return this.content.length; }
+
+  get(index: number) {
+    return this.content[index];
+  }
 
   map(callback: (item: RepresentationNode) => RepresentationNode) {
     return new RepresentationSequence(this.tag, this.content.map(callback));

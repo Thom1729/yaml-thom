@@ -1,7 +1,7 @@
 import { assertNoArgs, type Library } from './util';
 import {
   str, bool,
-  isStr, isNull, isBool, isInt, isFloat, isSeq, isMap,
+  isStr, isNull, isBool, isInt, isFloat, isSeq, isMap, int,
 } from '../helpers';
 
 export default {
@@ -13,6 +13,11 @@ export default {
   tag(value, args) {
     assertNoArgs(args);
     return str(value.tag);
+  },
+
+  size(value, args) {
+    assertNoArgs(args);
+    return int(BigInt(value.size));
   },
 
   isStr(value, args) {

@@ -1,0 +1,12 @@
+input:
+  - @get(0) [a, b, c]
+  - @get(1) [a, b, c]
+  - @get(2) [a, b, c]
+expected:
+  - a
+  - b
+  - c
+---
+input:
+  - @get(3) [a, b, c]
+error: true
