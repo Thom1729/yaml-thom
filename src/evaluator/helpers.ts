@@ -10,7 +10,7 @@ export function isStr(node: RepresentationNode): node is RepresentationScalar<'t
 }
 
 export function assertStr(node: RepresentationNode, message?: string): asserts node is RepresentationScalar<'tag:yaml.org,2002:str'> {
-  if (node.kind !== 'scalar' || node.tag !== 'tag:yaml.org,2002:str') throw new TypeError(message ?? 'expected str');
+  if (!isStr(node)) throw new TypeError(message ?? 'expected str');
 }
 
 export function isNull(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:null'> {
@@ -18,7 +18,7 @@ export function isNull(node: RepresentationNode): node is RepresentationScalar<'
 }
 
 export function assertNull(node: RepresentationNode, message?: string): asserts node is RepresentationScalar<'tag:yaml.org,2002:null'> {
-  if (node.kind !== 'scalar' || node.tag !== 'tag:yaml.org,2002:null') throw new TypeError(message ?? 'expected null');
+  if (!isNull(node)) throw new TypeError(message ?? 'expected null');
 }
 
 export function isBool(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:bool'> {
@@ -26,9 +26,8 @@ export function isBool(node: RepresentationNode): node is RepresentationScalar<'
 }
 
 export function assertBool(node: RepresentationNode, message?: string): asserts node is RepresentationScalar<'tag:yaml.org,2002:bool'> {
-  if (node.kind !== 'scalar' || node.tag !== 'tag:yaml.org,2002:bool') throw new TypeError(message ?? 'expected bool');
+  if (!isBool(node)) throw new TypeError(message ?? 'expected bool');
 }
-
 
 export function isInt(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:int'> {
   return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:int';
@@ -43,7 +42,7 @@ export function isSeq(node: RepresentationNode): node is RepresentationSequence<
 }
 
 export function assertSeq(node: RepresentationNode, message?: string): asserts node is RepresentationSequence<'tag:yaml.org,2002:seq'> {
-  if (node.kind !== 'sequence' || node.tag !== 'tag:yaml.org,2002:seq') throw new TypeError(message ?? 'expected seq');
+  if (!isSeq(node)) throw new TypeError(message ?? 'expected seq');
 }
 
 export function isMap(node: RepresentationNode): node is RepresentationMapping<'tag:yaml.org,2002:map'> {
@@ -51,7 +50,7 @@ export function isMap(node: RepresentationNode): node is RepresentationMapping<'
 }
 
 export function assertMap(node: RepresentationNode, message?: string): asserts node is RepresentationMapping<'tag:yaml.org,2002:map'> {
-  if (node.kind !== 'mapping' || node.tag !== 'tag:yaml.org,2002:map') throw new TypeError(message ?? 'expected map');
+  if (!isMap(node)) throw new TypeError(message ?? 'expected map');
 }
 
 export function isAnnotation(node: RepresentationNode): node is RepresentationMapping<'tag:yaml.org,2002:annotation'> {
