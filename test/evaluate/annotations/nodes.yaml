@@ -29,6 +29,36 @@ expected:
 
 ---
 input:
+  - @get(foo) { foo: bar }
+  - @get(1) [a, b]
+expected:
+  - bar
+  - b
+
+---
+input:
+  - @get(baz) { foo: bar }
+error: true
+
+---
+input:
+  - @get(1) []
+error: true
+
+---
+input:
+  - @equal []
+  - @equal [a]
+  - @equal [a, a]
+  - @equal [a, a, b]
+expected:
+  - true
+  - true
+  - true
+  - false
+
+---
+input:
   - @isStr foo
   - @isStr 42
 expected:
