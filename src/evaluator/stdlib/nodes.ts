@@ -1,4 +1,4 @@
-import { type Library } from './util';
+import type { Library } from '.';
 import {
   str, bool,
   isStr, isNull, isBool, isInt, isFloat, isSeq, isMap, int,

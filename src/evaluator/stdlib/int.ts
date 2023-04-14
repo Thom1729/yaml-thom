@@ -1,4 +1,4 @@
-import { type Library } from './util';
+import type { Library } from '.';
 import { int, extractInt } from '../helpers';
 
 import { simpleAnnotation, specs } from '../signature';

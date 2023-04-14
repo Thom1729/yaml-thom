@@ -1,4 +1,11 @@
 input:
+  - @not true
+  - @not false
+expected:
+  - false
+  - true
+---
+input:
   - @and []
   - @and [true]
   - @and [true, false]

@@ -1,13 +1,10 @@
-import { assertNoArgs, type Library } from './util';
-import { str, extractStrContent, extractSeqItems } from '../helpers';
+import type { Library } from '.';
+import { str, extractStrContent } from '../helpers';
 import { simpleAnnotation, specs } from '../signature';
 
 export default {
   uppercase: simpleAnnotation(specs.str, [], value => str(value.content.toUpperCase())),
   lowercase: simpleAnnotation(specs.str, [], value => str(value.content.toLowerCase())),
 
-  join(value, args) {
-    assertNoArgs(args); // TODO support optional delimiter
-    return str(extractSeqItems(value).map(extractStrContent).join(''));
-  },
+  join: simpleAnnotation(specs.seqOf(specs.str), [], value => str(Array.from(value).map(extractStrContent).join('')))
 } satisfies Library;

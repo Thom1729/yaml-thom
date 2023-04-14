@@ -1,10 +1,11 @@
+import type { Library } from '.';
+
 import type { RepresentationNode } from '@/nodes';
 
 import { assertMap, isAnnotation, extractAnnotationInfo } from '../helpers';
 import { Y } from '@/util';
 
-import { assertNoArgs, type Library } from './util';
-import { simpleAnnotation } from '../signature';
+import { simpleAnnotation, checkArgumentTypes } from '../signature';
 
 export default {
   var: simpleAnnotation({ kind: 'scalar' }, [], (value, _, context) => {
@@ -17,21 +18,20 @@ export default {
     let newContext = context;
     for (const arg of args) {
       assertMap(arg, 'let args should be maps');
-
       newContext = newContext.merge(arg.map(node => evaluate(node, newContext)));
     }
     return evaluate(value, newContext);
   },
 
   quote(value, args) {
-    assertNoArgs(args);
+    checkArgumentTypes([], args);
     return value;
   },
 
   eval: simpleAnnotation({}, [], (value, _, context, evaluate) => evaluate(value, context)),
 
   quasiquote(value, args, context, evaluate) {
-    assertNoArgs(args);
+    checkArgumentTypes([], args);
     // TODO handle cycles
     return Y<RepresentationNode, [RepresentationNode]>((rec, node): RepresentationNode => {
       if (isAnnotation(node)) {
