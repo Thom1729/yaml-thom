@@ -5,7 +5,7 @@ import type { RepresentationNode } from '@/nodes';
 import { assertMap, isAnnotation, extractAnnotationInfo } from '../helpers';
 import { Y } from '@/util';
 
-import { simpleAnnotation, checkArgumentTypes } from '../signature';
+import { simpleAnnotation, assertArgumentTypes } from '../signature';
 
 export default {
   var: simpleAnnotation({ kind: 'scalar' }, [], (value, _, context) => {
@@ -24,14 +24,14 @@ export default {
   },
 
   quote(value, args) {
-    checkArgumentTypes([], args);
+    assertArgumentTypes(args, []);
     return value;
   },
 
   eval: simpleAnnotation({}, [], (value, _, context, evaluate) => evaluate(value, context)),
 
   quasiquote(value, args, context, evaluate) {
-    checkArgumentTypes([], args);
+    assertArgumentTypes(args, []);
     // TODO handle cycles
     return Y<RepresentationNode, [RepresentationNode]>((rec, node): RepresentationNode => {
       if (isAnnotation(node)) {

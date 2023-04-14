@@ -32,25 +32,45 @@ type NodeArgumentsType<T extends readonly NodeTypeSpec[]> =
     ? readonly [NodeType<First>, ...NodeArgumentsType<Rest>]
     : [];
 
-export function checkType<const T extends NodeTypeSpec>(type: T, node: RepresentationNode): node is NodeType<T> {
+function checkType<const T extends NodeTypeSpec>(
+  node: RepresentationNode,
+  type: T,
+): node is NodeType<T> {
   if (type.kind !== undefined && type.kind !== node.kind) return false;
   if (type.tag !== undefined && type.tag !== node.tag) return false;
 
   if (type.items !== undefined) {
     if (node.kind !== 'sequence') return false;
     for (const item of node) {
-      if (!checkType(type.items, item)) return false;
+      if (!checkType(item, type.items)) return false;
     }
   }
 
   return true;
 }
 
-export function checkArgumentTypes<const T extends readonly NodeTypeSpec[]>(types: T, nodes: readonly RepresentationNode[]): nodes is NodeArgumentsType<T> {
+function checkArgumentTypes<const T extends readonly NodeTypeSpec[]>(
+  nodes: readonly RepresentationNode[],
+  types: T,
+): nodes is NodeArgumentsType<T> {
   for (const [t, arg] of zip(types, nodes)) {
-    if (!checkType(t as NodeTypeSpec, arg as RepresentationNode)) return false;
+    if (!checkType(arg as RepresentationNode, t as NodeTypeSpec)) return false;
   }
   return true;
+}
+
+export function assertType<const T extends NodeTypeSpec>(
+  node: RepresentationNode,
+  type: T,
+): asserts node is NodeType<T> {
+  if (!checkType(node, type)) throw new TypeError(`assertion failed`);
+}
+
+export function assertArgumentTypes<const T extends readonly NodeTypeSpec[]>(
+  nodes: readonly RepresentationNode[],
+  types: T,
+): asserts nodes is NodeArgumentsType<T> {
+  if (!checkArgumentTypes(nodes, types)) throw new TypeError(`assertion failed`);
 }
 
 //////////
@@ -68,11 +88,11 @@ export function simpleAnnotation<T extends NodeTypeSpec, const U extends readonl
   ) => RepresentationNode,
 ): AnnotationFunction {
   return (rawValue, rawArgs, context, evaluate) => {
-    const value = evaluate(rawValue, context);
-    if (!checkType(valueType, value)) throw new TypeError(`value`);
-
     const args = rawArgs.map(arg => evaluate(arg, context));
-    if (!checkArgumentTypes(argumentTypes, args)) throw new TypeError(`arg`);
+    assertArgumentTypes(args, argumentTypes);
+
+    const value = evaluate(rawValue, context);
+    assertType(value, valueType);
 
     return implementation(value, args, context, evaluate);
   };
