@@ -1,9 +1,7 @@
-import { assertNoArgs, type Library } from './util';
+import { type Library } from './util';
 import { extractSeqItems, seq } from '../helpers';
+import { simpleAnnotation, specs } from '../signature';
 
 export default {
-  concatenate(value, args) {
-    assertNoArgs(args);
-    return seq(extractSeqItems(value).flatMap(extractSeqItems));
-  }
+  concatenate: simpleAnnotation(specs.seq, [], value => seq(Array.from(value).flatMap(extractSeqItems))),
 } satisfies Library;

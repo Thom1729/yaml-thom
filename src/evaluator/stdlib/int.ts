@@ -1,23 +1,10 @@
-import { assertNoArgs, type Library } from './util';
-import { int, extractInt, extractSeqItems } from '../helpers';
+import { type Library } from './util';
+import { int, extractInt } from '../helpers';
+
+import { simpleAnnotation, specs } from '../signature';
 
 export default {
-  sum(value, args) {
-    assertNoArgs(args);
-    return int(extractSeqItems(value).map(extractInt).reduce((a,b) => a+b, 0n));
-  },
-
-  min(value, args) {
-    assertNoArgs(args);
-    const items = extractSeqItems(value).map(extractInt);
-    if (items.length === 0) throw new TypeError(`no items`);
-    return int(items.reduce((a,b) => a>b ? b : a));
-  },
-
-  max(value, args) {
-    assertNoArgs(args);
-    const items = extractSeqItems(value).map(extractInt);
-    if (items.length === 0) throw new TypeError(`no items`);
-    return int(items.reduce((a,b) => a>b ? a : b));
-  },
+  sum: simpleAnnotation(specs.seqOf(specs.int), [], value => int(Array.from(value).map(extractInt).reduce((a,b) => a+b, 0n))),
+  min: simpleAnnotation(specs.seqOf(specs.int), [], value => int(Array.from(value).map(extractInt).reduce((a,b) => a>b ? b : a))),
+  max: simpleAnnotation(specs.seqOf(specs.int), [], value => int(Array.from(value).map(extractInt).reduce((a,b) => a<b ? b : a))),
 } satisfies Library;

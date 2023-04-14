@@ -1,18 +1,17 @@
 import type { RepresentationNode } from '@/nodes';
 
 import { assertMap, isAnnotation, extractAnnotationInfo } from '../helpers';
-import { assertNotNull, Y } from '@/util';
+import { Y } from '@/util';
 
 import { assertNoArgs, type Library } from './util';
+import { simpleAnnotation } from '../signature';
 
 export default {
-  var(value, args, context, evaluate) {
-    assertNoArgs(args);
-    const key = evaluate(value, context);
-    const result = context.get(key);
-    assertNotNull(result, `var ${key} not found`);
+  var: simpleAnnotation({ kind: 'scalar' }, [], (value, _, context) => {
+    const result = context.get(value);
+    if (result === null) throw new TypeError(`var ${value} not found`);
     return result;
-  },
+  }),
 
   let(value, args, context, evaluate) {
     let newContext = context;
@@ -29,10 +28,7 @@ export default {
     return value;
   },
 
-  eval(value, args, context, evaluate) {
-    assertNoArgs(args);
-    return evaluate(evaluate(value, context), context);
-  },
+  eval: simpleAnnotation({}, [], (value, _, context, evaluate) => evaluate(value, context)),
 
   quasiquote(value, args, context, evaluate) {
     assertNoArgs(args);

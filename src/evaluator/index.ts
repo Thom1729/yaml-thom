@@ -37,7 +37,7 @@ export function evaluate(
   context: RepresentationMapping,
 ): RepresentationNode {
   if (isAnnotation(node)) {
-    let annotation = null;
+    let annotation: Annotation;
     try {
       annotation = extractAnnotationInfo(node);
     } catch (e) {
