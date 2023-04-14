@@ -1,0 +1,6 @@
+input:
+  - @if(true) [a, b]
+  - @if(false) [a, b]
+expected:
+  - a
+  - b
