@@ -53,8 +53,8 @@ function checkArgumentTypes<const T extends readonly NodeTypeSpec[]>(
   nodes: readonly RepresentationNode[],
   types: T,
 ): nodes is NodeArgumentsType<T> {
-  for (const [t, arg] of zip(types, nodes)) {
-    if (!checkType(arg as RepresentationNode, t as NodeTypeSpec)) return false;
+  for (const [arg, t] of zip(nodes, types as readonly NodeTypeSpec[])) {
+    if (!checkType(arg, t)) return false;
   }
   return true;
 }
