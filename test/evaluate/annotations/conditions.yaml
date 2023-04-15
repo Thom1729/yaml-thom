@@ -1,0 +1,37 @@
+input:
+  - @if(true) [a, b]
+  - @if(false) [a, b]
+expected:
+  - a
+  - b
+---
+input:
+  - @switch(b)
+    - a: 1
+    - b: 2
+expected:
+  - 2
+---
+input:
+  - @switch(c)
+    - a: 1
+    - b: 2
+error: true
+---
+input:
+  - @cond
+    - true: 1
+expected:
+  - 1
+---
+input:
+  - @cond
+    - false: 1
+    - true: 2
+expected:
+  - 2
+---
+input:
+  - @cond
+    - false: 1
+error: true

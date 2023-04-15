@@ -11,6 +11,9 @@ import { diff } from '@/nodes/diff';
 
 import { extractMapEntries, extractStringMap } from '@/evaluator/helpers';
 
+import chalk from 'chalk';
+import { inspect } from 'util';
+
 interface AnnotationTest {
   name: string;
   context: readonly (readonly [RepresentationNode, RepresentationNode])[];
@@ -73,18 +76,22 @@ if (testNames.length === 0) {
     .map(s => s.slice(0, -5));
 }
 
+const STATUS_COLORS = {
+  success: 'green',
+  failure: 'red',
+} as const;
 
 for (const testName of testNames) {
-  for (const test of loadAnnotationTest(testName)) {
-    const { status, diffs, error } = runAnnotationTest(test);
+  logger.log(testName);
 
-    if (status !== 'success') {
-      logger.log(testName);
+  logger.indented(() => {
+    for (const test of loadAnnotationTest(testName)) {
+      const { status, diffs, error } = runAnnotationTest(test);
 
-      logger.indented(() => {
-        if (error) {
-          logger.log(error);
-        }
+      logger.log(chalk[STATUS_COLORS[status]](status));
+
+      if (status !== 'success') {
+        if (error) logger.log(chalk.red(inspect(error)));
         if (diffs?.length) {
           for (const { path, actual, expected, message } of diffs) {
             logger.log(`${path}: ${message}`);
@@ -94,7 +101,7 @@ for (const testName of testNames) {
             prettyPrint(logger.write.bind(logger), expected);
           }
         }
-      });
+      }
     }
-  }
+  });
 }

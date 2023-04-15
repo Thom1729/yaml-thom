@@ -32,6 +32,7 @@ type NodeArgumentsType<T extends readonly NodeTypeSpec[]> =
     ? readonly [NodeType<First>, ...NodeArgumentsType<Rest>]
     : [];
 
+// TODO: return specifics
 function checkType<const T extends NodeTypeSpec>(
   node: RepresentationNode,
   type: T,
@@ -49,28 +50,20 @@ function checkType<const T extends NodeTypeSpec>(
   return true;
 }
 
-function checkArgumentTypes<const T extends readonly NodeTypeSpec[]>(
-  nodes: readonly RepresentationNode[],
-  types: T,
-): nodes is NodeArgumentsType<T> {
-  for (const [arg, t] of zip(nodes, types as readonly NodeTypeSpec[])) {
-    if (!checkType(arg, t)) return false;
-  }
-  return true;
-}
-
 export function assertType<const T extends NodeTypeSpec>(
   node: RepresentationNode,
   type: T,
 ): asserts node is NodeType<T> {
-  if (!checkType(node, type)) throw new TypeError(`assertion failed`);
+  if (!checkType(node, type)) throw new TypeError(`expected ${JSON.stringify(type)}, got ${node.kind} tagged ${node.tag}`);
 }
 
 export function assertArgumentTypes<const T extends readonly NodeTypeSpec[]>(
   nodes: readonly RepresentationNode[],
   types: T,
 ): asserts nodes is NodeArgumentsType<T> {
-  if (!checkArgumentTypes(nodes, types)) throw new TypeError(`assertion failed`);
+  for (const [arg, t] of zip(nodes, types as readonly NodeTypeSpec[])) {
+    assertType(arg, t);
+  }
 }
 
 //////////
