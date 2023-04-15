@@ -92,7 +92,10 @@ export class RepresentationScalar<TagType extends string = string> extends Value
   }
 }
 
-export class RepresentationSequence<TagType extends string = string> extends ValueNode<TagType, RepresentationNode[]> {
+export class RepresentationSequence<
+  TagType extends string = string,
+  ItemType extends RepresentationNode = RepresentationNode,
+> extends ValueNode<TagType, ItemType[]> {
   readonly kind = 'sequence';
 
   *[Symbol.iterator]() {
@@ -105,7 +108,7 @@ export class RepresentationSequence<TagType extends string = string> extends Val
     return this.content[index];
   }
 
-  map(callback: (item: RepresentationNode) => RepresentationNode) {
+  map(callback: (item: ItemType) => ItemType) {
     return new RepresentationSequence(this.tag, this.content.map(callback));
   }
 }

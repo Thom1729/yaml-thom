@@ -80,7 +80,7 @@ class CompositionOperation {
       this.setAnchor(node, ret);
       return ret;
     } else if (node.kind === 'sequence') {
-      const ret = new RepresentationSequence(tag, []);
+      const ret = new RepresentationSequence<string, RepresentationNode>(tag, []);
       this.setAnchor(node, ret);
       for (const child of node) {
         ret.content.push(this.composeNode(child));

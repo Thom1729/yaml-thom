@@ -6,6 +6,6 @@ import { simpleAnnotation, specs } from '../signature';
 
 export default {
   not: simpleAnnotation(specs.bool, [], value => bool(!extractBool(value))),
-  and: simpleAnnotation(specs.seq, [], value => bool(Array.from(value).every(extractBool))),
-  or: simpleAnnotation(specs.seq, [], value => bool(Array.from(value).some(extractBool))),
+  and: simpleAnnotation(specs.seqOf(specs.bool), [], value => bool(Array.from(value).every(extractBool))),
+  or: simpleAnnotation(specs.seqOf(specs.bool), [], value => bool(Array.from(value).some(extractBool))),
 } satisfies Library;

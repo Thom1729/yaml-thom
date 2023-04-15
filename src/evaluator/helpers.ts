@@ -106,7 +106,7 @@ export function _extractStringMap<T extends string>(
   };
 }
 
-export function extractAnnotationInfo(annotation: RepresentationMapping) {
+export function extractAnnotationInfo(annotation: RepresentationMapping<'tag:yaml.org,2002:annotation'>) {
   const { name, value, arguments: args } = _extractStringMap(Array.from(annotation), ['name', 'value', 'arguments']);
 
   return {
@@ -116,13 +116,11 @@ export function extractAnnotationInfo(annotation: RepresentationMapping) {
   };
 }
 
-export function extractBool(node: RepresentationNode) {
-  assertBool(node);
+export function extractBool(node: RepresentationScalar<'tag:yaml.org,2002:bool'>) {
   return node.content === 'true';
 }
 
-export function extractInt(node: RepresentationNode) {
-  assertInt(node);
+export function extractInt(node: RepresentationScalar<'tag:yaml.org,2002:int'>) {
   return BigInt(node.content);
 }
 

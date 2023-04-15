@@ -6,7 +6,7 @@ import {
 } from '../helpers';
 
 import { equals } from '@/nodes/equality';
-import { simpleAnnotation } from '../signature';
+import { assertType, simpleAnnotation, specs } from '../signature';
 
 export default {
   kind: simpleAnnotation({}, [], value => str(value.kind)),
@@ -15,6 +15,7 @@ export default {
 
   get: simpleAnnotation({}, [{}], (value, [key]) => {
     if (value.kind === 'sequence') {
+      assertType(key, specs.int);
       const result = value.get(Number(extractInt(key)));
       if (result === null) throw new TypeError(`index out of bounds`);
       return result;
