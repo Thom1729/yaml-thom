@@ -6,12 +6,20 @@ expected:
   - a
   - b
   - c
+
 ---
 input:
   - @get(3) [a, b, c]
 error: true
+
 ---
 input:
   - @map(item, @uppercase @var item) [a, b, c]
 expected:
   - [A, B, C]
+
+---
+input:
+  - @filter(item, @var item) [true, false, true]
+expected:
+  - [true, true]
