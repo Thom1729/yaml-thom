@@ -33,13 +33,12 @@ type Normalized<T extends NodeTypeSpec> = {
   kind: T['kind'] extends string ? T['kind'] : 'scalar' | 'sequence' | 'mapping',
   tag: T['tag'] extends string ? T['tag'] : string,
   items: Normalized<T['items'] extends NodeTypeSpec ? T['items'] : NodeTypeSpec>,
-}
+};
 
 type _NodeType<T extends Normalized<NodeTypeSpec>> =
 | ('scalar' extends T['kind'] ? RepresentationScalar<T['tag']> : never)
 | ('sequence' extends T['kind'] ? RepresentationSequence<T['tag'], _NodeType<T['items']>> : never)
-| ('mapping' extends T['kind'] ? RepresentationMapping<T['tag']> : never)
-;
+| ('mapping' extends T['kind'] ? RepresentationMapping<T['tag']> : never);
 
 type NodeArgumentsType<T extends readonly NodeTypeSpec[]> =
   T extends readonly [infer First extends NodeTypeSpec, ...(infer Rest extends readonly NodeTypeSpec[])]

@@ -52,6 +52,7 @@ export class SerializationSequence<TagType extends SerializationTag = Serializat
     yield* this.content;
   }
 
+  // Covert to array of codepoints to avoid counting astral characters as 2
   get size() { return this.content.length; }
 }
 
@@ -85,7 +86,8 @@ import { equals } from './equality';
 export class RepresentationScalar<TagType extends string = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
 
-  get size() { return this.content.length; }
+  // Covert to array of codepoints to avoid counting astral characters as 2
+  get size() { return Array.from(this.content).length; }
 
   clone() {
     return new RepresentationScalar(this.tag, this.content);
