@@ -145,8 +145,8 @@ export class RepresentationMapping<TagType extends string = string> extends Valu
   }
 }
 
-type NodeKind = 'scalar' | 'sequence' | 'mapping';
-export type RepresentationNode<Kind extends NodeKind = NodeKind, Tag extends string = string> =
+type RepresentationNodeKind = 'scalar' | 'sequence' | 'mapping';
+export type RepresentationNode<Kind extends RepresentationNodeKind = RepresentationNodeKind, Tag extends string = string> =
   | Kind extends 'scalar' ? RepresentationScalar<Tag> : never
   | Kind extends 'sequence' ? RepresentationSequence<Tag> : never
   | Kind extends 'mapping' ? RepresentationMapping<Tag> : never;

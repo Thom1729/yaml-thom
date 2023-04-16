@@ -59,6 +59,22 @@ expected:
 
 ---
 input:
+  - @equal
+    - []
+    - []
+  - @equal
+    - &a [*a]
+    - &b [*b]
+  - @equal
+    - &a [*a]
+    - &b [[*b]]
+expected:
+  - true
+  - true
+  - true
+
+---
+input:
   - @isStr foo
   - @isStr 42
 expected:

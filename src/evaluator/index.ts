@@ -1,6 +1,7 @@
-import type {
+import {
   RepresentationNode,
   RepresentationMapping,
+  RepresentationSequence,
 } from '@/nodes';
 
 import { isAnnotation, extractAnnotationInfo } from './helpers';
@@ -35,35 +36,95 @@ export class EvaluationError extends Error {
 export function evaluate(
   node: RepresentationNode,
   context: RepresentationMapping,
-): RepresentationNode {
-  if (isAnnotation(node)) {
-    let annotation: Annotation;
-    try {
-      annotation = extractAnnotationInfo(node);
-    } catch (e) {
-      throw new EvaluationError(node, null, 'Invalid annotation node', e);
+) {
+  const cache = new Map<RepresentationNode, Map<RepresentationMapping, RepresentationNode | null>>();
+
+  function getCached(
+    node: RepresentationNode,
+    context: RepresentationMapping,
+  ) {
+    return cache.get(node)?.get(context);
+  }
+
+  function setCached(
+    node: RepresentationNode,
+    context: RepresentationMapping,
+    value: RepresentationNode | null,
+  ) {
+    let child = cache.get(node);
+    if (child === undefined) {
+      child = new Map();
+      cache.set(node, child);
     }
 
-    const f = STDLIB[annotation.name];
-    if (f === undefined) {
-      throw new EvaluationError(node, annotation, `Unknown annotation ${annotation.name}`);
+    child.set(context, value);
+  }
+
+  function rec(
+    node: RepresentationNode,
+    context: RepresentationMapping,
+  ): RepresentationNode {
+    const cached = getCached(node, context);
+    if (cached) {
+      return cached;
+    } else if (cached === null) {
+      throw new Error(`Recursively evaluating same annotation node with same context`);
     }
 
-    try {
-      return f(annotation.value, annotation.arguments, context, evaluate);
-    } catch (e) {
-      if (e instanceof EvaluationError) {
-        throw e;
-      } else {
-        throw new EvaluationError(node, annotation, `Error evaluating annotation ${annotation.name}`, e);
+    if (isAnnotation(node)) {
+      let annotation: Annotation;
+      try {
+        annotation = extractAnnotationInfo(node);
+      } catch (e) {
+        throw new EvaluationError(node, null, 'Invalid annotation node', e);
+      }
+
+      const f = STDLIB[annotation.name];
+      if (f === undefined) {
+        throw new EvaluationError(node, annotation, `Unknown annotation ${annotation.name}`);
+      }
+
+      try {
+        setCached(node, context, null);
+        const result = f(annotation.value, annotation.arguments, context, rec);
+        setCached(node, context, result);
+        return result;
+      } catch (e) {
+        if (e instanceof EvaluationError) {
+          throw e;
+        } else {
+          throw new EvaluationError(node, annotation, `Error evaluating annotation ${annotation.name}`, e);
+        }
+      }
+    }
+
+    switch (node.kind) {
+      case 'scalar': {
+        const result = node.clone();
+        setCached(node, context, result);
+        return result;
+      }
+      case 'sequence': {
+        const result = new RepresentationSequence(node.tag, [] as RepresentationNode[]);
+        setCached(node, context, result);
+        for (const item of node) {
+          result.content.push(rec(item, context));
+        }
+        return result;
+      }
+      case 'mapping': {
+        const result = new RepresentationMapping(node.tag, []);
+        setCached(node, context, result);
+        for (const [key, value] of node) {
+          result.content.push([
+            rec(key, context),
+            rec(value, context),
+          ]);
+        }
+        return result;
       }
     }
   }
 
-  // TODO: keep track of evaluated nodes
-  switch (node.kind) {
-    case 'scalar': return node.clone();
-    case 'sequence': return node.map(child => evaluate(child, context));
-    case 'mapping': return node.map(child => evaluate(child, context));
-  }
+  return rec(node, context);
 }
