@@ -1,32 +1,14 @@
-import { zip } from '@/util';
+import { zip, cmpStringsByCodepoint } from '@/util';
 
-import type { RepresentationMapping, RepresentationNode, RepresentationScalar, RepresentationSequence } from '.';
+import type {
+  RepresentationMapping,
+  RepresentationNode,
+  RepresentationScalar,
+  RepresentationSequence,
+} from '.';
 
 export function equals(a: RepresentationNode, b: RepresentationNode) {
   return new NodeComparator().compare(a, b) === 0;
-}
-
-function cmpStrings(a: string, b: string) {
-  // if (a === b) return 0;
-
-  let i = 0, j = 0;
-  while (true) {
-    if (i === a.length && j === b.length) {
-      return 0;
-    } else if (i === a.length) {
-      return -1;
-    } else if (j === b.length) {
-      return 1;
-    }
-
-    const aChar = a.charCodeAt(i);
-    const bChar = b.charCodeAt(j);
-
-    if (aChar !== bChar) return aChar - bChar;
-
-    i += (aChar > 0xffff ? 2 : 1);
-    j += (bChar > 0xffff ? 2 : 1);
-  }
 }
 
 const KIND_INDEX = {
@@ -59,8 +41,8 @@ class NodeComparator {
     if (a === b) return 0;
 
     if (a.kind !== b.kind) return KIND_INDEX[a.kind] - KIND_INDEX[b.kind];
-    if (a.tag !== b.tag) return cmpStrings(a.tag, b.tag);
-    if (a.kind === 'scalar') return cmpStrings(a.content, (b as RepresentationScalar).content);
+    if (a.tag !== b.tag) return cmpStringsByCodepoint(a.tag, b.tag);
+    if (a.kind === 'scalar') return cmpStringsByCodepoint(a.content, (b as RepresentationScalar).content);
     if (a.size !== b.size) return a.size - b.size;
 
     const cached = this.getCached(a, b);

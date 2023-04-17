@@ -1,3 +1,5 @@
+import { stringCodepointLength } from '@/util';
+
 const QUESTION: unique symbol = Symbol.for('?');
 const EXCLAMATION: unique symbol = Symbol.for('!');
 
@@ -52,7 +54,6 @@ export class SerializationSequence<TagType extends SerializationTag = Serializat
     yield* this.content;
   }
 
-  // Covert to array of codepoints to avoid counting astral characters as 2
   get size() { return this.content.length; }
 }
 
@@ -86,8 +87,7 @@ import { equals } from './equality';
 export class RepresentationScalar<TagType extends string = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
 
-  // Covert to array of codepoints to avoid counting astral characters as 2
-  get size() { return Array.from(this.content).length; }
+  get size() { return stringCodepointLength(this.content); }
 
   clone() {
     return new RepresentationScalar(this.tag, this.content);
