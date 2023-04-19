@@ -41,6 +41,7 @@ export function compose(document: SerializationNode, options: ComposeOptions = {
   return unAliased;
 }
 
+// Link aliases to anchors, converting a serialization tree to an unresolved representation graph.
 function link(node: SerializationNode) {
   const anchoredNodes = new Map<string, UnresolvedNode>();
   function setAnchor(node: SerializationValueNode, ret: UnresolvedNode) {
@@ -76,6 +77,7 @@ function link(node: SerializationNode) {
   })(node);
 }
 
+// Resolve tags, canonicalize scalars, and sort mappings.
 function resolve(node: UnresolvedNode, schema: Schema): asserts node is RepresentationNode {
   const comparator = new NodeComparator();
   const composedNodes = new Set<UnresolvedNode>();
