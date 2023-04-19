@@ -1,9 +1,9 @@
-import { NonSpecificTag, type UnresolvedSerializationNode } from '@/nodes';
+import { NonSpecificTag, type UnresolvedNode } from '@/nodes';
 
 type Rule = RegExp | string;
 
 export interface Schema {
-  resolveNode(node: UnresolvedSerializationNode): string | null;
+  resolveNode(node: UnresolvedNode): string | null;
 }
 
 export class PredicateSchema {
@@ -23,7 +23,7 @@ export class PredicateSchema {
     }
   }
 
-  resolveNode(node: UnresolvedSerializationNode) {
+  resolveNode(node: UnresolvedNode) {
     switch (node.kind) {
       case 'sequence': return 'tag:yaml.org,2002:seq';
       case 'mapping': return 'tag:yaml.org,2002:map';
@@ -31,6 +31,7 @@ export class PredicateSchema {
         switch (node.tag) {
           case NonSpecificTag.exclamation: return 'tag:yaml.org,2002:str';
           case NonSpecificTag.question: return this.resolvePlainScalar(node.content);
+          default: throw new Error(`unreachable`);
         }
       }
     }

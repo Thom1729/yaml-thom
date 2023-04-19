@@ -18,7 +18,7 @@ const KIND_INDEX = {
 };
 
 // TODO: Handle cycles, etc
-class NodeComparator {
+export class NodeComparator {
   cache = new Map<RepresentationNode, Map<RepresentationNode, number | null>>();
 
   getCached(a: RepresentationNode, b: RepresentationNode) {

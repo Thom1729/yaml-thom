@@ -84,7 +84,7 @@ export type UnresolvedSerializationNode = SerializationValueNode<NonSpecificTag>
 
 import { equals } from './equality';
 
-export class RepresentationScalar<TagType extends string = string> extends ValueNode<TagType, string> {
+export class RepresentationScalar<TagType extends SerializationTag = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
 
   get size() { return stringCodepointLength(this.content); }
@@ -95,8 +95,8 @@ export class RepresentationScalar<TagType extends string = string> extends Value
 }
 
 export class RepresentationSequence<
-  TagType extends string = string,
-  ItemType extends RepresentationNode = RepresentationNode,
+  TagType extends SerializationTag = string,
+  ItemType extends UnresolvedNode = RepresentationNode,
 > extends ValueNode<TagType, ItemType[]> {
   readonly kind = 'sequence';
 
@@ -115,10 +115,13 @@ export class RepresentationSequence<
   }
 }
 
-export class RepresentationMapping<TagType extends string = string> extends ValueNode<TagType, (readonly [RepresentationNode, RepresentationNode])[]> {
+export class RepresentationMapping<
+  TagType extends SerializationTag = string,
+  ItemType extends UnresolvedNode = RepresentationNode,
+> extends ValueNode<TagType, (readonly [ItemType, ItemType])[]> {
   readonly kind = 'mapping';
 
-  constructor(tag: TagType, content: Iterable<readonly [RepresentationNode, RepresentationNode]>) {
+  constructor(tag: TagType, content: Iterable<readonly [ItemType, ItemType]>) {
     super(tag, Array.from(content));
   }
 
@@ -128,25 +131,30 @@ export class RepresentationMapping<TagType extends string = string> extends Valu
 
   get size() { return this.content.length; }
 
-  get(k: RepresentationNode) {
+  get(this: RepresentationMapping, k: ItemType & RepresentationNode) {
     for (const [key, value] of this.content) {
       if (equals(k, key)) { return value; }
     }
     return null;
   }
 
-  map(callback: (item: RepresentationNode) => RepresentationNode) {
+  map(callback: (item: ItemType) => ItemType) {
     return new RepresentationMapping(this.tag, this.content.map(([key, value]) => [callback(key), callback(value)]));
   }
 
-  merge(other: Iterable<readonly [RepresentationNode, RepresentationNode]>) {
-    const content: (readonly [RepresentationNode, RepresentationNode])[] = [...other, ...this.content];
+  merge(other: Iterable<readonly [ItemType, ItemType]>) {
+    const content: (readonly [ItemType, ItemType])[] = [...other, ...this.content];
     return new RepresentationMapping(this.tag, content);
   }
 }
 
 type RepresentationNodeKind = 'scalar' | 'sequence' | 'mapping';
-export type RepresentationNode<Kind extends RepresentationNodeKind = RepresentationNodeKind, Tag extends string = string> =
+export type RepresentationNode<Kind extends RepresentationNodeKind = RepresentationNodeKind, Tag extends SerializationTag = string> =
   | Kind extends 'scalar' ? RepresentationScalar<Tag> : never
   | Kind extends 'sequence' ? RepresentationSequence<Tag> : never
   | Kind extends 'mapping' ? RepresentationMapping<Tag> : never;
+
+export type UnresolvedNode =
+| RepresentationScalar<SerializationTag>
+| RepresentationSequence<SerializationTag, UnresolvedNode>
+| RepresentationMapping<SerializationTag, UnresolvedNode>;
