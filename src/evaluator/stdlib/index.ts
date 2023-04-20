@@ -6,6 +6,7 @@ import string from './string';
 import bool from './bool';
 import int from './int';
 import seq from './seq';
+import map from './map';
 
 import type { AnnotationFunction } from '..';
 
@@ -20,4 +21,5 @@ export default {
   ...bool,
   ...int,
   ...seq,
+  ...map,
 } as Library;
