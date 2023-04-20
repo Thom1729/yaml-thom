@@ -145,3 +145,7 @@ export function int(value: bigint) {
 export function seq(items: Iterable<RepresentationNode>) {
   return new RepresentationSequence('tag:yaml.org,2002:seq', Array.from(items));
 }
+
+export function map(items: Iterable<readonly [RepresentationNode, RepresentationNode]>) {
+  return new RepresentationMapping('tag:yaml.org,2002:map', Array.from(items));
+}

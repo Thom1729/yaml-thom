@@ -82,7 +82,7 @@ export type UnresolvedSerializationNode = SerializationValueNode<NonSpecificTag>
 
 //////////
 
-import { equals } from './equality';
+import { NodeComparator, equals } from './equality';
 
 export class RepresentationScalar<TagType extends SerializationTag = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
@@ -121,8 +121,18 @@ export class RepresentationMapping<
 > extends ValueNode<TagType, (readonly [ItemType, ItemType])[]> {
   readonly kind = 'mapping';
 
-  constructor(tag: TagType, content: Iterable<readonly [ItemType, ItemType]>) {
-    super(tag, Array.from(content));
+  constructor(tag: TagType, content: Iterable<readonly [ItemType, ItemType]>, comparator: NodeComparator | boolean = true) {
+    const pairs = Array.from(content);
+    if (comparator && pairs.length > 1) {
+      const c = (comparator === true) ? new NodeComparator() : comparator;
+      (pairs as (readonly [RepresentationNode, RepresentationNode])[])
+        .sort((a, b) => {
+          const diff = c.compare(a[0], b[0]);
+          if (diff === 0) throw new Error(`duplicate keys`);
+          return diff;
+        });
+    }
+    super(tag, pairs);
   }
 
   *[Symbol.iterator]() {
@@ -143,8 +153,44 @@ export class RepresentationMapping<
   }
 
   merge(other: Iterable<readonly [ItemType, ItemType]>) {
-    const content: (readonly [ItemType, ItemType])[] = [...other, ...this.content];
-    return new RepresentationMapping(this.tag, content);
+    const content: (readonly [RepresentationNode, RepresentationNode])[] = [];
+
+    const
+      a = Array.from(this) as (readonly [RepresentationNode, RepresentationNode])[],
+      b = Array.from(other) as (readonly [RepresentationNode, RepresentationNode])[];
+
+    let i = 0, j = 0;
+
+    const comparator = new NodeComparator();
+
+    while (true) {
+      const x = a[i], y = b[j];
+
+      if (x === undefined && y === undefined) {
+        break;
+      } else if (x === undefined) {
+        content.push(y);
+        j++;
+      } else if (y === undefined) {
+        content.push(x);
+        i++;
+      } else {
+        const d = comparator.compare(x[0], y[0]);
+        if (d === 0) {
+          content.push(y);
+          i++;
+          j++;
+        } else if (d < 0) {
+          content.push(x);
+          i++;
+        } else {
+          content.push(y);
+          j++;
+        }
+      }
+    }
+
+    return new RepresentationMapping(this.tag, content, false);
   }
 }
 

@@ -11,3 +11,13 @@ expected:
     - [b, 3]
     - [[], 4]
     - [{}, 5]
+---
+input: @merge
+  - a: 1
+    b: 1
+  - a: 2
+    c: 2
+expected:
+  a: 2
+  b: 1
+  c: 2
