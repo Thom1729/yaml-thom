@@ -1,17 +1,23 @@
-export function single<T>(itr: Iterable<T>, message?: string) {
-  const arr = Array.from(itr);
-  switch (arr.length) {
-    case 0: throw new TypeError(message ?? `No value`);
-    case 1: return arr[0];
-    default: throw new TypeError(message ?? `${arr.length} values`);
-  }
+export function single<T>(iterable: Iterable<T>, message?: string) {
+  const itr = iterable[Symbol.iterator]();
+
+  const first = itr.next();
+  if (first.done) throw new TypeError(message ?? `No value`);
+
+  const second = itr.next();
+  if (!second.done) throw new TypeError(message ?? `Multiple values`);
+
+  return first.value;
 }
 
-export function singleOrNull<T>(itr: Iterable<T>, message?: string) {
-  const arr = Array.from(itr);
-  switch (arr.length) {
-    case 0: return null;
-    case 1: return arr[0];
-    default: throw new TypeError(message ?? `${arr.length} values`);
-  }
+export function singleOrNull<T>(iterable: Iterable<T>, message?: string) {
+  const itr = iterable[Symbol.iterator]();
+
+  const first = itr.next();
+  if (first.done) return null;
+
+  const second = itr.next();
+  if (!second.done) throw new TypeError(message ?? `Multiple values`);
+
+  return first.value;
 }
