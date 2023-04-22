@@ -1,4 +1,4 @@
-import { single, singleOrNull } from './collection';
+import { single, singleOrNull, enumerate } from './collection';
 
 describe(single, () => {
   test('empty', () => {
@@ -14,7 +14,6 @@ describe(single, () => {
   });
 });
 
-
 describe(singleOrNull, () => {
   test('empty', () => {
     expect(singleOrNull([])).toBe(null);
@@ -26,5 +25,19 @@ describe(singleOrNull, () => {
 
   test('empty', () => {
     expect(() => { singleOrNull([0, 1]); }).toThrow(TypeError);
+  });
+});
+
+describe(enumerate, () => {
+  test('empty', () => {
+    expect(Array.from(enumerate([]))).toStrictEqual([]);
+  });
+
+  test('from zero', () => {
+    expect(Array.from(enumerate([1, 2, 3]))).toStrictEqual([[0, 1], [1, 2], [2, 3]]);
+  });
+
+  test('from one', () => {
+    expect(Array.from(enumerate([1, 2, 3], 1))).toStrictEqual([[1, 1], [2, 2], [3, 3]]);
   });
 });

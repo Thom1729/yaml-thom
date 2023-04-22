@@ -14,7 +14,7 @@ import type {
 
 import { present } from '@/presenter';
 
-import { zip } from '@/util';
+import { enumerate, zip } from '@/util';
 
 type PathEntry<T> =
 | number
@@ -70,10 +70,8 @@ export function *diff(
         if (expected.size !== (actual as SerializationSequence).size) {
           yield difference('SIZE');
         } else {
-          let i = 0;
-          for (const [expectedChild, actualChild] of zip(expected, actual as SerializationSequence | RepresentationSequence)) {
+          for (const [i, [expectedChild, actualChild]] of enumerate(zip(expected, actual as SerializationSequence | RepresentationSequence))) {
             yield* _diff(expectedChild, actualChild, [...path, i]);
-            i++;
           }
         }
       } else {

@@ -9,26 +9,27 @@ import { evaluate } from '@/evaluator';
 import { prettyPrint } from '../prettyPrint';
 import { diff } from '@/nodes/diff';
 
-import { extractMapEntries, extractStringMap } from '@/evaluator/helpers';
+import { extractMapEntries, extractStrContent, extractStringMap } from '@/evaluator/helpers';
 
 import chalk from 'chalk';
 import { inspect } from 'util';
+import { enumerate } from '@/util';
 
 interface AnnotationTest {
-  name: string;
+  name?: string;
   context: readonly (readonly [RepresentationNode, RepresentationNode])[];
   input: RepresentationNode;
   expected: RepresentationNode | undefined;
   error: boolean | undefined;
 }
 
-function *loadAnnotationTest(name: string): Generator<AnnotationTest> {
-  const inputText = loadText('evaluate', 'annotations', `${name}.yaml`);
+function *loadAnnotationTest(suiteName: string): Generator<AnnotationTest> {
+  const inputText = loadText('evaluate', 'annotations', `${suiteName}.yaml`);
   for (const test of loadStream(inputText, { version: '1.3' })) {
-    const testProperties = extractStringMap(test, ['context?', 'input', 'expected?', 'error?']);
+    const testProperties = extractStringMap(test, ['context?', 'input', 'expected?', 'error?', 'name?']);
 
     yield {
-      name,
+      name: testProperties.name && extractStrContent(testProperties.name),
       input: testProperties.input,
       expected: testProperties.expected,
       context: testProperties.context ? extractMapEntries(testProperties.context) : [],
@@ -68,10 +69,10 @@ const logger = new Logger(process.stdout);
 import path from 'path';
 import fs from 'fs';
 
-let [, , ...testNames] = process.argv;
+let [, , ...suiteNames] = process.argv;
 
-if (testNames.length === 0) {
-  testNames = fs.readdirSync(path.join(__dirname, 'annotations'))
+if (suiteNames.length === 0) {
+  suiteNames = fs.readdirSync(path.join(__dirname, 'annotations'))
     .filter(s => s.endsWith('.yaml'))
     .map(s => s.slice(0, -5));
 }
@@ -81,13 +82,16 @@ const STATUS_COLORS = {
   failure: 'red',
 } as const;
 
-for (const testName of testNames) {
-  logger.log(testName);
+for (const suiteName of suiteNames) {
+  logger.log(suiteName);
 
   logger.indented(() => {
-    for (const test of loadAnnotationTest(testName)) {
+    for (const [i, test] of enumerate(loadAnnotationTest(suiteName), 1)) {
+      const testName = test.name ?? i;
+
       const { status, diffs, error } = runAnnotationTest(test);
 
+      logger.write(testName + ' ');
       logger.log(chalk[STATUS_COLORS[status]](status));
 
       if (status !== 'success') {
