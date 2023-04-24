@@ -7,6 +7,7 @@ import {
 import { isAnnotation, extractAnnotationInfo } from './helpers';
 
 import STDLIB from './stdlib';
+import { NodeComparator } from '@/nodes/equality';
 
 interface Annotation {
   name: string,
@@ -38,6 +39,7 @@ export function evaluate(
   context: RepresentationMapping,
 ) {
   const cache = new Map<RepresentationNode, Map<RepresentationMapping, RepresentationNode | null>>();
+  const comparator = new NodeComparator();
 
   function getCached(
     node: RepresentationNode,
@@ -68,7 +70,7 @@ export function evaluate(
     if (cached) {
       return cached;
     } else if (cached === null) {
-      throw new Error(`Recursively evaluating same annotation node with same context`);
+      throw new Error(`Recursively evaluating same annotation node with different context`);
     }
 
     if (isAnnotation(node)) {
@@ -121,6 +123,7 @@ export function evaluate(
             rec(value, context),
           ]);
         }
+        result.content.sort((a, b) => comparator.compare(a[0], b[0]));
         return result;
       }
     }

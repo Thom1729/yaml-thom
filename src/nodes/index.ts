@@ -82,7 +82,7 @@ export type UnresolvedSerializationNode = SerializationValueNode<NonSpecificTag>
 
 //////////
 
-import { NodeComparator, equals } from './equality';
+import { NodeComparator } from './equality';
 
 export class RepresentationScalar<TagType extends SerializationTag = string> extends ValueNode<TagType, string> {
   readonly kind = 'scalar';
@@ -141,9 +141,10 @@ export class RepresentationMapping<
 
   get size() { return this.content.length; }
 
-  get(this: RepresentationMapping, k: ItemType & RepresentationNode) {
+  get(this: RepresentationMapping, k: ItemType & RepresentationNode, comparator?: NodeComparator) {
+    const c = comparator ?? new NodeComparator();
     for (const [key, value] of this.content) {
-      if (equals(k, key)) { return value; }
+      if (c.compare(k, key) === 0) { return value; }
     }
     return null;
   }
