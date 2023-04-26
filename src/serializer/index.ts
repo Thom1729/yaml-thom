@@ -7,7 +7,6 @@ import {
   type SerializationNode,
   type SerializationValueNode,
   type RepresentationNode,
-  // type SerializationTag,
 } from '@/nodes';
 
 import {
@@ -17,17 +16,18 @@ import {
 
 import { canBePlainScalar } from '@/presenter';
 
-export interface ComposeOptions {
+export interface SerializeOptions {
   schema?: Schema;
 }
 
-export function serialize(doc: RepresentationNode, options: ComposeOptions = {}) {
+export function serialize(doc: RepresentationNode, options: SerializeOptions = {}) {
   const schema = options.schema ?? coreSchema;
   const cache = new Map<RepresentationNode, SerializationValueNode>();
   let anchorIndex = 0;
 
   function unresolveTag(node: RepresentationNode) {
     if (
+      // Don't resolve a scalar to ? if it can't be presented as a plain scalar
       (node.kind !== 'scalar' || canBePlainScalar(node.content))
       && schema.resolveNode({ ...node, tag: NonSpecificTag.question }) === node.tag
     ) {

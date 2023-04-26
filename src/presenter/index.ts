@@ -10,26 +10,40 @@ import {
 
 import { repeat, regexp } from '@/util';
 
-export function present(document: SerializationNode) {
-  const operation = new PresentOperation();
+export interface PresentOptions {
+  indentation?: number;
+}
+
+const DEFAULT_PRESENT_OPTIONS = {
+  indentation: 2,
+} satisfies PresentOptions;
+
+export function present(document: SerializationNode, options: PresentOptions = {}) {
+  const operation = new PresentOperation(options);
   operation.presentDocument(document);
   return operation.result.join('');
 }
 
-const NON_PLAIN_REGEXP = regexp`
-  ^[?:\-{}[\],#&*!|>'"%@\`]
-  | [?:-] (?= \s | [,{}[\]] )
-  | \s
-`;
-
-export function canBePlainScalar(content: string) {
-  return !NON_PLAIN_REGEXP.test(content);
-}
-
 class PresentOperation {
-  level = 0;
+  indentation: number;
+
   result: string[] = [];
   needSpace = false;
+
+  stack: { indentation: number }[] = [];
+  get level() { return this.stack.map(x => x.indentation).reduce((a,b) => a+b, 0); }
+
+  push() {
+    this.stack.push({ indentation: this.indentation });
+  }
+
+  pop() {
+    this.stack.pop();
+  }
+
+  constructor(options: PresentOptions) {
+    this.indentation = options.indentation ?? DEFAULT_PRESENT_OPTIONS.indentation;
+  }
 
   emit(s: string) {
     if (s.length > 0) {
@@ -46,13 +60,12 @@ class PresentOperation {
   }
 
   indent(d: number = 0) {
-    this.emit(repeat(this.level + d, '  '));
+    this.emit(repeat(this.level + d, ' '));
   }
 
   presentDocument(node: SerializationNode) {
     this.emit('%YAML 1.2\n');
     this.emit('---');
-    // if (node.)
     this.presentNode(node);
     this.emit('\n...\n');
   }
@@ -114,14 +127,14 @@ class PresentOperation {
       this._space();
       this.emit('[]');
     } else {
-      this.level += 1;
+      this.push();
       for (const item of node.content) {
         this.emit('\n');
-        this.indent(-1);
+        this.indent(- this.indentation);
         this.emit('-');
         this.presentNode(item);
       }
-      this.level -= 1;
+      this.pop();
     }
   }
 
@@ -133,19 +146,29 @@ class PresentOperation {
       this._space();
       this.emit('{}');
     } else {
-      this.level += 1;
+      this.push();
       for (const [key, value] of node.content) {
         this.emit('\n');
-        this.indent(-1);
+        this.indent(- this.indentation);
         this.emit('?');
         this.presentNode(key);
 
         this.emit('\n');
-        this.indent(-1);
+        this.indent(- this.indentation);
         this.emit(':');
         this.presentNode(value);
       }
-      this.level -= 1;
+      this.pop();
     }
   }
+}
+
+const NON_PLAIN_REGEXP = regexp`
+  ^[?:\-{}[\],#&*!|>'"%@\`]
+  | [?:-] (?= \s | [,{}[\]] )
+  | \s
+`;
+
+export function canBePlainScalar(content: string) {
+  return !NON_PLAIN_REGEXP.test(content);
 }

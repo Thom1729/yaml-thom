@@ -1,8 +1,8 @@
 import { parseSingleDocument, parseStream, type ParseOptions } from './parser';
 import { compose, type ComposeOptions } from './composer';
 
-import { serialize } from './serializer';
-import { present } from './presenter';
+import { SerializeOptions, serialize } from './serializer';
+import { PresentOptions, present } from './presenter';
 
 import type { RepresentationNode } from './nodes';
 
@@ -18,6 +18,8 @@ export function loadSingleDocument(text: string, options: LoadOptions = {}): Rep
   return compose(parseSingleDocument(text, options), options);
 }
 
-export function dumpDocument(document: RepresentationNode): string {
-  return present(serialize(document));
+export interface DumpOptions extends SerializeOptions, PresentOptions {}
+
+export function dumpDocument(document: RepresentationNode, options: DumpOptions = {}): string {
+  return present(serialize(document, options), options);
 }

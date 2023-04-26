@@ -20,7 +20,7 @@ logger.logCode(inputText);
 import { loadSingleDocument, dumpDocument } from '@/index';
 
 const representationGraph = loadSingleDocument(inputText, { version: '1.3' });
-const presented = dumpDocument(representationGraph);
+const presented = dumpDocument(representationGraph, { indentation: 4 });
 
 logger.log('\nPresented:');
 logger.logCode(presented);
