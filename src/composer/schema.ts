@@ -3,7 +3,7 @@ import { NonSpecificTag, type UnresolvedNode } from '@/nodes';
 type Rule = RegExp | string;
 
 export interface Schema {
-  resolveNode(node: UnresolvedNode): string | null;
+  resolveNode(node: Pick<UnresolvedNode, 'tag' | 'kind' | 'content'>): string | null;
 }
 
 export class PredicateSchema {
@@ -23,14 +23,15 @@ export class PredicateSchema {
     }
   }
 
-  resolveNode(node: UnresolvedNode) {
+  resolveNode(node: Pick<UnresolvedNode, 'tag' | 'kind' | 'content'>) {
     switch (node.kind) {
       case 'sequence': return 'tag:yaml.org,2002:seq';
       case 'mapping': return 'tag:yaml.org,2002:map';
       case 'scalar': {
         switch (node.tag) {
           case NonSpecificTag.exclamation: return 'tag:yaml.org,2002:str';
-          case NonSpecificTag.question: return this.resolvePlainScalar(node.content);
+          case NonSpecificTag.question: return this.resolvePlainScalar(node.content as string);
+            // TODO: Figure out why Pick isn't distributing over the union
           default: throw new Error(`unreachable`);
         }
       }

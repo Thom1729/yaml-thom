@@ -5,6 +5,7 @@ import {
   charForCodePoint,
   combineSurrogates,
   parseHex,
+  regexp,
 } from '@/util';
 
 function countEmptyLines(lines: string[]) {
@@ -151,18 +152,17 @@ export function handleBlockScalarContent(
 
 ////////////////////////////////////////
 
-const DOUBLE_ESCAPE_EXPR = new RegExp(
-  [
-    // /\\u[Dd][89AaBbCcDdEeFf]\p{Hex_Digit}{2}\\u[Dd][89AaBbCcDdEeFf]\p{Hex_Digit}{2}/u,
-    /\\u[Dd][89AaBb]\p{Hex_Digit}{2}\\u[Dd][CcDdEeFf]\p{Hex_Digit}{2}/u,
-    /\\x\p{Hex_Digit}{0,2}/u,
-    /\\u\p{Hex_Digit}{0,4}/u,
-    /\\U\p{Hex_Digit}{0,8}/u,
-    /\\./,
-    /\\$/,
-  ].map(r => r.source).join('|'),
-  'ug',
-);
+const DOUBLE_ESCAPE_EXPR = regexp`
+  \\ (?:
+      u [Dd][89AaBb]\p{Hex_Digit}{2}
+      \\u [Dd][CcDdEeFf]\p{Hex_Digit}{2}
+    | x \p{Hex_Digit}{0,2}
+    | u \p{Hex_Digit}{0,4}
+    | U \p{Hex_Digit}{0,8}
+    | .
+    | $
+  )
+`;
 
 const DOUBLE_QUOTE_ESCAPES: { [k in string]?: string } = {
   '0': '\0', // Null

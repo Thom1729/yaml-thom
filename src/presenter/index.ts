@@ -8,12 +8,22 @@ import {
   NonSpecificTag,
 } from '@/nodes';
 
-import { repeat } from '@/util';
+import { repeat, regexp } from '@/util';
 
 export function present(document: SerializationNode) {
   const operation = new PresentOperation();
   operation.presentDocument(document);
   return operation.result.join('');
+}
+
+const NON_PLAIN_REGEXP = regexp`
+  ^[?:\-{}[\],#&*!|>'"%@\`]
+  | [?:-] (?= \s | [,{}[\]] )
+  | \s
+`;
+
+export function canBePlainScalar(content: string) {
+  return !NON_PLAIN_REGEXP.test(content);
 }
 
 class PresentOperation {
@@ -88,7 +98,12 @@ class PresentOperation {
     this.presentTag(node.tag);
 
     this._space();
-    this.emit(JSON.stringify(node.content));
+    if (node.tag === NonSpecificTag.question) {
+      if (!canBePlainScalar(node.content)) throw new TypeError(`Cannot present ${JSON.stringify(node.content)} as plain scalar`);
+      this.emit(node.content);
+    } else {
+      this.emit(JSON.stringify(node.content));
+    }
   }
 
   presentSequence(node: SerializationSequence) {

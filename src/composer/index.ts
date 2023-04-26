@@ -88,7 +88,7 @@ function resolve(node: UnresolvedNode, schema: Schema): asserts node is Represen
     composedNodes.add(node);
 
     if (typeof node.tag === 'symbol') {
-      const resolved = schema.resolveNode(node); // todo
+      const resolved = schema.resolveNode(node);
       if (resolved !== null) {
         node.tag = resolved;
       } else {
