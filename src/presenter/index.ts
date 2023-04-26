@@ -12,10 +12,12 @@ import { repeat, regexp } from '@/util';
 
 export interface PresentOptions {
   indentation?: number;
+  flow?: boolean;
 }
 
 const DEFAULT_PRESENT_OPTIONS = {
   indentation: 2,
+  flow: false,
 } satisfies PresentOptions;
 
 export function present(document: SerializationNode, options: PresentOptions = {}) {
@@ -26,23 +28,14 @@ export function present(document: SerializationNode, options: PresentOptions = {
 
 class PresentOperation {
   indentation: number;
+  flow: boolean;
 
   result: string[] = [];
   needSpace = false;
 
-  stack: { indentation: number }[] = [];
-  get level() { return this.stack.map(x => x.indentation).reduce((a,b) => a+b, 0); }
-
-  push() {
-    this.stack.push({ indentation: this.indentation });
-  }
-
-  pop() {
-    this.stack.pop();
-  }
-
   constructor(options: PresentOptions) {
     this.indentation = options.indentation ?? DEFAULT_PRESENT_OPTIONS.indentation;
+    this.flow = options.flow ?? DEFAULT_PRESENT_OPTIONS.flow;
   }
 
   emit(s: string) {
@@ -59,26 +52,38 @@ class PresentOperation {
     }
   }
 
-  indent(d: number = 0) {
-    this.emit(repeat(this.level + d, ' '));
+  indent(level: number) {
+    this.emit(repeat(level, ' '));
+  }
+
+  implicitKey(node: SerializationNode) {
+    return node.kind === 'scalar';
   }
 
   presentDocument(node: SerializationNode) {
     this.emit('%YAML 1.2\n');
     this.emit('---');
-    this.presentNode(node);
+    this.presentNode(node, 0, this.flow);
     this.emit('\n...\n');
   }
 
-  presentNode(node: SerializationNode) {
+  presentNode(node: SerializationNode, level: number, flow: boolean) {
     if (node.kind === 'alias') {
       this.presentAlias(node);
     } else if (node.kind === 'scalar') {
       this.presentScalar(node);
     } else if (node.kind === 'sequence') {
-      this.presentSequence(node);
+      if (flow || node.size === 0) {
+        this.presentFlowSequence(node, level);
+      } else {
+        this.presentBlockSequence(node, level);
+      }
     } else if (node.kind === 'mapping') {
-      this.presentMapping(node);
+      if (flow || node.size === 0) {
+        this.presentFlowMapping(node, level);
+      } else {
+        this.presentBlockMapping(node, level);
+      }
     }
   }
 
@@ -119,46 +124,99 @@ class PresentOperation {
     }
   }
 
-  presentSequence(node: SerializationSequence) {
+  presentBlockSequence(node: SerializationSequence, level: number) {
     this.presentAnchor(node.anchor);
     this.presentTag(node.tag);
 
-    if (node.content.length === 0) {
-      this._space();
-      this.emit('[]');
-    } else {
-      this.push();
-      for (const item of node.content) {
-        this.emit('\n');
-        this.indent(- this.indentation);
-        this.emit('-');
-        this.presentNode(item);
-      }
-      this.pop();
+    for (const item of node.content) {
+      this.emit('\n');
+      this.indent(level);
+      this.emit('-');
+      this.presentNode(item, level + this.indentation, false);
     }
   }
 
-  presentMapping(node: SerializationMapping) {
+  presentBlockMapping(node: SerializationMapping, level: number) {
+    this.presentAnchor(node.anchor);
+    this.presentTag(node.tag);
+
+    for (const [key, value] of node.content) {
+      this.emit('\n');
+      this.indent(level);
+
+      if (this.implicitKey(key)) {
+        this.presentNode(key, level, true);
+        this.emit(':');
+        this.presentNode(value, level + this.indentation, false);
+      } else {
+        this.emit('?');
+        this.presentNode(key, level + this.indentation, false);
+
+        this.emit('\n');
+        this.indent(level);
+        this.emit(':');
+        this.presentNode(value, level + this.indentation, false);
+      }
+    }
+  }
+
+  presentFlowSequence(node: SerializationSequence, level: number) {
+    this.presentAnchor(node.anchor);
+    this.presentTag(node.tag);
+
+    this._space();
+    if (node.content.length === 0) {
+      this.emit('[]');
+    } else {
+      this.emit('[');
+
+      for (const item of node.content) {
+        this.emit('\n');
+        this.indent(level + this.indentation);
+        this.presentNode(item, level + this.indentation, true);
+        this.emit(',');
+      }
+
+      this.emit('\n');
+      this.indent(level);
+      this.emit(']');
+    }
+  }
+
+  presentFlowMapping(node: SerializationMapping, level: number) {
     this.presentAnchor(node.anchor);
     this.presentTag(node.tag);
     
+    this._space();
     if (node.content.length === 0) {
-      this._space();
       this.emit('{}');
     } else {
-      this.push();
-      for (const [key, value] of node.content) {
-        this.emit('\n');
-        this.indent(- this.indentation);
-        this.emit('?');
-        this.presentNode(key);
+      this.emit('{');
 
-        this.emit('\n');
-        this.indent(- this.indentation);
-        this.emit(':');
-        this.presentNode(value);
+      for (const [key, value] of node.content) {
+        if (this.implicitKey(key)) {
+          this.emit('\n');
+          this.indent(level + this.indentation);
+          this.presentNode(key, level + this.indentation, true);
+
+          this.emit(':');
+          this.presentNode(value, level + this.indentation, true);
+        } else {
+          this.emit('\n');
+          this.indent(level + this.indentation);
+          this.emit('?');
+          this.presentNode(key, level + this.indentation, true);
+
+          this.emit('\n');
+          this.indent(level + this.indentation);
+          this.emit(':');
+          this.presentNode(value, level + this.indentation, true);
+        }
       }
-      this.pop();
+
+      this.emit('\n');
+      this.indent(level);
+      this.emit('}');
     }
   }
 }
