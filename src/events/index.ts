@@ -19,34 +19,31 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
   }
 
   function recurse(): SerializationNode {
-    const { type, anchor, tag, valueStyle, value } = parsedEvents[index++];
+    const event = parsedEvents[index++];
 
-    if (type === '=ALI') {
-      return new Alias(value as string);
-    }
-
-    let t: SerializationTag;
-    if (tag === '!') {
-      t = NonSpecificTag.exclamation;
-    } else if (tag !== undefined) {
-      t = tag;
-    } else if (valueStyle === '\'' || valueStyle === '"' || valueStyle === '|' || valueStyle === '>') {
-      t = NonSpecificTag.exclamation;
-    } else {
-      t = NonSpecificTag.question;
+    if (event.type === '=ALI') {
+      return new Alias(event.value);
     }
 
     let node: SerializationNode;
-    if (type === '=VAL') {
-      node = new SerializationScalar(t, handleDoubleEscapes((value as string).replace(/␣/g, ' ')));
-    } else if (type === '+SEQ') {
+    if (event.type === '=VAL') {
+      node = new SerializationScalar(
+        getTag(event.tag, event.valueStyle),
+        handleDoubleEscapes(event.value.replace(/␣/g, ' ')),
+        event.anchor ?? null,
+      );
+    } else if (event.type === '+SEQ') {
       const items: SerializationNode[] = [];
       while (parsedEvents[index].type !== '-SEQ') {
         items.push(recurse());
       }
       index++;
-      node = new SerializationSequence(t, items);
-    } else if (type === '+MAP') {
+      node = new SerializationSequence(
+        getTag(event.tag, undefined),
+        items,
+        event.anchor ?? null,
+      );
+    } else if (event.type === '+MAP') {
       const items: [SerializationNode, SerializationNode][] = [];
       while (parsedEvents[index].type !== '-MAP') {
         const k = recurse();
@@ -54,13 +51,13 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
         items.push([k, v]);
       }
       index++;
-      node = new SerializationMapping(t, items);
+      node = new SerializationMapping(
+        getTag(event.tag, undefined),
+        items,
+        event.anchor ?? null,
+      );
     } else {
       error();
-    }
-
-    if (anchor !== undefined) {
-      node.anchor = anchor;
     }
 
     return node;
@@ -79,4 +76,16 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
   }
 
   if (parsedEvents[index].type !== '-STR') error();
+}
+
+function getTag(tagString: string | undefined, valueStyle: string | undefined) {
+  if (tagString === '!') {
+    return NonSpecificTag.exclamation;
+  } else if (tagString !== undefined) {
+    return tagString;
+  } else if (valueStyle === '\'' || valueStyle === '"' || valueStyle === '|' || valueStyle === '>') {
+    return NonSpecificTag.exclamation;
+  } else {
+    return NonSpecificTag.question;
+  }
 }
