@@ -6,35 +6,13 @@ import {
   Alias, SerializationScalar, SerializationSequence, SerializationMapping,
 } from '@/nodes';
 
-const EVENT_REGEXP = new RegExp(
-  [
-    /^\s*/,
-    /(?<type>\S+)/,
-    /(?: (?:---|\.\.\.|\{\}|\[\]))?/,
-    /(?: &(?<anchor>.*?))?/,
-    /(?: <(?<tag>\S*)>)?/,
-    /(?: (?<valueStyle>[:'"|>*])(?<value>.*))?$/u,
-  ].map(r => r.source).join(''),
-  'u',
-);
-
-type EventInfo = {
-  type: string,
-  anchor?: string,
-  tag?: string,
-  valueStyle?: string,
-  value?: string,
-};
+import { parseEvent } from './parseEvent';
 
 export function *eventsToSerializationTree(events: string, index: number = 0) {
   const parsedEvents = events
     .trimEnd()
     .split('\n')
-    .map(line => {
-      const match = EVENT_REGEXP.exec(line);
-      if (match === null) throw new TypeError(`Can't match ${line}`);
-      return match.groups as EventInfo;
-    });
+    .map(parseEvent);
 
   function error(): never {
     throw new TypeError(`Unexpected event ${parsedEvents[index].type}`);
