@@ -1,6 +1,7 @@
 import { regexp, type TypedRegExp } from '@/util';
 
 import { NonSpecificTag, type SerializationTag } from '@/nodes';
+import { handleDoubleEscapes } from '@/parser/core/scalarContent';
 
 const EVENT_REGEXP = regexp`
   ^
@@ -37,7 +38,7 @@ export type EventInfo =
 export function parseEvent(line: string): EventInfo {
   const match = EVENT_REGEXP.exec(line);
   EVENT_REGEXP.lastIndex = 0;
-  if (match === null) throw new TypeError(`Can't match event ${line}`);
+  if (match === null) throw new TypeError(`Can't match event ${JSON.stringify(line)}`);
 
   const { type, anchor, tag, valueStyle, value } = match.groups;
 
@@ -48,7 +49,7 @@ export function parseEvent(line: string): EventInfo {
     case '-DOC': return { type };
 
     case '=ALI': return { type, value };
-    case '=VAL': return { type, tag: getTag(tag, valueStyle), anchor, valueStyle, value };
+    case '=VAL': return { type, tag: getTag(tag, valueStyle), anchor, valueStyle, value: handleDoubleEscapes(value) };
 
     case '+SEQ': return { type, tag: getTag(tag, undefined), anchor };
     case '-SEQ': return { type };

@@ -1,9 +1,6 @@
-import { handleDoubleEscapes } from '@/parser/core/scalarContent';
-
-import type { SerializationNode } from '@/nodes';
-
 import {
   Alias, SerializationScalar, SerializationSequence, SerializationMapping,
+  type SerializationNode,
 } from '@/nodes';
 
 import { parseEvent } from './parseEvent';
@@ -28,7 +25,7 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
     if (event.type === '=VAL') {
       return new SerializationScalar(
         event.tag,
-        handleDoubleEscapes(event.value.replace(/␣/g, ' ')),
+        event.value,
         event.anchor ?? null,
       );
     } else if (event.type === '+SEQ') {
