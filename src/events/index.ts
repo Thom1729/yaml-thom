@@ -1,6 +1,6 @@
 import { handleDoubleEscapes } from '@/parser/core/scalarContent';
 
-import { NonSpecificTag, type SerializationNode } from '@/nodes';
+import type { SerializationNode } from '@/nodes';
 
 import {
   Alias, SerializationScalar, SerializationSequence, SerializationMapping,
@@ -25,10 +25,9 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
       return new Alias(event.value);
     }
 
-    let node: SerializationNode;
     if (event.type === '=VAL') {
-      node = new SerializationScalar(
-        getTag(event.tag, event.valueStyle),
+      return new SerializationScalar(
+        event.tag,
         handleDoubleEscapes(event.value.replace(/␣/g, ' ')),
         event.anchor ?? null,
       );
@@ -38,8 +37,8 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
         items.push(recurse());
       }
       index++;
-      node = new SerializationSequence(
-        getTag(event.tag, undefined),
+      return new SerializationSequence(
+        event.tag,
         items,
         event.anchor ?? null,
       );
@@ -51,16 +50,14 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
         items.push([k, v]);
       }
       index++;
-      node = new SerializationMapping(
-        getTag(event.tag, undefined),
+      return new SerializationMapping(
+        event.tag,
         items,
         event.anchor ?? null,
       );
     } else {
       error();
     }
-
-    return node;
   }
 
   if (parsedEvents[index].type !== '+STR') error();
@@ -76,16 +73,4 @@ export function *eventsToSerializationTree(events: string, index: number = 0) {
   }
 
   if (parsedEvents[index].type !== '-STR') error();
-}
-
-function getTag(tagString: string | undefined, valueStyle: string | undefined) {
-  if (tagString === '!') {
-    return NonSpecificTag.exclamation;
-  } else if (tagString !== undefined) {
-    return tagString;
-  } else if (valueStyle === '\'' || valueStyle === '"' || valueStyle === '|' || valueStyle === '>') {
-    return NonSpecificTag.exclamation;
-  } else {
-    return NonSpecificTag.question;
-  }
 }

@@ -1,5 +1,7 @@
 import { regexp, type TypedRegExp } from '@/util';
 
+import { NonSpecificTag, type SerializationTag } from '@/nodes';
+
 const EVENT_REGEXP = regexp`
   ^
   \s*
@@ -22,14 +24,14 @@ export type EventInfo =
 | {
   type: '=VAL',
   anchor: string | undefined,
-  tag: string | undefined,
+  tag: SerializationTag,
   valueStyle: string,
   value: string,
 }
 | {
   type: '+SEQ' | '+MAP',
   anchor: string | undefined,
-  tag: string | undefined,
+  tag: SerializationTag,
 };
 
 export function parseEvent(line: string): EventInfo {
@@ -46,14 +48,29 @@ export function parseEvent(line: string): EventInfo {
     case '-DOC': return { type };
 
     case '=ALI': return { type, value };
-    case '=VAL': return { type, tag, anchor, valueStyle, value };
+    case '=VAL': return { type, tag: getTag(tag, valueStyle), anchor, valueStyle, value };
 
-    case '+SEQ': return { type, tag, anchor };
+    case '+SEQ': return { type, tag: getTag(tag, undefined), anchor };
     case '-SEQ': return { type };
 
-    case '+MAP': return { type, tag, anchor };
+    case '+MAP': return { type, tag: getTag(tag, undefined), anchor };
     case '-MAP': return { type };
 
     default: throw new TypeError(`Unknown event type ${type}`);
+  }
+}
+
+function getTag(
+  tagString: string | undefined,
+  valueStyle: string | undefined,
+): SerializationTag {
+  if (tagString === '!') {
+    return NonSpecificTag.exclamation;
+  } else if (tagString !== undefined) {
+    return tagString;
+  } else if (valueStyle === '\'' || valueStyle === '"' || valueStyle === '|' || valueStyle === '>') {
+    return NonSpecificTag.exclamation;
+  } else {
+    return NonSpecificTag.question;
   }
 }
