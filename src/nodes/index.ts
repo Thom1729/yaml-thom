@@ -1,3 +1,5 @@
+export * from './style';
+
 import { stringCodepointLength } from '@/util';
 
 const QUESTION: unique symbol = Symbol.for('?');

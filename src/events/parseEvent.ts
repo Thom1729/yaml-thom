@@ -1,6 +1,6 @@
 import { regexp, type TypedRegExp } from '@/util';
 
-import { NonSpecificTag, type SerializationTag } from '@/nodes';
+import { NonSpecificTag, ScalarStyle, type SerializationTag } from '@/nodes';
 import { handleDoubleEscapes } from '@/parser/core/scalarContent';
 
 const EVENT_REGEXP = regexp`
@@ -10,9 +10,9 @@ const EVENT_REGEXP = regexp`
   (?:\ (?:---|\.\.\.|\{\}|\[\]))?
   (?:\ &(?<anchor>.*?))?
   (?:\ <(?<tag>\S*)>)?
-  (?:\ (?<valueStyle>[:'"|>*])(?<value>.*))?
+  (?:\ (?<styleIndicator>[:'"|>*])(?<value>.*))?
   $
-` as TypedRegExp<'type' | 'anchor' | 'tag' | 'valueStyle' | 'value'>;
+` as TypedRegExp<'type' | 'anchor' | 'tag' | 'styleIndicator' | 'value'>;
 
 export type EventInfo =
 | {
@@ -26,7 +26,7 @@ export type EventInfo =
   type: '=VAL',
   anchor: string | undefined,
   tag: SerializationTag,
-  valueStyle: string,
+  style: ScalarStyle,
   value: string,
 }
 | {
@@ -40,7 +40,7 @@ export function parseEvent(line: string): EventInfo {
   EVENT_REGEXP.lastIndex = 0;
   if (match === null) throw new TypeError(`Can't match event ${JSON.stringify(line)}`);
 
-  const { type, anchor, tag, valueStyle, value } = match.groups;
+  const { type, anchor, tag, styleIndicator, value } = match.groups;
 
   switch (type) {
     case '+STR': return { type };
@@ -49,29 +49,44 @@ export function parseEvent(line: string): EventInfo {
     case '-DOC': return { type };
 
     case '=ALI': return { type, value };
-    case '=VAL': return { type, tag: getTag(tag, valueStyle), anchor, valueStyle, value: handleDoubleEscapes(value) };
+    case '=VAL': {
+      const style = getStyle(styleIndicator);
+      return { type, tag: getTag(tag, style), anchor, style, value: handleDoubleEscapes(value) };
+    }
 
-    case '+SEQ': return { type, tag: getTag(tag, undefined), anchor };
+    case '+SEQ': return { type, tag: getTag(tag), anchor };
     case '-SEQ': return { type };
 
-    case '+MAP': return { type, tag: getTag(tag, undefined), anchor };
+    case '+MAP': return { type, tag: getTag(tag), anchor };
     case '-MAP': return { type };
 
     default: throw new TypeError(`Unknown event type ${type}`);
   }
 }
 
+function getStyle(styleIndicator: string) {
+  switch (styleIndicator) {
+    case ':': return ScalarStyle.plain;
+    case '\'': return ScalarStyle.single;
+    case '"': return ScalarStyle.double;
+    case '|': return ScalarStyle.block;
+    case '>': return ScalarStyle.folded;
+
+    default: throw new TypeError(`Unexpected style indicator ${JSON.stringify(styleIndicator)}`);
+  }
+}
+
 function getTag(
   tagString: string | undefined,
-  valueStyle: string | undefined,
+  scalarStyle?: ScalarStyle,
 ): SerializationTag {
   if (tagString === '!') {
     return NonSpecificTag.exclamation;
   } else if (tagString !== undefined) {
     return tagString;
-  } else if (valueStyle === '\'' || valueStyle === '"' || valueStyle === '|' || valueStyle === '>') {
-    return NonSpecificTag.exclamation;
-  } else {
+  } else if (scalarStyle === undefined || scalarStyle === ScalarStyle.plain) {
     return NonSpecificTag.question;
+  } else {
+    return NonSpecificTag.exclamation;
   }
 }
