@@ -21,15 +21,15 @@ export type EventInfo =
 }
 | {
   type: '=VAL',
-  anchor?: string,
-  tag?: string,
-  valueStyle?: string,
+  anchor: string | undefined,
+  tag: string | undefined,
+  valueStyle: string,
   value: string,
 }
 | {
   type: '+SEQ' | '+MAP',
-  anchor?: string,
-  tag?: string,
+  anchor: string | undefined,
+  tag: string | undefined,
 };
 
 export function parseEvent(line: string): EventInfo {

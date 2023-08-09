@@ -1,6 +1,6 @@
 import { handleDoubleEscapes } from '@/parser/core/scalarContent';
 
-import { NonSpecificTag, type SerializationNode, type SerializationTag } from '@/nodes';
+import { NonSpecificTag, type SerializationNode } from '@/nodes';
 
 import {
   Alias, SerializationScalar, SerializationSequence, SerializationMapping,
