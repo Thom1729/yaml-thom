@@ -14,7 +14,7 @@ export function equals(a: RepresentationNode, b: RepresentationNode) {
 const KIND_INDEX = {
   scalar: 0,
   sequence: 1,
-  mapping: 1,
+  mapping: 2,
 };
 
 // TODO: Handle cycles, etc
