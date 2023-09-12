@@ -1,3 +1,5 @@
+import { iterator } from './collection';
+
 export type Zippable = readonly Iterable<unknown>[];
 
 export type ZipValue<T extends Zippable> =
@@ -9,7 +11,7 @@ export function *zip<T extends Zippable>(
   ...iterables: T
 ) {
   if (iterables.length === 0) return;
-  const iterators = iterables.map(x => x[Symbol.iterator]());
+  const iterators = iterables.map(iterator);
 
   while (true) {
     const results = iterators.map(itr => itr.next());

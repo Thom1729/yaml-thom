@@ -1,5 +1,9 @@
+export function iterator<T>(iterable: Iterable<T>) {
+  return iterable[Symbol.iterator]();
+}
+
 export function single<T>(iterable: Iterable<T>, message?: string) {
-  const itr = iterable[Symbol.iterator]();
+  const itr = iterator(iterable);
 
   const first = itr.next();
   if (first.done) throw new TypeError(message ?? `No value`);
@@ -11,7 +15,7 @@ export function single<T>(iterable: Iterable<T>, message?: string) {
 }
 
 export function singleOrNull<T>(iterable: Iterable<T>, message?: string) {
-  const itr = iterable[Symbol.iterator]();
+  const itr = iterator(iterable);
 
   const first = itr.next();
   if (first.done) return null;
