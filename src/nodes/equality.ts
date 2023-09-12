@@ -1,4 +1,4 @@
-import { zip, cmpStringsByCodepoint } from '@/util';
+import { zip, cmpStringsByCodepoint, WeakCache } from '@/util';
 
 import type {
   RepresentationMapping,
@@ -19,20 +19,7 @@ const KIND_INDEX = {
 
 // TODO: Handle cycles, etc
 export class NodeComparator {
-  cache = new WeakMap<RepresentationNode, WeakMap<RepresentationNode, number | null>>();
-
-  getCached(a: RepresentationNode, b: RepresentationNode) {
-    return this.cache.get(a)?.get(b) ?? this.cache.get(b)?.get(a);
-  }
-
-  setCached(a: RepresentationNode, b: RepresentationNode, value: number | null) {
-    let aMap = this.cache.get(a);
-    if (aMap === undefined) {
-      aMap = new WeakMap();
-      this.cache.set(a, aMap);
-    }
-    aMap.set(b, value);
-  }
+  cache = new WeakCache<[RepresentationNode, RepresentationNode], number | null>();
 
   compare(a: RepresentationNode, b: RepresentationNode): number {
     if (a === b) return 0;
@@ -42,16 +29,16 @@ export class NodeComparator {
     if (a.kind === 'scalar') return cmpStringsByCodepoint(a.content, (b as RepresentationScalar).content);
     if (a.size !== b.size) return a.size - b.size;
 
-    const cached = this.getCached(a, b);
+    const cached = this.cache.get(a, b) ?? this.cache.get(b, a);
     if (cached !== undefined) return cached ?? 0;
 
-    this.setCached(a, b, null);
+    this.cache.set(a, b, null);
 
     if (a.kind === 'sequence') {
       for (const [aItem, bItem] of zip(a, (b as RepresentationSequence))) {
         const diff = this.compare(aItem, bItem);
         if (diff !== 0) {
-          this.setCached(a, b, diff);
+          this.cache.set(a, b, diff);
           return diff;
         }
       }
@@ -61,18 +48,18 @@ export class NodeComparator {
       for (const [[aKey, aValue], [bKey, bValue]] of zip(a, (b as RepresentationMapping))) {
         const keyDiff = this.compare(aKey, bKey);
         if (keyDiff !== 0) {
-          this.setCached(a, b, keyDiff);
+          this.cache.set(a, b, keyDiff);
           return keyDiff;
         }
         const valueDiff = this.compare(aValue, bValue);
         if (valueDiff !== 0) {
-          this.setCached(a, b, valueDiff);
+          this.cache.set(a, b, valueDiff);
           return valueDiff;
         }
       }
     }
 
-    this.setCached(a, b, 0);
+    this.cache.set(a, b, 0);
     return 0;
   }
 }

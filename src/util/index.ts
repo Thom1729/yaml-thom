@@ -7,5 +7,6 @@ export * from './strict';
 export * from './string';
 export * from './stringCodepoints';
 export * from './typeAssertions';
+export * from './weakCache';
 export * from './yCombinator';
 export * from './zip';
