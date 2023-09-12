@@ -19,19 +19,16 @@ const KIND_INDEX = {
 
 // TODO: Handle cycles, etc
 export class NodeComparator {
-  cache = new Map<RepresentationNode, Map<RepresentationNode, number | null>>();
+  cache = new WeakMap<RepresentationNode, WeakMap<RepresentationNode, number | null>>();
 
   getCached(a: RepresentationNode, b: RepresentationNode) {
-    const x = this.cache.get(a)?.get(b);
-    return x === undefined
-      ? this.cache.get(b)?.get(a)
-      : x;
+    return this.cache.get(a)?.get(b) ?? this.cache.get(b)?.get(a);
   }
 
   setCached(a: RepresentationNode, b: RepresentationNode, value: number | null) {
     let aMap = this.cache.get(a);
     if (aMap === undefined) {
-      aMap = new Map();
+      aMap = new WeakMap();
       this.cache.set(a, aMap);
     }
     aMap.set(b, value);
