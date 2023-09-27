@@ -14,7 +14,7 @@ const EVENT_REGEXP = regexp`
   $
 ` as TypedRegExp<'type' | 'anchor' | 'tag' | 'styleIndicator' | 'value'>;
 
-export type EventInfo =
+export type ParseEvent =
 | {
   type: '+STR' | '-STR' | '+DOC' | '-DOC' | '-SEQ' | '-MAP',
 }
@@ -35,7 +35,7 @@ export type EventInfo =
   tag: SerializationTag,
 };
 
-export function parseEvent(line: string): EventInfo {
+export function parseEvent(line: string): ParseEvent {
   const match = EVENT_REGEXP.exec(line);
   EVENT_REGEXP.lastIndex = 0;
   if (match === null) throw new TypeError(`Can't match event ${JSON.stringify(line)}`);

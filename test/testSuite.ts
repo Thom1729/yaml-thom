@@ -1,7 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-
-export { eventsToSerializationTree } from '@/events';
+import { ParseEvent, parseEvent } from '@/events';
 
 export interface TestCase {
   id: string;
@@ -13,7 +12,8 @@ export interface TestCase {
   skip: boolean;
 
   yaml: string;
-  tree: string | undefined;
+  // tree: string | undefined;
+  tree: ParseEvent[] | undefined;
   json: string | undefined;
   dump: string | undefined;
   emit: string | undefined;
@@ -57,7 +57,8 @@ export class DirectoryTestLoader {
       } = Object.fromEntries(
         files
           .filter(filename => {
-            if (DIRECTORY_TEST_FILE_NAMES.hasOwnProperty(filename)) {
+            // if (DIRECTORY_TEST_FILE_NAMES.hasOwnProperty(filename)) {
+            if (Object.hasOwn(DIRECTORY_TEST_FILE_NAMES, filename)) {
               return true;
             } else {
               console.error(`Unknown file ${path.join(directoryPath, filename)}`);
@@ -84,7 +85,7 @@ export class DirectoryTestLoader {
         json,
         yaml,
         dump,
-        tree,
+        tree: tree?.trimEnd()?.split('\n').map(parseEvent),
         fail: error !== undefined,
 
         from: undefined,

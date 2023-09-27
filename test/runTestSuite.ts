@@ -7,9 +7,10 @@ import { zip } from '@/util';
 
 import { diff, pathToString, type Difference } from '@/nodes/diff';
 
+import { eventsToSerializationTrees } from '@/events';
+
 import {
   DirectoryTestLoader,
-  eventsToSerializationTree,
   type TestCase,
 } from './testSuite';
 
@@ -41,7 +42,7 @@ function runTest(test: TestCase) {
   if (test.tree === undefined) return makeResult('skipped'); // TODO
 
   try {
-    const expectedTree = Array.from(eventsToSerializationTree(test.tree));
+    const expectedTree = Array.from(eventsToSerializationTrees(test.tree));
     const actualTree = Array.from(parseStream(test.yaml, { version: '1.3' }));
 
     const inequal = [] as Difference<SerializationNode>[];
