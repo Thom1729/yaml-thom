@@ -61,6 +61,7 @@ export function *eventsToSerializationTrees(parsedEvents: Iterable<ParseEvent>) 
         event.tag,
         items,
         event.anchor ?? null,
+        { style: event.style },
       );
     } else if (event.type === '+MAP') {
       const items: [SerializationNode, SerializationNode][] = [];
@@ -79,6 +80,7 @@ export function *eventsToSerializationTrees(parsedEvents: Iterable<ParseEvent>) 
         event.tag,
         items,
         event.anchor ?? null,
+        { style: event.style },
       );
     } else {
       error(event);

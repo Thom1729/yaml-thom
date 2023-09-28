@@ -9,6 +9,7 @@ import {
   ScalarStyle,
   type SerializationNode,
   type SerializationTag,
+  CollectionStyle,
 } from '@/nodes';
 
 import {
@@ -34,8 +35,10 @@ const CONTENT_CLASS_NAMES = [
   'doubleQuotedScalar',
   'literalScalar',
   'foldedScalar',
-  'mapping',
-  'sequence',
+  'blockMapping',
+  'flowMapping',
+  'blockSequence',
+  'flowSequence',
 ] as const;
 
 const NODE_PROPERTY_CLASS_NAMES = [
@@ -311,17 +314,23 @@ export class AstToSerializationTree {
         });
       }
 
-      case 'mapping': {
+      case 'blockMapping':
+      case 'flowMapping': {
         const children = this.iterateAst([contentNode], 'mappingEntry')
           .map(child => this.iterateAst(child.content, 'nodeWithProperties'))
           .map(([k, v]) => [this.buildNode(text, k, tagHandles), this.buildNode(text, v, tagHandles)] as const);
 
-        return new SerializationMapping(tag ?? NonSpecificTag.question, children, anchor);
+        return new SerializationMapping(tag ?? NonSpecificTag.question, children, anchor, {
+          style: nodeClass === 'blockMapping' ? CollectionStyle.block : CollectionStyle.flow
+        });
       }
 
-      case 'sequence': {
+      case 'blockSequence':
+      case 'flowSequence': {
         const children = this.iterateAst(contentNode.content, 'nodeWithProperties').map(child => this.buildNode(text, child, tagHandles));
-        return new SerializationSequence(tag ?? NonSpecificTag.question, children, anchor);
+        return new SerializationSequence(tag ?? NonSpecificTag.question, children, anchor, {
+          style: nodeClass === 'blockSequence' ? CollectionStyle.block : CollectionStyle.flow
+        });
       }
 
       default: throw new TypeError(`Unexpected node ${contentNode.name}`);

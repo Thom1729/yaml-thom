@@ -5,3 +5,8 @@ export enum ScalarStyle {
   block = 'block',
   folded = 'folded',
 }
+
+export enum CollectionStyle {
+  block = 'block',
+  flow = 'flow',
+}

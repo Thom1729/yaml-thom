@@ -1,4 +1,4 @@
-import { NonSpecificTag, ScalarStyle, type SerializationTag } from '@/nodes';
+import { CollectionStyle, NonSpecificTag, ScalarStyle, type SerializationTag } from '@/nodes';
 import { handleDoubleEscapes } from '@/parser/core/scalarContent';
 
 import {
@@ -10,12 +10,12 @@ const EVENT_REGEXP = regexp`
   ^
   \s*
   (?<type>\S+)
-  (?:\ (?:---|\.\.\.|\{\}|\[\]))?
+  (?:\ (?<collectionStyleIndicator>---|\.\.\.|\{\}|\[\]))?
   (?:\ &(?<anchor>.*?))?
   (?:\ <(?<tag>\S*)>)?
   (?:\ (?<styleIndicator>[:'"|>*])(?<value>.*))?
   $
-` as TypedRegExp<'type' | 'anchor' | 'tag' | 'styleIndicator' | 'value'>;
+` as TypedRegExp<'type' | 'collectionStyleIndicator' | 'anchor' | 'tag' | 'styleIndicator' | 'value'>;
 
 export type ParseEvent =
 | {
@@ -36,6 +36,7 @@ export type ParseEvent =
   type: '+SEQ' | '+MAP',
   anchor: string | undefined,
   tag: SerializationTag,
+  style: CollectionStyle,
 };
 
 export function parseEvent(line: string): ParseEvent {
@@ -43,31 +44,35 @@ export function parseEvent(line: string): ParseEvent {
   EVENT_REGEXP.lastIndex = 0;
   if (match === null) throw new TypeError(`Can't match event ${JSON.stringify(line)}`);
 
-  const { type, anchor, tag, styleIndicator, value } = match.groups;
+  const { type, collectionStyleIndicator, anchor, tag, styleIndicator, value } = match.groups;
 
   switch (type) {
     case '+STR': return { type };
     case '-STR': return { type };
     case '+DOC': return { type };
     case '-DOC': return { type };
+    case '-SEQ': return { type };
+    case '-MAP': return { type };
 
     case '=ALI': return { type, value };
     case '=VAL': {
-      const style = getProperty(INDICATOR_TO_STYLE, styleIndicator, `Unexpected style indicator ${JSON.stringify(styleIndicator)}`);
+      const style = getProperty(SCALAR_INDICATOR_TO_STYLE, styleIndicator, `Unexpected style indicator ${JSON.stringify(styleIndicator)}`);
       return { type, tag: getTag(tag, style), anchor, style, value: handleDoubleEscapes(value) };
     }
 
-    case '+SEQ': return { type, tag: getTag(tag), anchor };
-    case '-SEQ': return { type };
+    case '+SEQ':
+    case '+MAP':
+      return {
+        type, tag: getTag(tag), anchor,
+        style: collectionStyleIndicator ? CollectionStyle.flow : CollectionStyle.block,
+      };
 
-    case '+MAP': return { type, tag: getTag(tag), anchor };
-    case '-MAP': return { type };
 
     default: throw new TypeError(`Unknown event type ${type}`);
   }
 }
 
-const INDICATOR_TO_STYLE = {
+const SCALAR_INDICATOR_TO_STYLE = {
   ':': ScalarStyle.plain,
   '\'': ScalarStyle.single,
   '"': ScalarStyle.double,
@@ -75,7 +80,7 @@ const INDICATOR_TO_STYLE = {
   '>': ScalarStyle.folded,
 };
 
-const STYLE_TO_INDICATOR = invert(INDICATOR_TO_STYLE);
+const SCALAR_STYLE_TO_INDICATOR = invert(SCALAR_INDICATOR_TO_STYLE);
 
 function getTag(
   tagString: string | undefined,
@@ -99,6 +104,14 @@ export function stringifyEvent(event: ParseEvent) {
     parts.push(event.value);
   }
 
+  if (event.type === '+SEQ' && event.style === CollectionStyle.flow) {
+    parts.push('[]');
+  }
+
+  if (event.type === '+MAP' && event.style === CollectionStyle.flow) {
+    parts.push('{}');
+  }
+
   if (event.type === '=VAL' || event.type === '+SEQ' || event.type === '+MAP') {
     if (event.anchor) parts.push('&' + event.anchor);
 
@@ -108,7 +121,7 @@ export function stringifyEvent(event: ParseEvent) {
   }
 
   if (event.type === '=VAL') {
-    parts.push(STYLE_TO_INDICATOR[event.style] + JSON.stringify(event.value).slice(1, -1));
+    parts.push(SCALAR_STYLE_TO_INDICATOR[event.style] + JSON.stringify(event.value).slice(1, -1));
   }
 
   return parts.join(' ');

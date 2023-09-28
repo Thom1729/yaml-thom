@@ -1570,8 +1570,10 @@ const nodeClasses = {
   literalScalar: ['block-literal-scalar'],
   foldedScalar: ['block-folded-scalar'],
 
-  mapping: ['block-mapping', 'compact-mapping', 'flow-mapping', 'flow-pair'],
-  sequence: ['block-sequence', 'compact-sequence', 'flow-sequence'],
+  blockMapping: ['block-mapping', 'compact-mapping'],
+  flowMapping: ['flow-mapping', 'flow-pair'],
+  blockSequence: ['block-sequence', 'compact-sequence'],
+  flowSequence: ['flow-sequence'],
 
   ignore: [
     // 'l-document-prefix',

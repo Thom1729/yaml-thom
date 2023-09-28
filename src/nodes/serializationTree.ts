@@ -1,5 +1,5 @@
 import type { NonSpecificTag } from './tags';
-import type { ScalarStyle } from './style';
+import type { CollectionStyle, ScalarStyle } from './style';
 
 export type SerializationTag = string | NonSpecificTag;
 
@@ -12,7 +12,7 @@ export class Alias {
   }
 }
 
-abstract class BaseSerializationValueNode<TagType, ContentType, PresentationType extends object = object> {
+abstract class BaseSerializationValueNode<TagType, ContentType, PresentationType extends object> {
   tag: TagType;
   content: ContentType;
   anchor: string | null;
@@ -41,9 +41,13 @@ export class SerializationScalar<
   readonly kind = 'scalar';
 }
 
+export interface SerializationCollectionPresentation {
+  style?: CollectionStyle;
+}
+
 export class SerializationSequence<
   TagType extends SerializationTag = SerializationTag
-> extends BaseSerializationValueNode<TagType, SerializationNode[]> {
+> extends BaseSerializationValueNode<TagType, SerializationNode[], SerializationCollectionPresentation> {
   readonly kind = 'sequence';
 
   *[Symbol.iterator]() {
@@ -55,11 +59,16 @@ export class SerializationSequence<
 
 export class SerializationMapping<
   TagType extends SerializationTag = SerializationTag
-> extends BaseSerializationValueNode<TagType, (readonly [SerializationNode, SerializationNode])[]> {
+> extends BaseSerializationValueNode<TagType, (readonly [SerializationNode, SerializationNode])[], SerializationCollectionPresentation> {
   readonly kind = 'mapping';
 
-  constructor(tag: TagType, content: Iterable<readonly [SerializationNode, SerializationNode]>, anchor: string | null = null) {
-    super(tag, Array.from(content), anchor);
+  constructor(
+    tag: TagType,
+    content: Iterable<readonly [SerializationNode, SerializationNode]>,
+    anchor: string | null = null,
+    presentation?: SerializationCollectionPresentation,
+  ) {
+    super(tag, Array.from(content), anchor, presentation);
   }
 
   *[Symbol.iterator]() {

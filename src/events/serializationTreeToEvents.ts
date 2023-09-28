@@ -1,4 +1,4 @@
-import { ScalarStyle, type SerializationNode } from '@/nodes';
+import { CollectionStyle, ScalarStyle, type SerializationNode } from '@/nodes';
 import type { ParseEvent } from './parseEvent';
 
 export function *serializationTreeToEvents(
@@ -31,6 +31,7 @@ function *serializationNodeToEvents(
       type: '+SEQ',
       anchor: node.anchor ?? undefined,
       tag: node.tag,
+      style: node.presentation.style ?? CollectionStyle.block,
     };
 
     for (const item of node) {
@@ -43,6 +44,7 @@ function *serializationNodeToEvents(
       type: '+MAP',
       anchor: node.anchor ?? undefined,
       tag: node.tag,
+      style: node.presentation.style ?? CollectionStyle.block,
     };
     for (const [key, value] of node) {
       yield* serializationNodeToEvents(key);

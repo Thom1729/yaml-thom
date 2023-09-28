@@ -1,6 +1,6 @@
 import { parseEvent } from './parseEvent';
 
-import { NonSpecificTag, ScalarStyle } from '@/nodes';
+import { CollectionStyle, NonSpecificTag, ScalarStyle } from '@/nodes';
 
 describe(parseEvent, () => {
   test('+STR', () => {
@@ -52,11 +52,19 @@ describe(parseEvent, () => {
       type: '+SEQ',
       anchor: undefined,
       tag: NonSpecificTag.question,
+      style: CollectionStyle.block,
     });
     expect(parseEvent('+SEQ &bar <baz>')).toStrictEqual({
       type: '+SEQ',
       anchor: 'bar',
       tag: 'baz',
+      style: CollectionStyle.block,
+    });
+    expect(parseEvent('+SEQ []')).toStrictEqual({
+      type: '+SEQ',
+      anchor: undefined,
+      tag: NonSpecificTag.question,
+      style: CollectionStyle.flow,
     });
   });
   test('-SEQ', () => {
@@ -68,11 +76,19 @@ describe(parseEvent, () => {
       type: '+MAP',
       anchor: undefined,
       tag: NonSpecificTag.question,
+      style: CollectionStyle.block,
     });
     expect(parseEvent('+MAP &bar <baz>')).toStrictEqual({
       type: '+MAP',
       anchor: 'bar',
       tag: 'baz',
+      style: CollectionStyle.block,
+    });
+    expect(parseEvent('+MAP {}')).toStrictEqual({
+      type: '+MAP',
+      anchor: undefined,
+      tag: NonSpecificTag.question,
+      style: CollectionStyle.flow,
     });
   });
   test('-MAP', () => {
