@@ -1,4 +1,5 @@
 import type { NonSpecificTag } from './tags';
+import type { ScalarStyle } from './style';
 
 export type SerializationTag = string | NonSpecificTag;
 
@@ -11,23 +12,38 @@ export class Alias {
   }
 }
 
-abstract class BaseSerializationValueNode<TagType, ContentType> {
+abstract class BaseSerializationValueNode<TagType, ContentType, PresentationType extends object = object> {
   tag: TagType;
   content: ContentType;
   anchor: string | null;
+  presentation: PresentationType;
 
-  constructor(tag: TagType, content: ContentType, anchor: string | null = null) {
+  constructor(
+    tag: TagType,
+    content: ContentType,
+    anchor: string | null = null,
+    presentation?: PresentationType,
+  ) {
     this.tag = tag;
     this.content = content;
     this.anchor = anchor;
+    this.presentation = presentation ?? {} as PresentationType;
   }
 }
 
-export class SerializationScalar<TagType extends SerializationTag = SerializationTag> extends BaseSerializationValueNode<TagType, string> {
+export interface SerializationScalarPresentation {
+  style?: ScalarStyle;
+}
+
+export class SerializationScalar<
+  TagType extends SerializationTag = SerializationTag
+> extends BaseSerializationValueNode<TagType, string, SerializationScalarPresentation> {
   readonly kind = 'scalar';
 }
 
-export class SerializationSequence<TagType extends SerializationTag = SerializationTag> extends BaseSerializationValueNode<TagType, SerializationNode[]> {
+export class SerializationSequence<
+  TagType extends SerializationTag = SerializationTag
+> extends BaseSerializationValueNode<TagType, SerializationNode[]> {
   readonly kind = 'sequence';
 
   *[Symbol.iterator]() {
@@ -37,7 +53,9 @@ export class SerializationSequence<TagType extends SerializationTag = Serializat
   get size() { return this.content.length; }
 }
 
-export class SerializationMapping<TagType extends SerializationTag = SerializationTag> extends BaseSerializationValueNode<TagType, (readonly [SerializationNode, SerializationNode])[]> {
+export class SerializationMapping<
+  TagType extends SerializationTag = SerializationTag
+> extends BaseSerializationValueNode<TagType, (readonly [SerializationNode, SerializationNode])[]> {
   readonly kind = 'mapping';
 
   constructor(tag: TagType, content: Iterable<readonly [SerializationNode, SerializationNode]>, anchor: string | null = null) {

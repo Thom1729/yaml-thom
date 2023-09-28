@@ -24,7 +24,7 @@ function *serializationNodeToEvents(
       anchor: node.anchor ?? undefined,
       tag: node.tag,
       value: node.content,
-      style: ScalarStyle.double,
+      style: node.presentation.style ?? ScalarStyle.double,
     };
   } else if (node.kind === 'sequence') {
     yield {

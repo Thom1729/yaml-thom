@@ -1,7 +1,10 @@
-import { regexp, type TypedRegExp } from '@/util';
-
 import { NonSpecificTag, ScalarStyle, type SerializationTag } from '@/nodes';
 import { handleDoubleEscapes } from '@/parser/core/scalarContent';
+
+import {
+  getProperty, invert,
+  regexp, type TypedRegExp,
+} from '@/util';
 
 const EVENT_REGEXP = regexp`
   ^
@@ -50,7 +53,7 @@ export function parseEvent(line: string): ParseEvent {
 
     case '=ALI': return { type, value };
     case '=VAL': {
-      const style = getStyle(styleIndicator);
+      const style = getProperty(INDICATOR_TO_STYLE, styleIndicator, `Unexpected style indicator ${JSON.stringify(styleIndicator)}`);
       return { type, tag: getTag(tag, style), anchor, style, value: handleDoubleEscapes(value) };
     }
 
@@ -64,17 +67,15 @@ export function parseEvent(line: string): ParseEvent {
   }
 }
 
-function getStyle(styleIndicator: string) {
-  switch (styleIndicator) {
-    case ':': return ScalarStyle.plain;
-    case '\'': return ScalarStyle.single;
-    case '"': return ScalarStyle.double;
-    case '|': return ScalarStyle.block;
-    case '>': return ScalarStyle.folded;
+const INDICATOR_TO_STYLE = {
+  ':': ScalarStyle.plain,
+  '\'': ScalarStyle.single,
+  '"': ScalarStyle.double,
+  '|': ScalarStyle.block,
+  '>': ScalarStyle.folded,
+};
 
-    default: throw new TypeError(`Unexpected style indicator ${JSON.stringify(styleIndicator)}`);
-  }
-}
+const STYLE_TO_INDICATOR = invert(INDICATOR_TO_STYLE);
 
 function getTag(
   tagString: string | undefined,
@@ -89,4 +90,26 @@ function getTag(
   } else {
     return NonSpecificTag.exclamation;
   }
+}
+
+export function stringifyEvent(event: ParseEvent) {
+  const parts: string[] = [event.type];
+
+  if (event.type === '=ALI') {
+    parts.push(event.value);
+  }
+
+  if (event.type === '=VAL' || event.type === '+SEQ' || event.type === '+MAP') {
+    if (event.anchor) parts.push('&' + event.anchor);
+
+    if (typeof event.tag === 'string') {
+      parts.push('<' + event.tag + '>');
+    }
+  }
+
+  if (event.type === '=VAL') {
+    parts.push(STYLE_TO_INDICATOR[event.style] + JSON.stringify(event.value).slice(1, -1));
+  }
+
+  return parts.join(' ');
 }

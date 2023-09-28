@@ -46,6 +46,7 @@ export function *eventsToSerializationTrees(parsedEvents: Iterable<ParseEvent>) 
         event.tag,
         event.value,
         event.anchor ?? null,
+        { style: event.style },
       );
     } else if (event.type === '+SEQ') {
       const items: SerializationNode[] = [];

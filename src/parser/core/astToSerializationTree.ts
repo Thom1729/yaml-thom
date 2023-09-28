@@ -6,6 +6,7 @@ import {
   SerializationSequence,
   SerializationMapping,
   NonSpecificTag,
+  ScalarStyle,
   type SerializationNode,
   type SerializationTag,
 } from '@/nodes';
@@ -261,18 +262,27 @@ export class AstToSerializationTree {
     switch (nodeClass) {
       case 'alias': return new Alias(nodeText(contentNode).slice(1));
 
-      case 'emptyScalar': return new SerializationScalar(tag ?? NonSpecificTag.question, '', anchor);
+      case 'emptyScalar':
+        return new SerializationScalar(tag ?? NonSpecificTag.question, '', anchor, {
+          style: ScalarStyle.plain,
+        });
       case 'plainScalar': {
         const content = handlePlainScalarContent(nodeText(contentNode));
-        return new SerializationScalar(tag ?? NonSpecificTag.question, content, anchor);
+        return new SerializationScalar(tag ?? NonSpecificTag.question, content, anchor, {
+          style: ScalarStyle.plain,
+        });
       }
       case 'singleQuotedScalar': {
         const content = handleSingleQuotedScalarContent(nodeText(contentNode).slice(1, -1));
-        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor);
+        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor, {
+          style: ScalarStyle.single,
+        });
       }
       case 'doubleQuotedScalar': {
         const content = handleDoubleQuotedScalarContent(nodeText(contentNode).slice(1, -1));
-        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor);
+        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor, {
+          style: ScalarStyle.double,
+        });
       }
       case 'literalScalar': case 'foldedScalar': {
         const {
@@ -296,7 +306,9 @@ export class AstToSerializationTree {
           blockScalarIndentationIndicator === null ? null : parseDecimal(blockScalarIndentationIndicator),
         );
 
-        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor);
+        return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor, {
+          style: nodeClass === 'foldedScalar' ? ScalarStyle.folded : ScalarStyle.block,
+        });
       }
 
       case 'mapping': {
