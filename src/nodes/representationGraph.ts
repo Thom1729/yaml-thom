@@ -50,7 +50,11 @@ export class RepresentationMapping<
 > extends ValueNode<TagType, (readonly [ItemType, ItemType])[]> {
   readonly kind = 'mapping';
 
-  constructor(tag: TagType, content: Iterable<readonly [ItemType, ItemType]>, comparator: NodeComparator | boolean = true) {
+  constructor(
+    tag: TagType,
+    content: Iterable<readonly [ItemType, ItemType]>,
+    comparator: NodeComparator | boolean = true,
+  ) {
     const pairs = Array.from(content);
     if (comparator && pairs.length > 1) {
       const c = (comparator === true) ? new NodeComparator() : comparator;
@@ -82,12 +86,15 @@ export class RepresentationMapping<
     return new RepresentationMapping(this.tag, this.content.map(([key, value]) => [callback(key), callback(value)]));
   }
 
-  merge(other: Iterable<readonly [ItemType, ItemType]>) {
+  merge(
+    this: RepresentationMapping,
+    other: Iterable<readonly [RepresentationNode, RepresentationNode]>,
+  ): RepresentationMapping {
     const content: (readonly [RepresentationNode, RepresentationNode])[] = [];
 
     const
-      a = Array.from(this) as (readonly [RepresentationNode, RepresentationNode])[],
-      b = Array.from(other) as (readonly [RepresentationNode, RepresentationNode])[];
+      a = Array.from(this),
+      b = Array.from(other);
 
     let i = 0, j = 0;
 
