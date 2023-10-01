@@ -107,7 +107,7 @@ class PresentOperation {
       this.emit('!');
     } else {
       this._space();
-      this.emit('!<' + tag.toString() + '>');
+      this.emit('!<' + tag + '>');
     }
   }
 
@@ -117,11 +117,19 @@ class PresentOperation {
 
     this._space();
     if (node.tag === NonSpecificTag.question) {
-      if (!canBePlainScalar(node.content)) throw new TypeError(`Cannot present ${JSON.stringify(node.content)} as plain scalar`);
-      this.emit(node.content);
+      this.presentPlainScalar(node);
     } else {
-      this.emit(JSON.stringify(node.content));
+      this.presentDoubleQuotedScalar(node);
     }
+  }
+
+  presentPlainScalar(node: SerializationScalar) {
+    if (!canBePlainScalar(node.content)) throw new TypeError(`Cannot present ${JSON.stringify(node.content)} as plain scalar`);
+    this.emit(node.content);
+  }
+
+  presentDoubleQuotedScalar(node: SerializationScalar) {
+    this.emit(JSON.stringify(node.content));
   }
 
   presentBlockSequence(node: SerializationSequence, level: number) {
