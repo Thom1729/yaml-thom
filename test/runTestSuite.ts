@@ -1,4 +1,5 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import { inspect } from 'util';
 
@@ -19,7 +20,12 @@ import type { SerializationNode } from '@/nodes';
 
 const logger = new Logger(process.stdout);
 
-const testLoader = new DirectoryTestLoader(path.join(__dirname, '../..', 'yaml-test-suite'));
+const TEST_SUITE_PATH = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..', 'yaml-test-suite',
+);
+
+const testLoader = new DirectoryTestLoader(TEST_SUITE_PATH);
 
 
 interface TestResult {

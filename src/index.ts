@@ -1,3 +1,6 @@
+export * from './parser';
+export * from './events';
+
 import { parseSingleDocument, parseStream, type ParseOptions } from './parser';
 import { compose, type ComposeOptions } from './composer';
 

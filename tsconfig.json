@@ -1,19 +1,21 @@
 {
   "compilerOptions": {
     "lib": ["es2022"],
-      "module": "commonjs",
-      "target": "es2021",
+    "target": "es2021",
+    "declaration": true,
 
-      "strict": true,
-      // "exactOptionalPropertyTypes": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-      "moduleResolution": "node",
-      "baseUrl": "./",
-      "paths": {
-        "@/*": ["src/*"]
-      }
+    "module": "esnext",
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "strict": true
+    // "exactOptionalPropertyTypes": true,
   },
   // "include": ["src/**/*"],
   // "exclude": ["node_modules", "**/*.spec.ts"]
