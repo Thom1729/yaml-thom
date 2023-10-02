@@ -3,20 +3,15 @@ import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import { inspect } from 'util';
 
-import { parseStream } from '@/parser';
-import { zip } from '@/util';
-
-import { diff, pathToString, type Difference } from '@/nodes/diff';
-
-import { eventsToSerializationTrees } from '@/events';
-
 import {
   DirectoryTestLoader,
-  type TestCase,
 } from './testSuite';
 
+import { runTest } from '@/testSuite';
+import { pathToString } from '@/nodes/diff';
+
+
 import { Logger } from './logger';
-import type { SerializationNode } from '@/nodes';
 
 const logger = new Logger(process.stdout);
 
@@ -24,50 +19,7 @@ const TEST_SUITE_PATH = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..', 'yaml-test-suite',
 );
-
 const testLoader = new DirectoryTestLoader(TEST_SUITE_PATH);
-
-
-interface TestResult {
-  test: TestCase;
-  inequal?: Difference<SerializationNode>[];
-  error?: unknown;
-}
-
-function runTest(test: TestCase) {
-  function makeResult(status: string, rest: Partial<TestResult> = {}) {
-    return {
-      status,
-      test,
-      ...rest,
-    };
-  }
-
-  if (test.skip) return makeResult('skipped');
-  if (test.fail) return makeResult('skipped'); // TODO
-  if (test.tree === undefined) return makeResult('skipped'); // TODO
-
-  try {
-    const expectedTree = Array.from(eventsToSerializationTrees(test.tree));
-    const actualTree = Array.from(parseStream(test.yaml, { version: '1.3' }));
-
-    const inequal = [] as Difference<SerializationNode>[];
-    if (expectedTree.length !== actualTree.length) {
-      console.error(expectedTree.length, actualTree.length);
-      console.error(test.tree);
-    }
-    for (const [expectedDocument, actualDocument] of zip(
-      expectedTree.slice(0, Math.min(expectedTree.length, actualTree.length)),
-      actualTree.slice(0, Math.min(expectedTree.length, actualTree.length)),
-    )) {
-      inequal.push(...diff(expectedDocument, actualDocument));
-    }
-    const status = inequal.length > 0 ? 'failure' : 'success';
-    return makeResult(status, { inequal });
-  } catch (error) {
-    return makeResult('error', { error });
-  }
-}
 
 const VERBOSE = false;
 
