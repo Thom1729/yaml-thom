@@ -87,9 +87,9 @@ export class RepresentationMapping<
   }
 
   merge(
-    this: RepresentationMapping,
+    this: RepresentationMapping<TagType, RepresentationNode>,
     other: Iterable<readonly [RepresentationNode, RepresentationNode]>,
-  ): RepresentationMapping {
+  ): RepresentationMapping<TagType, RepresentationNode> {
     const content: (readonly [RepresentationNode, RepresentationNode])[] = [];
 
     const
