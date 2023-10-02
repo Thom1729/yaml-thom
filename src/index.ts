@@ -1,5 +1,11 @@
-export * from './parser';
+export * from './composer';
+export * from './evaluator';
 export * from './events';
+export * from './nodes';
+export * from './parser';
+export * from './presenter';
+export * from './serializer';
+export * from './testSuite';
 
 import { parseSingleDocument, parseStream, type ParseOptions } from './parser';
 import { compose, type ComposeOptions } from './composer';
