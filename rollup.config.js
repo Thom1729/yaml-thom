@@ -1,4 +1,6 @@
 import ts from 'rollup-plugin-ts';
+import shebang from 'rollup-plugin-add-shebang';
+import executable from 'rollup-plugin-executable-output';
 
 export default [
   {
@@ -15,6 +17,33 @@ export default [
     ],
     plugins: [
       ts({}),
+    ],
+  },
+  {
+    external: [
+      '../dist/esm/index.js',
+      'yargs',
+      'yargs/helpers',
+      'fs',
+    ],
+    input: 'bin/cli.ts',
+    output: [
+      {
+        file: 'dist-bin/cli.js',
+        format: 'esm',
+      },
+    ],
+    plugins: [
+      ts({
+        tsconfig: config => ({
+          ...config,
+          declaration: false,
+        }),
+      }),
+      shebang({
+        shebang: '#!/usr/bin/env node',
+      }),
+      executable(),
     ],
   },
 ];

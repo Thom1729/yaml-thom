@@ -6,7 +6,7 @@ import { AstToSerializationTree } from './core/astToSerializationTree';
 import versions from './versions';
 import { single } from '@/util';
 
-type YamlVersion = keyof typeof versions;
+export type YamlVersion = keyof typeof versions;
 
 export interface ParseOptions {
   version?: YamlVersion;
