@@ -16,6 +16,11 @@ const DEFAULT_OPTIONS = {
   version: '1.3',
 } satisfies Required<ParseOptions>;
 
+export function parseAst(text: string, version: YamlVersion) {
+  const { grammar, rootProduction } = versions[version];
+  return new ParseOperation(grammar, text).parseAll(rootProduction);
+}
+
 export function parseStream(text: string, options?: ParseOptions) {
   const combinedOptions = { ...DEFAULT_OPTIONS, ...options };
 

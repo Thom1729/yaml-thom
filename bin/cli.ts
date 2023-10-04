@@ -1,7 +1,8 @@
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { streamToEvents } from './someCommand';
+import { streamToEvents } from './streamToEvents';
+import { streamToAst } from './streamToAst';
 
 yargs(hideBin(process.argv))
   .option('yaml-version', {
@@ -13,7 +14,12 @@ yargs(hideBin(process.argv))
   } as const)
   .command(
     'stream-to-events <filename>', '',
-    yargs => yargs.positional('filename', { type: 'string' }),
-    args => streamToEvents(args.filename!, args['yaml-version']),
+    yargs => yargs.positional('filename', { type: 'string', demandOption: true }),
+    args => streamToEvents(args.filename, args['yaml-version']),
+  )
+  .command(
+    'stream-to-ast <filename>', '',
+    yargs => yargs.positional('filename', { type: 'string', demandOption: true }),
+    args => streamToAst(args.filename, args['yaml-version']),
   )
   .parse();
