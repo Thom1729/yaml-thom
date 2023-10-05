@@ -22,9 +22,15 @@ export default [
   {
     external: [
       '../dist/esm/index.js',
+
       'yargs',
       'yargs/helpers',
+      'chalk',
+
       'fs',
+      'path',
+      'url',
+      'util',
     ],
     input: 'bin/cli.ts',
     output: [
