@@ -6,15 +6,13 @@ import {
   type AstNode,
 } from './lib';
 
+import { repeat } from './logger';
+
 export function streamToAst(filename: string, version: YamlVersion) {
   const text = readFileSync(filename, { encoding: 'utf-8' });
   const ast = parseAst(text, version);
 
   prettyPrintAst(ast, 0);
-}
-
-export function repeat(count: number, s: string) {
-  return new Array(count + 1).join(s);
 }
 
 function prettyPrintAst({ name, parameters, content }: AstNode, depth: number) {

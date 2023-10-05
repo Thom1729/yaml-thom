@@ -1,5 +1,4 @@
 import { inspect } from 'util';
-import { repeat } from '@/util';
 import chalk from 'chalk';
 
 const INVISIBLES = {
@@ -8,6 +7,10 @@ const INVISIBLES = {
 };
 
 const INVISIBLES_EXPR = new RegExp(String.raw`(?:${Object.keys(INVISIBLES).join('|')})`, 'gu');
+
+export function repeat(count: number, s: string) {
+  return new Array(count + 1).join(s);
+}
 
 export class Logger {
   stream: NodeJS.WriteStream;
