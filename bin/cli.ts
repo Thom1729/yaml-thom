@@ -14,20 +14,25 @@ yargs(hideBin(process.argv))
     default: '1.2',
   } as const)
   .command(
-    'stream-to-events <filename>', '',
-    yargs => yargs.positional('filename', { type: 'string', demandOption: true }),
+    'stream-to-events <filename>',
+    '',
+    yargs => yargs
+      .positional('filename', { type: 'string', demandOption: true }),
     args => streamToEvents(args.filename, args['yaml-version']),
   )
   .command(
-    'stream-to-ast <filename>', '',
-    yargs => yargs.positional('filename', { type: 'string', demandOption: true }),
+    'stream-to-ast <filename>',
+    '',
+    yargs => yargs
+      .positional('filename', { type: 'string', demandOption: true }),
     args => streamToAst(args.filename, args['yaml-version']),
   )
   .command(
-    'run-test-suite <path>', '',
+    'run-test-suite <test-suite-path>',
+    '',
     yargs => yargs
-      .positional('path', { type: 'string', demandOption: true })
+      .positional('test-suite-path', { type: 'string', demandOption: true })
       .option('verbose', { type: 'boolean', default: false }),
-    args => runTestSuite(args.path, args.verbose),
+    args => runTestSuite(args['test-suite-path'], args.verbose),
   )
   .parse();

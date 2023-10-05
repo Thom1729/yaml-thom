@@ -4,7 +4,7 @@ import {
   parseAst,
   type YamlVersion,
   type AstNode,
-} from '../dist/esm/index.js';
+} from './lib';
 
 export function streamToAst(filename: string, version: YamlVersion) {
   const text = readFileSync(filename, { encoding: 'utf-8' });

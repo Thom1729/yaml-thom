@@ -10,7 +10,7 @@ import type {
   RepresentationScalar,
   RepresentationSequence,
   RepresentationMapping,
-}  from '.';
+} from '.';
 
 import { present } from '@/presenter';
 

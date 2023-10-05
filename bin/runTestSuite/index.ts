@@ -1,11 +1,11 @@
 import chalk from 'chalk';
 import { inspect } from 'util';
 
-import { runTest, pathToString } from '../dist/esm/index.js';
+import { runTest, pathToString } from '../lib';
 
 import { DirectoryTestLoader } from './DirectoryTestLoader';
 
-import { Logger } from './logger';
+import { Logger } from '../logger';
 
 export function runTestSuite(testSuitePath: string, verbose: boolean) {
   const logger = new Logger(process.stdout);
