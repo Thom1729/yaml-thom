@@ -32,3 +32,9 @@ export interface DumpOptions extends SerializeOptions, PresentOptions {}
 export function dumpDocument(document: RepresentationNode, options: DumpOptions = {}): string {
   return present(serialize(document, options), options);
 }
+
+export function dumpStream(documents: Iterable<RepresentationNode>, options: DumpOptions = {}): string {
+  return Array.from(documents)
+    .map(document => present(serialize(document, options), options))
+    .join('');
+}

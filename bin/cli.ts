@@ -4,6 +4,7 @@ import { hideBin } from 'yargs/helpers';
 import { streamToEvents } from './streamToEvents';
 import { streamToAst } from './streamToAst';
 import { runTestSuite } from './runTestSuite';
+import { evaluateStream } from './evaluate';
 
 yargs(hideBin(process.argv))
   .option('yaml-version', {
@@ -26,6 +27,13 @@ yargs(hideBin(process.argv))
     yargs => yargs
       .positional('filename', { type: 'string', demandOption: true }),
     args => streamToAst(args.filename, args['yaml-version']),
+  )
+  .command(
+    'evaluate <filename>',
+    '',
+    yargs => yargs
+      .positional('filename', { type: 'string', demandOption: true }),
+    args => evaluateStream(args.filename),
   )
   .command(
     'run-test-suite <test-suite-path>',
