@@ -5,6 +5,7 @@ import { streamToEvents } from './streamToEvents';
 import { streamToAst } from './streamToAst';
 import { runTestSuite } from './runTestSuite';
 import { evaluateStream } from './evaluate';
+import { runEvaluationTests } from './runEvaluationTests';
 
 yargs(hideBin(process.argv))
   .option('yaml-version', {
@@ -42,5 +43,12 @@ yargs(hideBin(process.argv))
       .positional('test-suite-path', { type: 'string', demandOption: true })
       .option('verbose', { type: 'boolean', default: false }),
     args => runTestSuite(args['test-suite-path'], args.verbose),
+  )
+  .command(
+    'run-evaluation-tests <test-name>',
+    '',
+    yargs => yargs
+      .positional('test-name', { type: 'string', demandOption: true }),
+    args => runEvaluationTests(args['test-name']),
   )
   .parse();
