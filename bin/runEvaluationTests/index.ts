@@ -17,7 +17,10 @@ import { Logger } from '../logger';
 
 import { extractMapEntries, extractStrContent, extractStringMap } from '@/evaluator/helpers';
 
-const BASE_TEST_PATH = path.join(fileURLToPath(import.meta.url), '..', '..', 'test', 'evaluate', 'annotations');
+const BASE_TEST_PATH = path.join(
+  fileURLToPath(import.meta.url),
+  '../../test/evaluate/annotations',
+);
 
 export function *enumerate<T>(iterable: Iterable<T>, start: number = 0) {
   let i = start;
@@ -78,10 +81,12 @@ const STATUS_COLORS = {
   failure: 'red',
 } as const;
 
-export function runEvaluationTests(testName: string) {
+export function runEvaluationTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
 
-  const suiteNames = [testName];
+  if (suiteNames.length === 0) {
+    suiteNames = fs.readdirSync(BASE_TEST_PATH).map(f => f.slice(0, -5));
+  }
 
   for (const suiteName of suiteNames) {
     logger.log(suiteName);

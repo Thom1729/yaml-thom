@@ -45,10 +45,10 @@ yargs(hideBin(process.argv))
     args => runTestSuite(args['test-suite-path'], args.verbose),
   )
   .command(
-    'run-evaluation-tests <test-name>',
+    'run-evaluation-tests [test-name..]',
     '',
     yargs => yargs
-      .positional('test-name', { type: 'string', demandOption: true }),
+      .positional('test-name', { type: 'string', array: true, demandOption: true }),
     args => runEvaluationTests(args['test-name']),
   )
   .parse();
