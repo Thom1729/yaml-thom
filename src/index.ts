@@ -1,4 +1,5 @@
 export * from './composer';
+export * from './constructor';
 export * from './evaluator';
 export * from './events';
 export * from './nodes';
