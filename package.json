@@ -14,7 +14,7 @@
     "test": "npm run test:lint && npm run test:unit && npm run test:suite",
     "test:unit": "jest src",
     "test:suite": "npx yaml-util run-test-suite ../yaml-test-suite",
-    "test:annotations": "tsx test/evaluate/index.ts",
+    "test:annotations": "npx yaml-util run-evaluation-tests",
     "test:lint": "eslint src"
   },
   "author": "",
