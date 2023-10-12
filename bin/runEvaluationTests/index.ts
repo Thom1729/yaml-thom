@@ -19,7 +19,7 @@ import { extractMapEntries, extractStrContent, extractStringMap } from '@/evalua
 
 const BASE_TEST_PATH = path.join(
   fileURLToPath(import.meta.url),
-  '../../test/evaluate/annotations',
+  '../../test/annotations',
 );
 
 export function *enumerate<T>(iterable: Iterable<T>, start: number = 0) {
