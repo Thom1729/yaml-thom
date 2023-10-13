@@ -1,0 +1,14 @@
+---
+validator:
+  items:
+    kind: scalar
+input:
+  - hello
+valid: true
+---
+validator:
+  items:
+    kind: scalar
+input:
+  - []
+valid: false

@@ -35,7 +35,7 @@ function constructValidationTest(document: RepresentationNode): ValidationTest {
 }
 
 function constructValidator(node: RepresentationNode): Validator {
-  const x = extractStringMap(node, ['kind?', 'tag?', 'const?', 'minLength?']);
+  const x = extractStringMap(node, ['kind?', 'tag?', 'const?', 'minLength?', 'items?']);
 
   const ret: Validator = {};
 
@@ -59,6 +59,10 @@ function constructValidator(node: RepresentationNode): Validator {
     const minLength = defaultConstructor(x.minLength);
     if (typeof minLength !== 'bigint') throw new TypeError();
     ret.minLength = minLength;
+  }
+
+  if (x.items !== undefined) {
+    ret.items = constructValidator(x.items);
   }
 
   return ret;
