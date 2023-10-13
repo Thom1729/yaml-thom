@@ -10,7 +10,7 @@ export interface Validator {
 
   const?: RepresentationNode;
 
-  minLength?: number;
+  minLength?: bigint;
 }
 
 export function validate(
@@ -33,17 +33,24 @@ export interface ValidationFailure {
   key: keyof Validator;
 }
 
-const SIMPLE_VALIDATORS = {
-  kind: (node, kind) => (node.kind === kind),
-  tag: (node, tag) => (node.tag === tag),
+const VALIDATORS = {
+  kind: (node, kind) => node.kind === kind,
+  tag: (node, tag) => node.tag === tag,
+
+  const: function (node, value) {
+    return this.comparator.compare(value, node) === 0;
+  },
+
+  minLength: (node, minLength) => node.size >= minLength,
 } satisfies {
   [K in keyof Validator]: (
+    this: NodeValidator,
     node: RepresentationNode,
     value: Exclude<Validator[K], undefined>,
-  ) => boolean
+  ) => boolean | Generator<ValidationFailure, boolean>
 };
 
-const SIMPLE_VALIDATOR_KEYS = strictKeys(SIMPLE_VALIDATORS);
+const VALIDATOR_KEYS = strictKeys(VALIDATORS);
 
 class NodeValidator {
   readonly cache = new WeakCache<[Validator, RepresentationNode], boolean | null>();
@@ -59,29 +66,22 @@ class NodeValidator {
       this.cache.set(validator, node, null);
     }
 
-    for (const key of SIMPLE_VALIDATOR_KEYS) {
+    for (const key of VALIDATOR_KEYS) {
       if (validator[key] !== undefined) {
-        const result = SIMPLE_VALIDATORS[key](node, validator[key] as any);
-        if (!result) {
+        const f = VALIDATORS[key] as (
+          this: NodeValidator,
+          node: RepresentationNode,
+          value: unknown,
+        ) => boolean | Generator<ValidationFailure, boolean>;
+
+        const result = f.call(this, node, validator[key]);
+        const valid = typeof result === 'boolean' ? result : yield* result;
+
+        if (!valid) {
           this.cache.set(validator, node, false);
           yield { validator, key: key };
+          return false;
         }
-      }
-    }
-
-    if (validator.const !== undefined) {
-      if (this.comparator.compare(validator.const, node) !== 0) {
-        this.cache.set(validator, node, false);
-        yield { validator, key: 'const' };
-        return false;
-      }
-    }
-
-    if (validator.minLength !== undefined && node.kind === 'scalar') {
-      if (node.size < validator.minLength) {
-        this.cache.set(validator, node, false);
-        yield { validator, key: 'minLength' };
-        return false;
       }
     }
 
