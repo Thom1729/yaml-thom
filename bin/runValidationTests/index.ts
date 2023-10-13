@@ -10,33 +10,39 @@ import {
 
 interface ValidationTest {
   validator: Validator;
-  input: RepresentationNode
+  input: RepresentationNode;
+  valid?: boolean;
 }
 
 interface ValidationTestResult {
-  valid: boolean;
+  success: boolean;
 }
 
-function loadValidationTest(document: RepresentationNode): ValidationTest {
-  const { validator: rawValidator, input } = extractStringMap(document, ['validator', 'input']);
+function constructValidationTest(document: RepresentationNode): ValidationTest {
+  const { validator: rawValidator, input, valid: rawValid } = extractStringMap(document, ['validator', 'input', 'valid?']);
 
   const validator = defaultConstructor(rawValidator) as Validator;
+  const valid = rawValid && defaultConstructor(rawValid) as boolean;
 
   return {
     validator,
     input,
+    valid,
   };
 }
 
 function runValidationTest(test: ValidationTest): ValidationTestResult {
   const valid = validate(test.validator, test.input);
-  return { valid };
+  const success = valid === test.valid;
+
+  if (!success) console.error(valid, test.valid, test);
+  return { success };
 }
 
 export function runValidationTests(testNames: string[]) {
   for (const text of loadTestFiles('test/validation', testNames)) {
     for (const document of loadStream(text)) {
-      const validationTest = loadValidationTest(document);
+      const validationTest = constructValidationTest(document);
 
       const result = runValidationTest(validationTest);
 
