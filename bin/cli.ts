@@ -6,6 +6,7 @@ import { streamToAst } from './streamToAst';
 import { runTestSuite } from './runTestSuite';
 import { evaluateStream } from './evaluate';
 import { runEvaluationTests } from './runEvaluationTests';
+import { runValidationTests } from './runValidationTests';
 
 yargs(hideBin(process.argv))
   .option('yaml-version', {
@@ -50,5 +51,12 @@ yargs(hideBin(process.argv))
     yargs => yargs
       .positional('test-name', { type: 'string', array: true, demandOption: true }),
     args => runEvaluationTests(args['test-name']),
+  )
+  .command(
+    'run-validation-tests [test-name..]',
+    '',
+    yargs => yargs
+      .positional('test-name', { type: 'string', array: true, demandOption: true }),
+    args => runValidationTests(args['test-name']),
   )
   .parse();

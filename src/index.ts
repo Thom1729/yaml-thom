@@ -7,6 +7,7 @@ export * from './parser';
 export * from './presenter';
 export * from './serializer';
 export * from './testSuite';
+export * from './validator';
 
 import { parseSingleDocument, parseStream, type ParseOptions } from './parser';
 import { compose, type ComposeOptions } from './composer';
