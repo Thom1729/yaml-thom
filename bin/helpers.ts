@@ -2,6 +2,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 
+import { Logger } from './logger';
+
+export const logger = new Logger(process.stdout);
+
 export const BASE_PATH = path.join(fileURLToPath(import.meta.url), '..', '..');
 
 export function readTextSync(...path: string[]) {
@@ -16,9 +20,11 @@ export function *loadTestFiles(p: string, testNames: string[]) {
   }
 
   for (const name of testNames) {
-    yield readTextSync(path.join(
-      baseDir,
-      name.endsWith('.yaml') ? name : name + '.yaml',
-    ));
+    const fullName = name.endsWith('.yaml') ? name : name + '.yaml';
+    const text = readTextSync(path.join(baseDir, fullName));
+    yield {
+      name: fullName,
+      text,
+    };
   }
 }
