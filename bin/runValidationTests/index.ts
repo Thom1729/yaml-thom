@@ -1,19 +1,12 @@
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+import { loadTestFiles } from 'bin/helpers';
 
 import {
-  loadSingleDocument,
+  loadStream,
   extractStringMap,
   defaultConstructor,
   validate, type Validator,
   type RepresentationNode,
 } from '../lib';
-
-const BASE_TEST_PATH = path.join(
-  fileURLToPath(import.meta.url),
-  '../../test/validation',
-);
 
 interface ValidationTest {
   validator: Validator;
@@ -41,20 +34,13 @@ function runValidationTest(test: ValidationTest): ValidationTestResult {
 }
 
 export function runValidationTests(testNames: string[]) {
-  if (testNames.length === 0) {
-    testNames = fs.readdirSync(BASE_TEST_PATH);
-  }
+  for (const text of loadTestFiles('test/validation', testNames)) {
+    for (const document of loadStream(text)) {
+      const validationTest = loadValidationTest(document);
 
-  for (const testName of testNames) {
-    const filePath = path.join(BASE_TEST_PATH, testName.endsWith('.yaml') ? testName : testName + '.yaml');
-    const text = fs.readFileSync(filePath, { encoding: 'utf-8' });
+      const result = runValidationTest(validationTest);
 
-    const test = loadSingleDocument(text);
-
-    const validationTest = loadValidationTest(test);
-
-    const result = runValidationTest(validationTest);
-
-    console.log(result);
+      console.log(result);
+    }
   }
 }

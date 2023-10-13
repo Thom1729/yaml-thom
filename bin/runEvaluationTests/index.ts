@@ -1,6 +1,3 @@
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { inspect } from 'util';
 
 import chalk from 'chalk';
@@ -15,11 +12,7 @@ import {
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';
-
-const BASE_TEST_PATH = path.join(
-  fileURLToPath(import.meta.url),
-  '../../test/annotations',
-);
+import { loadTestFiles } from '../helpers';
 
 export function *enumerate<T>(iterable: Iterable<T>, start: number = 0) {
   let i = start;
@@ -36,9 +29,8 @@ interface AnnotationTest {
   error: boolean | undefined;
 }
 
-function *loadAnnotationTest(suiteName: string): Generator<AnnotationTest> {
-  const inputText = fs.readFileSync(path.join(BASE_TEST_PATH, `${suiteName}.yaml`), { encoding: 'utf-8' });
-  for (const test of loadStream(inputText, { version: '1.3' })) {
+function *loadAnnotationTest(text: string): Generator<AnnotationTest> {
+  for (const test of loadStream(text, { version: '1.3' })) {
     const testProperties = extractStringMap(test, ['context?', 'input', 'expected?', 'error?', 'name?']);
 
     yield {
@@ -83,15 +75,9 @@ const STATUS_COLORS = {
 export function runEvaluationTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
 
-  if (suiteNames.length === 0) {
-    suiteNames = fs.readdirSync(BASE_TEST_PATH).map(f => f.slice(0, -5));
-  }
-
-  for (const suiteName of suiteNames) {
-    logger.log(suiteName);
-
+  for (const text of loadTestFiles('test/annotations', suiteNames)) {
     logger.indented(() => {
-      for (const [i, test] of enumerate(loadAnnotationTest(suiteName), 1)) {
+      for (const [i, test] of enumerate(loadAnnotationTest(text), 1)) {
         const testName = test.name ?? i;
 
         const { status, diffs, error } = runAnnotationTest(test);
