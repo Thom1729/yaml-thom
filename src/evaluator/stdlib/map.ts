@@ -1,5 +1,5 @@
 import type { Library } from '.';
-import { seq, map } from '../helpers';
+import { seq, map } from '@/nodes';
 import { simpleAnnotation, specs } from '../signature';
 
 export default {

@@ -1,5 +1,5 @@
 import type { Library } from '.';
-import { str, extractStrContent } from '../helpers';
+import { str, extractStrContent } from '@/nodes';
 import { simpleAnnotation, specs } from '../signature';
 
 export default {

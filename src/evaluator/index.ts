@@ -2,12 +2,11 @@ import {
   RepresentationNode,
   RepresentationMapping,
   RepresentationSequence,
+  isAnnotation, extractAnnotationInfo,
+  NodeComparator,
 } from '@/nodes';
 
-import { isAnnotation, extractAnnotationInfo } from './helpers';
-
 import STDLIB from './stdlib';
-import { NodeComparator } from '@/nodes/equality';
 
 interface Annotation {
   name: string,

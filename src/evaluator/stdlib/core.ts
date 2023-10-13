@@ -1,8 +1,6 @@
 import type { Library } from '.';
 
-import type { RepresentationNode } from '@/nodes';
-
-import { assertMap, isAnnotation, extractAnnotationInfo } from '../helpers';
+import { assertMap, isAnnotation, extractAnnotationInfo, type RepresentationNode } from '@/nodes';
 import { Y } from '@/util';
 
 import { simpleAnnotation, assertArgumentTypes } from '../signature';

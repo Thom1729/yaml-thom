@@ -1,5 +1,5 @@
 import type { Library } from '.';
-import { int, extractInt } from '../helpers';
+import { int, extractInt } from '@/nodes';
 
 import { simpleAnnotation, specs } from '../signature';
 

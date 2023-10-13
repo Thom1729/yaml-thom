@@ -10,12 +10,11 @@ import {
   RepresentationMapping, type RepresentationNode,
   evaluate,
   diff,
+  extractMapEntries, extractStrContent, extractStringMap,
 } from '../lib';
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';
-
-import { extractMapEntries, extractStrContent, extractStringMap } from '@/evaluator/helpers';
 
 const BASE_TEST_PATH = path.join(
   fileURLToPath(import.meta.url),
