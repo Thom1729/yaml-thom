@@ -7,14 +7,16 @@ import {
   loadStream,
   extractStringMap,
   defaultConstructor,
-  validate, type Validator,
+  isValid, type Validator, type ValidationFailure,
   type RepresentationNode,
+  validate,
 } from '../lib';
 
 interface ValidationTest {
   validator: Validator;
   input: RepresentationNode;
   valid?: boolean;
+  failures?: ValidationFailure[];
 }
 
 interface ValidationTestResult {
@@ -22,16 +24,17 @@ interface ValidationTestResult {
 }
 
 function constructValidationTest(document: RepresentationNode): ValidationTest {
-  const { validator: rawValidator, input, valid: rawValid } = extractStringMap(document, ['validator', 'input', 'valid?']);
+  const x = extractStringMap(document, ['validator', 'input', 'valid?', 'failures?']);
 
-  const validator = constructValidator(rawValidator);
-  const valid = rawValid && defaultConstructor(rawValid) as boolean;
-
-  return {
-    validator,
-    input,
-    valid,
+  const ret: ValidationTest = {
+    validator: constructValidator(x.validator),
+    input: x.input,
   };
+
+  if (x.valid !== undefined) ret.valid = defaultConstructor(x.valid) as boolean;
+  if (x.failures !== undefined) ret.failures = defaultConstructor(x.failures) as unknown as ValidationFailure[];
+
+  return ret;
 }
 
 function constructValidator(node: RepresentationNode): Validator {
@@ -68,11 +71,46 @@ function constructValidator(node: RepresentationNode): Validator {
   return ret;
 }
 
-function runValidationTest(test: ValidationTest): ValidationTestResult {
-  const valid = validate(test.validator, test.input);
-  const success = valid === test.valid;
+function deepEquals(a: unknown, b: unknown) {
+  if (a === b) {
+    return true;
+  } else if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
 
-  if (!success) logger.log(valid, test.valid, test);
+    for (let i = 0; i < a.length; i++) {
+      if (!deepEquals(a[i], b[i])) return false;
+    }
+
+    return true;
+  } else if (a && b && typeof a === 'object' && typeof b === 'object') {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) return false;
+    for (const k of aKeys) {
+      if (!Object.hasOwn(b, k)) return false;
+      if (!deepEquals((a as any)[k], (b as any)[k])) return false;
+    }
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function runValidationTest(test: ValidationTest): ValidationTestResult {
+  const failures = Array.from(validate(test.validator, test.input));
+  const valid = failures.length === 0;
+
+  let success = true;
+
+  if (test.valid !== undefined) {
+    if (test.valid !== valid) success = false;
+  }
+
+  if (test.failures !== undefined) {
+    success = success && deepEquals(failures, test.failures);
+  }
+
+  if (!success) logger.log(test, failures);
   return { success };
 }
 

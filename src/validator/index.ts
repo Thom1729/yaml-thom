@@ -15,13 +15,20 @@ export interface Validator {
   items?: Validator;
 }
 
-export function validate(
+export function isValid(
   validator: Validator,
   node: RepresentationNode,
 ): boolean {
-  const itr = new NodeValidator().validate(validator, node, []);
+  const itr = validate(validator, node);
   const { done } = itr.next();
   return done ?? false;
+}
+
+export function validate(
+  validator: Validator,
+  node: RepresentationNode,
+) {
+  return new NodeValidator().validate(validator, node, []);
 }
 
 type PathEntry =

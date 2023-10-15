@@ -12,7 +12,11 @@ validator:
   kind: sequence
 input: foo!
 valid: false
-
+failures:
+  - path: []
+    key: kind
+    validator:
+      kind: sequence
 ---
 validator:
   const: [42]
