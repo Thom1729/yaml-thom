@@ -21,6 +21,18 @@ failures:
   - path: []
     key: kind
     value: sequence
+
+---
+validator:
+  tag: tag:yaml.org,2002:str
+input: foo!
+valid: true
+---
+validator:
+  tag: tag:yaml.org,2002:int
+input: foo!
+valid: false
+
 ---
 validator:
   const: [42]

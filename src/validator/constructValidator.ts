@@ -3,7 +3,7 @@ import type { RepresentationNode } from '@/nodes';
 
 import { extractStringMap } from '@/nodes';
 import { defaultConstructor } from '@/constructor';
-import { isArray, assertEnum } from '@/util';
+import { isArray, assertEnum, assertString, assertBigInt } from '@/util';
 
 function assertMaybeArray<T, U extends T>(
   value: OneOrMore<T>,
@@ -32,7 +32,7 @@ export function constructValidator(node: RepresentationNode): Validator {
 
   if (x.tag !== undefined) {
     const tag = defaultConstructor(x.tag);
-    if (typeof tag !== 'string') throw new TypeError();
+    assertMaybeArray(tag, assertString);
     ret.tag = tag;
   }
 
@@ -42,7 +42,7 @@ export function constructValidator(node: RepresentationNode): Validator {
 
   if (x.minLength !== undefined) {
     const minLength = defaultConstructor(x.minLength);
-    if (typeof minLength !== 'bigint') throw new TypeError();
+    assertBigInt(minLength);
     ret.minLength = minLength;
   }
 

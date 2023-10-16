@@ -47,7 +47,7 @@ function isOneOrMore<T>(value: T, values: OneOrMore<T>) {
 
 const VALIDATORS = {
   kind: (node, kind) => isOneOrMore(node.kind, kind),
-  tag: (node, tag) => node.tag === tag,
+  tag: (node, tag) => isOneOrMore(node.tag, tag),
 
   const: function (node, value) {
     return this.comparator.compare(value, node) === 0;

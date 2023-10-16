@@ -4,7 +4,7 @@ export type OneOrMore<T> = T | [T, ...T[]];
 
 export interface Validator {
   kind?: OneOrMore<'scalar' | 'sequence' | 'mapping'>;
-  tag?: string;
+  tag?: OneOrMore<string>;
 
   const?: RepresentationNode;
 

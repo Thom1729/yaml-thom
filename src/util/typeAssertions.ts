@@ -9,8 +9,14 @@ export function assertionFunction<V, U extends V>(
 export function isString(value: unknown): value is string {
   return typeof value === 'string';
 }
-
 export const assertString = assertionFunction(isString);
+
+export function isBigInt(value: unknown): value is bigint {
+  return typeof value === 'bigint';
+}
+export function assertBigInt(value: unknown, message?: string): asserts value is bigint {
+  if (!isBigInt(value)) throw new TypeError(message);
+}
 
 export function isNotNull<T>(value: T): value is Exclude<T, null> {
   return value === null;
