@@ -45,3 +45,12 @@ export function assertNotUndefined<T>(
     throw new TypeError(message ?? `assertNotUndefined`);
   }
 }
+
+export function assertEnum<const T>(values: Iterable<T>) {
+  const set = new Set<unknown>(values);
+  return (value: unknown): asserts value is T => {
+    if (!set.has(value)) {
+      throw new TypeError('assertEnum');
+    }
+  };
+}

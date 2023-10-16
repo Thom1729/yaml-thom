@@ -9,6 +9,11 @@ input: foo!
 valid: true
 ---
 validator:
+  kind: [scalar, sequence]
+input: foo!
+valid: true
+---
+validator:
   kind: sequence
 input: foo!
 valid: false

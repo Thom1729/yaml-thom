@@ -1,8 +1,23 @@
-import type { Validator } from '.';
+import type { Validator, OneOrMore } from './types';
 import type { RepresentationNode } from '@/nodes';
 
 import { extractStringMap } from '@/nodes';
 import { defaultConstructor } from '@/constructor';
+import { isArray, assertEnum } from '@/util';
+
+function assertMaybeArray<T, U extends T>(
+  value: OneOrMore<T>,
+  assertion: (value: T) => asserts value is U,
+): asserts value is OneOrMore<U> {
+  if (isArray(value)) {
+    if (value.length === 0) throw new TypeError();
+    for (const item of value) {
+      assertion(item);
+    }
+  } else {
+    assertion(value);
+  }
+}
 
 export function constructValidator(node: RepresentationNode): Validator {
   const x = extractStringMap(node, ['kind?', 'tag?', 'const?', 'minLength?', 'items?']);
@@ -11,7 +26,7 @@ export function constructValidator(node: RepresentationNode): Validator {
 
   if (x.kind !== undefined) {
     const kind = defaultConstructor(x.kind);
-    if (kind !== 'scalar' && kind !== 'sequence' && kind !== 'mapping') throw new TypeError();
+    assertMaybeArray(kind, assertEnum(['scalar', 'sequence', 'mapping']));
     ret.kind = kind;
   }
 

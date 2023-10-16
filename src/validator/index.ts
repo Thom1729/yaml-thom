@@ -1,15 +1,5 @@
 export * from './constructValidator';
 export * from './validate';
 
-import type { RepresentationNode } from '@/nodes';
+export { Validator } from './types';
 
-export interface Validator {
-  kind?: 'scalar' | 'sequence' | 'mapping';
-  tag?: string;
-
-  const?: RepresentationNode;
-
-  minLength?: bigint;
-
-  items?: Validator;
-}
