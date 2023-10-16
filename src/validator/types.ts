@@ -9,6 +9,7 @@ export interface Validator {
   const?: RepresentationNode;
 
   minLength?: bigint;
+  maxLength?: bigint;
 
   items?: Validator;
 }

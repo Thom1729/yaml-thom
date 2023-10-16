@@ -1,0 +1,17 @@
+---
+validator:
+  minLength: 1
+input:
+  hello!
+valid: true
+
+---
+validator:
+  minLength: 1
+input:
+  ''
+valid: false
+failures:
+  - path: []
+    key: minLength
+    value: 1

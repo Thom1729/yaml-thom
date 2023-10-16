@@ -20,7 +20,11 @@ function assertMaybeArray<T, U extends T>(
 }
 
 export function constructValidator(node: RepresentationNode): Validator {
-  const x = extractStringMap(node, ['kind?', 'tag?', 'const?', 'minLength?', 'items?']);
+  const x = extractStringMap(node, [
+    'kind?', 'tag?', 'const?',
+    'minLength?', 'maxLength?',
+    'items?',
+  ]);
 
   const ret: Validator = {};
 
@@ -40,10 +44,13 @@ export function constructValidator(node: RepresentationNode): Validator {
     ret.const = x.const;
   }
 
-  if (x.minLength !== undefined) {
-    const minLength = defaultConstructor(x.minLength);
-    assertBigInt(minLength);
-    ret.minLength = minLength;
+  for (const key of ['minLength', 'maxLength'] as const) {
+    const rawValue = x[key];
+    if (rawValue !== undefined) {
+      const value = defaultConstructor(rawValue);
+      assertBigInt(value);
+      ret[key] = value;
+    }
   }
 
   if (x.items !== undefined) {
