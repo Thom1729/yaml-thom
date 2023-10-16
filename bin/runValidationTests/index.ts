@@ -7,9 +7,8 @@ import {
   loadStream,
   extractStringMap,
   defaultConstructor,
-  isValid, type Validator, type ValidationFailure,
+  validate, type Validator, type ValidationFailure,
   type RepresentationNode,
-  validate,
 } from '../lib';
 
 interface ValidationTest {

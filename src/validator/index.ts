@@ -36,11 +36,13 @@ type PathEntry =
 | { type: 'key', key: RepresentationNode }
 | { type: 'value', key: RepresentationNode };
 
-export interface ValidationFailure {
-  path: PathEntry[];
-  validator: Validator;
-  key: keyof Validator;
-}
+export type ValidationFailure<TKey extends keyof Validator = keyof Validator> = {
+  [Key in TKey]: {
+    path: PathEntry[];
+    key: Key;
+    value: Validator[Key];
+  }
+}[TKey];
 
 const VALIDATORS = {
   kind: (node, kind) => node.kind === kind,
@@ -104,7 +106,7 @@ class NodeValidator {
 
         if (!valid) {
           this.cache.set(validator, node, false);
-          yield { validator, key, path };
+          yield { path, key, value: validator[key] } as ValidationFailure;
           return false;
         }
       }
