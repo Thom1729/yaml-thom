@@ -7,11 +7,11 @@ import { DirectoryTestLoader } from './DirectoryTestLoader';
 
 import { Logger } from '../logger';
 
-export function runTestSuite(testSuitePath: string, verbose: boolean) {
+export function runTestSuite(testSuitePath: string, testNames: string[], verbose: boolean) {
   const logger = new Logger(process.stdout);
 
   const testLoader = new DirectoryTestLoader(testSuitePath);
-  const testNames = testLoader.listTests();
+  if (testNames.length === 0) testNames = testLoader.listTests();
   for (const testName of testNames) {
     const tests = testLoader.loadTest(testName);
     for (const test of tests) {
