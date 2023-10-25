@@ -46,13 +46,13 @@ export class RepresentationSequence<
 
 export class RepresentationMapping<
   TagType extends SerializationTag = string,
-  ItemType extends UnresolvedNode = RepresentationNode,
-> extends ValueNode<TagType, (readonly [ItemType, ItemType])[]> {
+  PairType extends readonly [unknown, unknown] = readonly [RepresentationNode, RepresentationNode],
+> extends ValueNode<TagType, PairType[]> {
   readonly kind = 'mapping';
 
   constructor(
     tag: TagType,
-    content: Iterable<readonly [ItemType, ItemType]>,
+    content: Iterable<PairType>,
     comparator: NodeComparator | boolean = true,
   ) {
     const pairs = Array.from(content);
@@ -74,7 +74,11 @@ export class RepresentationMapping<
 
   get size() { return this.content.length; }
 
-  get(this: RepresentationMapping, k: ItemType & RepresentationNode, comparator?: NodeComparator) {
+  get(
+    this: RepresentationMapping,
+    k: PairType[0] & RepresentationNode,
+    comparator?: NodeComparator,
+  ): PairType[1] | null {
     const c = comparator ?? new NodeComparator();
     for (const [key, value] of this.content) {
       if (c.compare(k, key) === 0) { return value; }
@@ -82,14 +86,14 @@ export class RepresentationMapping<
     return null;
   }
 
-  map(callback: (item: ItemType) => ItemType) {
+  map(callback: (item: PairType[1]) => PairType[1]) {
     return new RepresentationMapping(this.tag, this.content.map(([key, value]) => [callback(key), callback(value)]));
   }
 
   merge(
-    this: RepresentationMapping<TagType, RepresentationNode>,
+    this: RepresentationMapping<TagType, readonly [RepresentationNode, RepresentationNode]>,
     other: Iterable<readonly [RepresentationNode, RepresentationNode]>,
-  ): RepresentationMapping<TagType, RepresentationNode> {
+  ): RepresentationMapping<TagType, readonly [RepresentationNode, RepresentationNode]> {
     const content: (readonly [RepresentationNode, RepresentationNode])[] = [];
 
     const
@@ -140,4 +144,4 @@ export type RepresentationNode<Kind extends RepresentationNodeKind = Representat
 export type UnresolvedNode =
 | RepresentationScalar<SerializationTag>
 | RepresentationSequence<SerializationTag, UnresolvedNode>
-| RepresentationMapping<SerializationTag, UnresolvedNode>;
+| RepresentationMapping<SerializationTag, readonly [UnresolvedNode, UnresolvedNode]>;

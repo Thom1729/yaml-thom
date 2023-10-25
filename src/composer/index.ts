@@ -67,7 +67,7 @@ function link(node: SerializationNode) {
       }
       return result;
     } else {
-      const result = new RepresentationMapping<SerializationTag, UnresolvedNode>(node.tag, []);
+      const result = new RepresentationMapping<SerializationTag, readonly [UnresolvedNode, UnresolvedNode]>(node.tag, []);
       setAnchor(node, result);
       for (const [key, value] of node) {
         result.content.push([rec(key), rec(value)]);

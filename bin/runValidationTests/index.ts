@@ -36,6 +36,7 @@ function constructValidationTest(document: RepresentationNode): ValidationTest {
   return ret;
 }
 
+// Not cycle-safe!
 function deepEquals(a: unknown, b: unknown) {
   if (a === b) {
     return true;

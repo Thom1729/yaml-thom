@@ -68,12 +68,12 @@ export function extractStrContent(node: RepresentationNode) {
   return node.content;
 }
 
-export function extractSeqItems(node: RepresentationNode) {
+export function extractSeqItems(node: RepresentationNode): RepresentationNode[] {
   assertSeq(node);
   return Array.from(node);
 }
 
-export function extractMapEntries(node: RepresentationNode) {
+export function extractMapEntries(node: RepresentationNode): (readonly [RepresentationNode, RepresentationNode])[] {
   assertMap(node);
   return Array.from(node);
 }

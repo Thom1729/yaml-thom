@@ -1,15 +1,60 @@
-import type { RepresentationNode } from '@/nodes';
+import type {
+  RepresentationNode, RepresentationScalar, RepresentationSequence, RepresentationMapping,
+} from '@/nodes';
 
-export type OneOrMore<T> = T | [T, ...T[]];
+// Not safe if T is an array type
+export type OneOrMore<T> = T | readonly [T, ...T[]];
+
+type NodeKind = 'scalar' | 'sequence' | 'mapping';
 
 export interface Validator {
-  kind?: OneOrMore<'scalar' | 'sequence' | 'mapping'>;
+  kind?: OneOrMore<NodeKind>;
   tag?: OneOrMore<string>;
 
   const?: RepresentationNode;
+  enum?: readonly RepresentationNode[];
 
   minLength?: bigint;
   maxLength?: bigint;
 
   items?: Validator;
 }
+
+type Default<T, U> =
+| (U & Exclude<T, undefined>)
+| (undefined extends T ? U : never);
+
+type ExtractOneOrMore<T> =
+  T extends readonly (infer U)[]
+    ? U
+    : T;
+
+type ValidatorTypes<T extends Validator> = {
+  kind: Default<ExtractOneOrMore<T['kind']>, NodeKind>,
+  tag: Default<ExtractOneOrMore<T['tag']>, string>,
+
+  const: (
+    & Default<T['const'], unknown>
+    & Default<ExtractOneOrMore<T['enum']>, unknown>
+  ),
+
+  items: (
+    T['items'] extends Validator
+      ? ValidatorTypes<T['items']>
+      : undefined
+  ),
+};
+
+export type Validated<T extends Validator> = _Validated<ValidatorTypes<T>>;
+
+type _Validated<T extends ValidatorTypes<any>> =
+& T['const']
+& {
+  'scalar': RepresentationScalar<T['tag']>,
+  'sequence': RepresentationSequence<T['tag'],
+    T['items'] extends ValidatorTypes<any>
+      ? _Validated<T['items']>
+      : RepresentationNode
+  >,
+  'mapping': RepresentationMapping<T['tag']>,
+}[T['kind']];

@@ -53,6 +53,10 @@ const VALIDATORS = {
     return this.comparator.compare(value, node) === 0;
   },
 
+  enum: function (node, items) {
+    return items.some(value => this.comparator.compare(value, node) === 0);
+  },
+
   minLength: (node, minLength) => node.size >= minLength,
 
   items: function *(node, validator, path) {

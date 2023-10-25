@@ -114,7 +114,7 @@ export function evaluate(
         return result;
       }
       case 'mapping': {
-        const result = new RepresentationMapping(node.tag, []);
+        const result = new RepresentationMapping(node.tag, [] as (readonly [RepresentationNode, RepresentationNode])[]);
         setCached(node, context, result);
         for (const [key, value] of node) {
           result.content.push([
