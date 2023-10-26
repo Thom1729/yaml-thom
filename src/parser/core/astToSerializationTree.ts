@@ -7,15 +7,14 @@ import {
   SerializationMapping,
   NonSpecificTag,
   ScalarStyle,
+  CollectionStyle,
   type SerializationNode,
   type SerializationTag,
-  CollectionStyle,
 } from '@/nodes';
 
 import {
   assertKeyOf,
   parseDecimal,
-  strictFromEntries,
 } from '@/util';
 
 import {
@@ -25,45 +24,9 @@ import {
   handleBlockScalarContent,
 } from '../core/scalarContent';
 
-import { iterateAst, groupNodes, unquantify, type Quantify } from '../core/transformAst';
+import { iterateAst as oldIterateAst, groupNodes as oldGroupNodes } from '../core/transformAst';
 
-const CONTENT_CLASS_NAMES = [
-  'alias',
-  'emptyScalar',
-  'plainScalar',
-  'singleQuotedScalar',
-  'doubleQuotedScalar',
-  'literalScalar',
-  'foldedScalar',
-  'blockMapping',
-  'flowMapping',
-  'blockSequence',
-  'flowSequence',
-] as const;
-
-const NODE_PROPERTY_CLASS_NAMES = [
-  'anchorProperty',
-  'tagProperty',
-  'annotationProperty',
-] as const;
-
-type ContentNodeClass = (typeof CONTENT_CLASS_NAMES)[number];
-type NodePropertyClass = (typeof NODE_PROPERTY_CLASS_NAMES)[number];
-type NodeClass =
-| ContentNodeClass
-| NodePropertyClass
-| 'document'
-| 'directive'
-| 'nodeWithProperties'
-| 'blockScalarIndentationIndicator'
-| 'blockScalarChompingIndicator'
-| 'blockScalarContent'
-| 'mappingEntry'
-| 'ignore'
-| 'annotationName'
-| 'annotationArguments';
-
-export type NodeClasses = Record<NodeClass, readonly string[]>;
+import { CONTENT_CLASS_NAMES, NODE_PROPERTY_CLASS_NAMES, type NodeClass } from './normalizeAst';
 
 const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
 const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
@@ -75,58 +38,27 @@ const CHOMPING_BEHAVIOR_LOOKUP = {
   '': ChompingBehavior.CLIP,
 };
 
-type InternalNodeClass = NodeClass | 'contentNode' | 'nodeProperty';
-type InternalNodeClasses = Record<InternalNodeClass, readonly string[]>
+function iterateAst<T extends NodeClass>(nodes: readonly AstNode[], nodeClasses: readonly T[]) {
+  return oldIterateAst(nodes, { return: nodeClasses });
+}
+
+function groupNodes<const T extends string>(
+  nodes: readonly AstNode[],
+  nodeClasses: { [K in T]: readonly string[] },
+  text?: string,
+) {
+  return oldGroupNodes(nodes, {
+    return: nodeClasses,
+  }, text);
+}
 
 export class AstToSerializationTree {
-  nodeClasses: InternalNodeClasses;
-  classForContentNode: Record<string, ContentNodeClass>;
-  classForPropertyNode: Record<string, NodePropertyClass>;
-
-  constructor(nodeClasses: NodeClasses) {
-    this.nodeClasses = {
-      ...nodeClasses,
-      contentNode: CONTENT_CLASS_NAMES.flatMap(c => nodeClasses[c]),
-      nodeProperty: NODE_PROPERTY_CLASS_NAMES.flatMap(c => nodeClasses[c]),
-    };
-
-    this.classForContentNode = strictFromEntries(
-      CONTENT_CLASS_NAMES
-        .flatMap((className) => nodeClasses[className].map(nodeName => [nodeName as string, className]))
-    );
-
-    this.classForPropertyNode = strictFromEntries(
-      NODE_PROPERTY_CLASS_NAMES
-        .flatMap((className) => nodeClasses[className].map(nodeName => [nodeName as string, className]))
-    );
-  }
-
-  /////
-
-  iterateAst(nodes: readonly AstNode[], nodeClass: NodeClass) {
-    return iterateAst(nodes, {
-      return: this.nodeClasses[nodeClass],
-      ignore: this.nodeClasses.ignore,
-    });
-  }
-
-  groupNodes<const T extends Quantify<InternalNodeClass>>(nodes: readonly AstNode[], nodeClasses: readonly T[], text?: string) {
-    return groupNodes(nodes, {
-      return: strictFromEntries(
-        nodeClasses.map(c => {
-          const classes = this.nodeClasses[unquantify(c) as InternalNodeClass];
-          return [c, classes];
-        })
-      ),
-      ignore: this.nodeClasses.ignore,
-    }, text);
-  }
-
-  /////
-
   *handleStream(text: string, node: AstNode) {
-    for (const document of this.iterateAst(node.content, 'document')) {
-      const { directive, nodeWithProperties } = this.groupNodes(document.content, ['directive*', 'nodeWithProperties']);
+    for (const document of iterateAst(node.content, ['document'])) {
+      const { directive, nodeWithProperties } = groupNodes(document.content, {
+        'directive*': ['directive'],
+        'nodeWithProperties': ['nodeWithProperties', 'emptyScalar'],
+      });
       const tagHandles = this.handleDirectives(directive.map(node => text.slice(...node.range)));
 
       yield this.buildNode(text, nodeWithProperties, tagHandles);
@@ -181,7 +113,11 @@ export class AstToSerializationTree {
   }
 
   buildNode(text: string, body: AstNode, tagHandles: Map<string, string>): SerializationNode {
-    const { contentNode, nodeProperty } = this.groupNodes([body], ['contentNode', 'nodeProperty*'], text);
+    if (body === undefined) throw new Error();
+    const { contentNode, nodeProperty } = groupNodes([body], {
+      contentNode: CONTENT_CLASS_NAMES,
+      'nodeProperty*': NODE_PROPERTY_CLASS_NAMES,
+    }, text);
 
     const { tag, anchor, annotations } = this.handleNodeProperties(text, nodeProperty, tagHandles);
 
@@ -189,7 +125,7 @@ export class AstToSerializationTree {
 
     for (const { annotationName, annotationArguments, anchor } of annotations) {
       const args = annotationArguments
-        ? this.iterateAst(annotationArguments.content, 'nodeWithProperties')
+        ? iterateAst(annotationArguments.content, ['nodeWithProperties'])
           .map(arg => this.buildNode(text, arg, tagHandles))
         : [];
 
@@ -230,7 +166,7 @@ export class AstToSerializationTree {
     }[] = [];
 
     for (const property of (nodeProperties as AstNode[])) {
-      const nodeClass = this.classForPropertyNode[property.name];
+      const nodeClass = property.name;
       if (nodeClass === 'tagProperty') {
         if (tag !== null) throw new Error(`multiple tag properties`);
         tag = nodeTag(nodeText(property), tagHandles);
@@ -239,7 +175,10 @@ export class AstToSerializationTree {
         anchor = nodeText(property).slice(1);
       } else if (nodeClass === 'annotationProperty') {
         if (tag !== null) throw new Error(`tag property before annotation property`);
-        const stuff = this.groupNodes(property.content, ['annotationName%', 'annotationArguments?'], text);
+        const stuff = groupNodes(property.content, {
+          'annotationName%': ['annotationName'],
+          'annotationArguments?': ['annotationArguments'],
+        }, text);
         annotations.unshift({ ...stuff, anchor });
         anchor = null;
       } else {
@@ -261,7 +200,7 @@ export class AstToSerializationTree {
       return text.slice(...node.range);
     }
 
-    const nodeClass = this.classForContentNode[contentNode.name];
+    const nodeClass = contentNode.name;
     switch (nodeClass) {
       case 'alias': return new Alias(nodeText(contentNode).slice(1));
 
@@ -292,11 +231,11 @@ export class AstToSerializationTree {
           blockScalarChompingIndicator,
           blockScalarIndentationIndicator,
           blockScalarContent,
-        } = this.groupNodes(contentNode.content, [
-          'blockScalarIndentationIndicator?%',
-          'blockScalarChompingIndicator%',
-          'blockScalarContent%'
-        ], text);
+        } = groupNodes(contentNode.content, {
+          'blockScalarIndentationIndicator?%': ['blockScalarIndentationIndicator'],
+          'blockScalarChompingIndicator%': ['blockScalarChompingIndicator'],
+          'blockScalarContent%': ['blockScalarContent'],
+        }, text);
 
         assertKeyOf(blockScalarChompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${blockScalarChompingIndicator}`);
         const chompingBehavior = CHOMPING_BEHAVIOR_LOOKUP[blockScalarChompingIndicator];
@@ -315,10 +254,25 @@ export class AstToSerializationTree {
       }
 
       case 'blockMapping':
-      case 'flowMapping': {
-        const children = this.iterateAst([contentNode], 'mappingEntry')
-          .map(child => this.iterateAst(child.content, 'nodeWithProperties'))
-          .map(([k, v]) => [this.buildNode(text, k, tagHandles), this.buildNode(text, v, tagHandles)] as const);
+      case 'flowMapping':
+      case 'flowPair': {
+        const pairs = contentNode.name === 'flowPair'
+          ? [contentNode]
+          : iterateAst([contentNode], ['mappingEntry']);
+
+        const children = pairs
+          .map(child => {
+            const x = iterateAst(child.content, ['nodeWithProperties', 'emptyScalar']);
+            if (x.length !== 2) {
+              console.error(text.slice(...child.range));
+              console.error(child);
+              throw new Error();
+            }
+            return [
+              this.buildNode(text, x[0], tagHandles),
+              this.buildNode(text, x[1], tagHandles),
+            ] as const;
+          });
 
         return new SerializationMapping(tag ?? NonSpecificTag.question, children, anchor, {
           style: nodeClass === 'blockMapping' ? CollectionStyle.block : CollectionStyle.flow
@@ -327,7 +281,9 @@ export class AstToSerializationTree {
 
       case 'blockSequence':
       case 'flowSequence': {
-        const children = this.iterateAst(contentNode.content, 'nodeWithProperties').map(child => this.buildNode(text, child, tagHandles));
+        const children = iterateAst(contentNode.content, ['nodeWithProperties', 'flowPair'])
+          .map(child => this.buildNode(text, child, tagHandles));
+
         return new SerializationSequence(tag ?? NonSpecificTag.question, children, anchor, {
           style: nodeClass === 'blockSequence' ? CollectionStyle.block : CollectionStyle.flow
         });

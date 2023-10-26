@@ -1548,7 +1548,6 @@ const nodeClasses = {
     'flow-node',
     'flow-json-node',
     'flow-yaml-node',
-    'flow-pair',
   ],
   tagProperty: ['tag-property'],
   anchorProperty: ['anchor-property'],
@@ -1560,7 +1559,7 @@ const nodeClasses = {
   blockScalarChompingIndicator: ['block-scalar-chomping-indicator'],
   blockScalarContent: ['literal-scalar-content', 'folded-scalar-content'],
 
-  mappingEntry: ['block-mapping-entry', 'flow-mapping-entry', 'flow-pair'],
+  mappingEntry: ['block-mapping-entry', 'flow-mapping-entry'],
 
   alias: ['alias-node'],
   emptyScalar: ['empty-node'],
@@ -1571,7 +1570,8 @@ const nodeClasses = {
   foldedScalar: ['block-folded-scalar'],
 
   blockMapping: ['block-mapping', 'compact-mapping'],
-  flowMapping: ['flow-mapping', 'flow-pair'],
+  flowMapping: ['flow-mapping'],
+  flowPair: ['flow-pair'],
   blockSequence: ['block-sequence', 'compact-sequence'],
   flowSequence: ['flow-sequence'],
 

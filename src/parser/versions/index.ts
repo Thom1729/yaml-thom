@@ -2,7 +2,7 @@ import yaml_12 from './yaml_12';
 import yaml_13 from './yaml_13';
 
 import type { Grammar } from '../core/grammarType';
-import type { NodeClasses } from '../core/astToSerializationTree';
+import type { NodeClasses } from '../core/normalizeAst';
 
 export interface VersionInfo {
   grammar: Grammar,

@@ -1343,7 +1343,7 @@ const nodeClasses = {
     'c-flow-json-node',
     'ns-flow-yaml-node',
 
-    'ns-flow-pair',
+    // 'ns-flow-pair',
   ],
   tagProperty: ['c-ns-tag-property'],
   anchorProperty: ['c-ns-anchor-property'],
@@ -1356,7 +1356,7 @@ const nodeClasses = {
   blockScalarChompingIndicator: ['c-chomping-indicator'],
   blockScalarContent: ['l-literal-content', 'l-folded-content'],
 
-  mappingEntry: ['ns-l-block-map-entry', 'ns-flow-map-entry', 'ns-flow-pair'],
+  mappingEntry: ['ns-l-block-map-entry', 'ns-flow-map-entry'],
 
   alias: ['c-ns-alias-node'],
   emptyScalar: ['e-node', 'e-scalar'],
@@ -1368,6 +1368,7 @@ const nodeClasses = {
 
   blockMapping: ['l+block-mapping', 'ns-l-compact-mapping'],
   flowMapping: ['c-flow-mapping', 'ns-flow-pair'],
+  flowPair: ['ns-flow-pair'],
   blockSequence: ['l+block-sequence', 'ns-l-compact-sequence'],
   flowSequence: ['c-flow-sequence'],
 
@@ -1393,10 +1394,6 @@ const nodeClasses = {
     's-separate',
     's-separate-in-line',
     'l-comment',
-  ],
-
-  recurse: [
-
   ],
 } as const;
 

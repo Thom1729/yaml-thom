@@ -1,6 +1,7 @@
 export { type AstNode } from './core/ast';
 
 import { ParseOperation } from './core/parser';
+import { normalizeAst } from './core/normalizeAst';
 import { AstToSerializationTree } from './core/astToSerializationTree';
 
 import versions from './versions';
@@ -28,7 +29,14 @@ export function parseStream(text: string, options?: ParseOptions) {
 
   const node = new ParseOperation(grammar, text).parseAll(rootProduction);
 
-  return new AstToSerializationTree(nodeClasses).handleStream(text, node);
+  const normalized = Array.from(normalizeAst(node, nodeClasses));
+
+  return new AstToSerializationTree().handleStream(text, {
+    name: 'stream',
+    parameters: {},
+    content: normalized,
+    range: [0, 0],
+  });
 }
 
 export function parseSingleDocument(text: string, options?: ParseOptions) {
