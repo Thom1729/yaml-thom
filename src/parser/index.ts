@@ -31,7 +31,7 @@ export function parseStream(text: string, options?: ParseOptions) {
 
   const normalized = Array.from(normalizeAst(node, nodeClasses));
 
-  return new AstToSerializationTree().handleStream(text, {
+  return new AstToSerializationTree(text).handleStream({
     name: 'stream',
     parameters: {},
     content: normalized,

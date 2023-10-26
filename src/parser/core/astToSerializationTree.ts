@@ -53,15 +53,25 @@ function groupNodes<const T extends string>(
 }
 
 export class AstToSerializationTree {
-  *handleStream(text: string, node: AstNode) {
+  text: string;
+
+  constructor(text: string) {
+    this.text = text;
+  }
+
+  nodeText(node: AstNode) {
+    return this.text.slice(...node.range);
+  }
+
+  *handleStream(node: AstNode) {
     for (const document of iterateAst(node.content, ['document'])) {
       const { directive, nodeWithProperties } = groupNodes(document.content, {
         'directive*': ['directive'],
         'nodeWithProperties': ['nodeWithProperties', 'emptyScalar'],
       });
-      const tagHandles = this.handleDirectives(directive.map(node => text.slice(...node.range)));
+      const tagHandles = this.handleDirectives(directive.map(node => this.nodeText(node)));
 
-      yield this.buildNode(text, nodeWithProperties, tagHandles);
+      yield this.buildNode(nodeWithProperties, tagHandles);
     }
   }
 
@@ -112,21 +122,21 @@ export class AstToSerializationTree {
     return tagHandles;
   }
 
-  buildNode(text: string, body: AstNode, tagHandles: Map<string, string>): SerializationNode {
+  buildNode(body: AstNode, tagHandles: Map<string, string>): SerializationNode {
     if (body === undefined) throw new Error();
     const { contentNode, nodeProperty } = groupNodes([body], {
       contentNode: CONTENT_CLASS_NAMES,
       'nodeProperty*': NODE_PROPERTY_CLASS_NAMES,
-    }, text);
+    }, this.text);
 
-    const { tag, anchor, annotations } = this.handleNodeProperties(text, nodeProperty, tagHandles);
+    const { tag, anchor, annotations } = this.handleNodeProperties(nodeProperty, tagHandles);
 
-    let node = this.buildContent(text, contentNode, tagHandles, tag, anchor);
+    let node = this.buildContent(contentNode, tagHandles, tag, anchor);
 
     for (const { annotationName, annotationArguments, anchor } of annotations) {
       const args = annotationArguments
         ? iterateAst(annotationArguments.content, ['nodeWithProperties'])
-          .map(arg => this.buildNode(text, arg, tagHandles))
+          .map(arg => this.buildNode(arg, tagHandles))
         : [];
 
       node = new SerializationMapping('tag:yaml.org,2002:annotation', [
@@ -149,7 +159,6 @@ export class AstToSerializationTree {
   }
 
   handleNodeProperties(
-    text: string,
     nodeProperties: readonly AstNode[],
     tagHandles: Map<string, string>,
   ): {
@@ -161,10 +170,6 @@ export class AstToSerializationTree {
       anchor: string | null,
     }[],
   } {
-    function nodeText(node: AstNode) {
-      return text.slice(...node.range);
-    }
-
     let tag: SerializationTag | null = null;
     let anchor: string | null = null;
     const annotations: {
@@ -177,16 +182,16 @@ export class AstToSerializationTree {
       const nodeClass = property.name;
       if (nodeClass === 'tagProperty') {
         if (tag !== null) throw new Error(`multiple tag properties`);
-        tag = nodeTag(nodeText(property), tagHandles);
+        tag = nodeTag(this.nodeText(property), tagHandles);
       } else if (nodeClass === 'anchorProperty') {
         if (anchor !== null) throw new Error(`multiple anchor properties`);
-        anchor = nodeText(property).slice(1);
+        anchor = this.nodeText(property).slice(1);
       } else if (nodeClass === 'annotationProperty') {
         if (tag !== null) throw new Error(`tag property before annotation property`);
         const stuff = groupNodes(property.content, {
           'annotationName%': ['annotationName'],
           'annotationArguments?': ['annotationArguments'],
-        }, text);
+        }, this.text);
         annotations.unshift({ ...stuff, anchor });
         anchor = null;
       } else {
@@ -198,38 +203,33 @@ export class AstToSerializationTree {
   }
 
   buildContent(
-    text: string,
     contentNode: AstNode,
     tagHandles: Map<string, string>,
     tag: SerializationTag | null,
     anchor: string | null,
   ): SerializationNode {
-    function nodeText(node: AstNode) {
-      return text.slice(...node.range);
-    }
-
     const nodeClass = contentNode.name;
     switch (nodeClass) {
-      case 'alias': return new Alias(nodeText(contentNode).slice(1));
+      case 'alias': return new Alias(this.nodeText(contentNode).slice(1));
 
       case 'emptyScalar':
         return new SerializationScalar(tag ?? NonSpecificTag.question, '', anchor, {
           style: ScalarStyle.plain,
         });
       case 'plainScalar': {
-        const content = handlePlainScalarContent(nodeText(contentNode));
+        const content = handlePlainScalarContent(this.nodeText(contentNode));
         return new SerializationScalar(tag ?? NonSpecificTag.question, content, anchor, {
           style: ScalarStyle.plain,
         });
       }
       case 'singleQuotedScalar': {
-        const content = handleSingleQuotedScalarContent(nodeText(contentNode).slice(1, -1));
+        const content = handleSingleQuotedScalarContent(this.nodeText(contentNode).slice(1, -1));
         return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor, {
           style: ScalarStyle.single,
         });
       }
       case 'doubleQuotedScalar': {
-        const content = handleDoubleQuotedScalarContent(nodeText(contentNode).slice(1, -1));
+        const content = handleDoubleQuotedScalarContent(this.nodeText(contentNode).slice(1, -1));
         return new SerializationScalar(tag ?? NonSpecificTag.exclamation, content, anchor, {
           style: ScalarStyle.double,
         });
@@ -243,7 +243,7 @@ export class AstToSerializationTree {
           'blockScalarIndentationIndicator?%': ['blockScalarIndentationIndicator'],
           'blockScalarChompingIndicator%': ['blockScalarChompingIndicator'],
           'blockScalarContent%': ['blockScalarContent'],
-        }, text);
+        }, this.text);
 
         assertKeyOf(blockScalarChompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${blockScalarChompingIndicator}`);
         const chompingBehavior = CHOMPING_BEHAVIOR_LOOKUP[blockScalarChompingIndicator];
@@ -272,13 +272,13 @@ export class AstToSerializationTree {
           .map(child => {
             const x = iterateAst(child.content, ['nodeWithProperties', 'emptyScalar']);
             if (x.length !== 2) {
-              console.error(text.slice(...child.range));
+              console.error(this.nodeText(child));
               console.error(child);
               throw new Error();
             }
             return [
-              this.buildNode(text, x[0], tagHandles),
-              this.buildNode(text, x[1], tagHandles),
+              this.buildNode(x[0], tagHandles),
+              this.buildNode(x[1], tagHandles),
             ] as const;
           });
 
@@ -290,7 +290,7 @@ export class AstToSerializationTree {
       case 'blockSequence':
       case 'flowSequence': {
         const children = iterateAst(contentNode.content, ['nodeWithProperties', 'flowPair'])
-          .map(child => this.buildNode(text, child, tagHandles));
+          .map(child => this.buildNode(child, tagHandles));
 
         return new SerializationSequence(tag ?? NonSpecificTag.question, children, anchor, {
           style: nodeClass === 'blockSequence' ? CollectionStyle.block : CollectionStyle.flow
