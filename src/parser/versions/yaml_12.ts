@@ -1330,6 +1330,7 @@ const grammar = {
 } satisfies Grammar;
 
 const nodeClasses = {
+  stream: ['l-yaml-stream'],
   document: ['l-any-document', 'l-explicit-document'],
   directive: ['ns-yaml-directive', 'ns-tag-directive', 'ns-reserved-directive'],
 

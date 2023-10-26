@@ -28,6 +28,7 @@ type NodePropertyClass = (typeof NODE_PROPERTY_CLASS_NAMES)[number];
 export type NodeClass =
 | ContentNodeClass
 | NodePropertyClass
+| 'stream'
 | 'document'
 | 'directive'
 | 'nodeWithProperties'

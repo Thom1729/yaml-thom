@@ -1538,6 +1538,7 @@ const grammar = mergeGrammars(
 ) satisfies Grammar;
 
 const nodeClasses = {
+  stream: ['yaml-stream'],
   document: ['any-document', 'start-indicator-and-document'],
   directive: ['yaml-directive-line', 'tag-directive-line', 'reserved-directive-line'],
 
