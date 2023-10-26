@@ -152,7 +152,15 @@ export class AstToSerializationTree {
     text: string,
     nodeProperties: readonly AstNode[],
     tagHandles: Map<string, string>,
-  ) {
+  ): {
+    tag: SerializationTag | null,
+    anchor: string | null,
+    annotations: {
+      annotationName: string,
+      annotationArguments: AstNode | null,
+      anchor: string | null,
+    }[],
+  } {
     function nodeText(node: AstNode) {
       return text.slice(...node.range);
     }
