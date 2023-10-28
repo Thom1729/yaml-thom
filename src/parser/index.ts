@@ -1,6 +1,6 @@
 export { type AstNode } from './core/ast';
 
-import { ParseOperation } from './core/parser';
+import { parseAll } from './core/parser';
 import { normalizeAst } from './core/normalizeAst';
 import { AstToSerializationTree } from './core/astToSerializationTree';
 
@@ -19,7 +19,7 @@ const DEFAULT_OPTIONS = {
 
 export function parseAst(text: string, version: YamlVersion) {
   const { grammar, rootProduction } = versions[version];
-  return new ParseOperation(grammar, text).parseAll(rootProduction);
+  return parseAll(text, grammar, rootProduction);
 }
 
 export function parseStream(text: string, options?: ParseOptions) {
@@ -27,7 +27,7 @@ export function parseStream(text: string, options?: ParseOptions) {
 
   const { grammar, rootProduction, nodeClasses } = versions[combinedOptions.version];
 
-  const node = new ParseOperation(grammar, text).parseAll(rootProduction);
+  const node = parseAll(text, grammar, rootProduction);
 
   const normalized = single(normalizeAst(node, nodeClasses));
 

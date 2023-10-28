@@ -47,7 +47,31 @@ interface ParseStackEntry {
   parameters: Parameters,
 }
 
-export class ParseOperation extends EventEmitter<{
+export function parseAll<T extends string>(
+  text: string,
+  grammar: Grammar,
+  rootProduction: T,
+) {
+  const operation = new ParseOperation(grammar, text);
+  const result = operation.parseRef(0, {}, {
+    type: 'REF',
+    name: rootProduction,
+    parameters: {},
+  });
+
+  if (result === null) throw new Error('parse failed');
+
+  const [nodes, index] = result;
+  const node = single(nodes) as AstNode<T>;
+
+  if (index !== text.length) {
+    throw new TypeError(`did not parse entire string`);
+  }
+
+  return node;
+}
+
+class ParseOperation extends EventEmitter<{
   'node': { displayName: string, index: number, },
   'node.in': object,
   'node.out': { result: ParseResult },
@@ -63,25 +87,6 @@ export class ParseOperation extends EventEmitter<{
     super();
     this.grammar = grammar;
     this.text = text;
-  }
-
-  parseAll<T extends string>(name: T) {
-    const result = this.parseRef(0, {}, {
-      type: 'REF',
-      name,
-      parameters: {},
-    });
-
-    if (result === null) throw new Error('parse failed');
-
-    const [nodes, index] = result;
-    const node = single(nodes) as AstNode<T>;
-
-    if (index !== this.text.length) {
-      throw new TypeError(`did not parse entire string`);
-    }
-
-    return node;
   }
 
   parse(
