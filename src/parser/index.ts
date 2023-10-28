@@ -29,14 +29,9 @@ export function parseStream(text: string, options?: ParseOptions) {
 
   const node = new ParseOperation(grammar, text).parseAll(rootProduction);
 
-  const normalized = Array.from(normalizeAst(node, nodeClasses));
+  const normalized = single(normalizeAst(node, nodeClasses));
 
-  return new AstToSerializationTree(text).handleStream({
-    name: 'stream',
-    parameters: {},
-    content: normalized,
-    range: [0, 0],
-  });
+  return new AstToSerializationTree(text).handleStream(normalized);
 }
 
 export function parseSingleDocument(text: string, options?: ParseOptions) {
