@@ -46,11 +46,11 @@ interface ParseStackEntry {
 }
 
 export function parseAll<T extends string>(
-  text: string,
+  lines: string[],
   grammar: Grammar,
   rootProduction: T,
 ) {
-  const operation = new ParseOperation(grammar, text);
+  const operation = new ParseOperation(grammar, lines);
   const mark = {
     index: 0,
     row: 0,
@@ -64,10 +64,10 @@ export function parseAll<T extends string>(
 
   if (result === null) throw new Error('parse failed');
 
-  const [nodes, { index }] = result;
+  const [nodes, endMark] = result;
   const node = single(nodes) as AstNode<T>;
 
-  if (index !== text.length) {
+  if (endMark.row < lines.length) {
     throw new TypeError(`did not parse entire string`);
   }
 
@@ -82,9 +82,9 @@ class ParseOperation {
 
   readonly stack: ParseStackEntry[] = [];
 
-  constructor(grammar: Grammar, text: string) {
+  constructor(grammar: Grammar, lines: string[]) {
     this.grammar = grammar;
-    this.lines = text.split(/^/gm);
+    this.lines = lines;
   }
 
   advance(mark: Mark, n: number) {

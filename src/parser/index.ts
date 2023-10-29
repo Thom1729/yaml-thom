@@ -20,7 +20,8 @@ const DEFAULT_OPTIONS = {
 
 export function parseAst(text: string, version: YamlVersion) {
   const { grammar, rootProduction } = versions[version];
-  return parseAll(text, grammar, rootProduction);
+
+  return parseAll(text.split(/^/gm), grammar, rootProduction);
 }
 
 export function parseStream(text: string, options?: ParseOptions) {
@@ -28,7 +29,7 @@ export function parseStream(text: string, options?: ParseOptions) {
 
   const { grammar, rootProduction, nodeClasses } = versions[combinedOptions.version];
 
-  const node = parseAll(text, grammar, rootProduction);
+  const node = parseAll(text.split(/^/gm), grammar, rootProduction);
 
   const normalized = single(normalizeAst(node, nodeClasses));
 
