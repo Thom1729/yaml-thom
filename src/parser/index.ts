@@ -6,6 +6,7 @@ import { AstToSerializationTree } from './core/astToSerializationTree';
 
 import versions from './versions';
 import { single } from '@/util';
+import type { AstNode } from './core/ast';
 
 export type YamlVersion = keyof typeof versions;
 
@@ -31,7 +32,11 @@ export function parseStream(text: string, options?: ParseOptions) {
 
   const normalized = single(normalizeAst(node, nodeClasses));
 
-  return new AstToSerializationTree(text).handleStream(normalized);
+  function nodeText(node: AstNode) {
+    return text.slice(node.range[0].index, node.range[1].index);
+  }
+
+  return new AstToSerializationTree(nodeText).handleStream(normalized);
 }
 
 export function parseSingleDocument(text: string, options?: ParseOptions) {

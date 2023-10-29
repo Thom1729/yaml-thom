@@ -4,12 +4,9 @@ import type {
   RefParameters,
 } from './grammarType';
 
-import { AstNode, Parameters } from './ast';
+import type { AstNode, Parameters, Mark } from './ast';
 import { single, charUtf16Width, strictEntries, strictFromEntries, isArray, assertNotUndefined } from '@/util';
 
-interface Mark {
-  index: number;
-}
 type ParseResult = readonly [readonly AstNode[], Mark] | null;
 
 interface GrammarErrorArgs {
@@ -202,7 +199,7 @@ class ParseOperation {
           name: node.name,
           parameters: newParameters,
           content,
-          range: [mark.index, j],
+          range: [mark, { index: j }],
         }],
         { index: j },
       ] as const;

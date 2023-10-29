@@ -32,6 +32,10 @@ import { ContextType, ChompingBehavior } from '@/parser/core/ast';
 ////
 
 export function astToGrammar(ast: AstNode, text: string): Grammar {
+  function nodeText(node: AstNode) {
+    return text.slice(node.range[0].index, node.range[1].index);
+  }
+
   const foo = ast.content
     .filter(node => node.name === 'production')
     .map(productionNode => {
@@ -49,7 +53,7 @@ export function astToGrammar(ast: AstNode, text: string): Grammar {
         },
         recurse: ['productionRef', 'productionParameters'],
         ignore: ['space'],
-      }, text);
+      }, nodeText);
 
       const number = (productionNumber !== null) ? parseDecimal(productionNumber.slice(1, -1)) : null;
 
@@ -108,7 +112,7 @@ function valueToParam(p: string) {
 
 function parseBody(body: AstNode, text: string) {
   function nodeText(node: AstNode) {
-    return text.slice(...node.range);
+    return text.slice(node.range[0].index, node.range[1].index);
   }
 
   return Y<GrammarNode, [AstNode]>((rec, node): GrammarNode => {
@@ -132,7 +136,7 @@ function parseBody(body: AstNode, text: string) {
       case 'quantified': {
         const { atom, quantifier } = groupNodes(node.content, {
           return: { atom: ['atom'], 'quantifier*%': ['quantifier'] },
-        }, text);
+        }, nodeText);
 
         let ret = rec(atom);
 
@@ -166,7 +170,7 @@ function parseBody(body: AstNode, text: string) {
       case 'hexChar': return charSet(parseHex(nodeText(node).slice(1)));
 
       case 'charRange': {
-        const { hexChar } = groupNodes(node.content, { return: { 'hexChar+%': ['hexChar'] } }, text);
+        const { hexChar } = groupNodes(node.content, { return: { 'hexChar+%': ['hexChar'] } }, nodeText);
 
         const range = hexChar.map(c => parseHex(c.slice(1))) as [number, number];
 
@@ -193,7 +197,7 @@ function parseBody(body: AstNode, text: string) {
             'alternation': ['alternation'],
           },
           ignore: ['space'],
-        }, text);
+        }, nodeText);
 
         const child = rec(alternation);
 
@@ -219,7 +223,7 @@ function parseBody(body: AstNode, text: string) {
             'parameters*%': ['parameter']
           },
           recurse: ['productionParameters'],
-        }, text);
+        }, nodeText);
 
         const parameterFunctions = strictFromEntries(
           parameters.map((paramString) => {

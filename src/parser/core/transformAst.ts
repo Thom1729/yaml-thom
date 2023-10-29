@@ -90,11 +90,12 @@ export function groupNodes<const T extends string>(
     recurse?: readonly string[],
     ignore?: readonly string[],
   },
-  text?: string,
+  // text?: string,
+  nodeText?: (node: AstNode) => string,
 ) {
   const returnSpecs = strictKeys(transformation.return);
 
-  if (text === undefined && returnSpecs.some(q => q.endsWith('%'))) {
+  if (nodeText === undefined && returnSpecs.some(q => q.endsWith('%'))) {
     throw new TypeError('text not given');
   }
 
@@ -124,7 +125,7 @@ export function groupNodes<const T extends string>(
       const { name, quantifier = '', string } = m.groups;
 
       const nodesOrText = string
-        ? byName[name as Unquantify<T>].map(node => (text as string).slice(...node.range))
+        ? byName[name as Unquantify<T>].map(nodeText as (node: AstNode) => string)
         : byName[name as Unquantify<T>];
 
       const ret = helper(name, nodesOrText, quantifier);

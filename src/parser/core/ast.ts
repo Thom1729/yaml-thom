@@ -1,8 +1,12 @@
+export interface Mark {
+  index: number;
+}
+
 export interface AstNode<T = string> {
   name: T;
   parameters: Parameters,
   content: readonly AstNode[];
-  range: readonly [number, number],
+  range: readonly [Mark, Mark],
 }
 
 export interface Parameters {

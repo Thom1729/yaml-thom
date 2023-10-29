@@ -45,23 +45,24 @@ function iterateAst<T extends NodeClass>(nodes: readonly AstNode[], nodeClasses:
 function groupNodes<const T extends string>(
   nodes: readonly AstNode[],
   nodeClasses: { [K in T]: readonly string[] },
-  text?: string,
+  nodeText?: (node: AstNode) => string,
 ) {
   return oldGroupNodes(nodes, {
     return: nodeClasses,
-  }, text);
+  }, nodeText);
 }
 
 export class AstToSerializationTree {
-  text: string;
+  // text: string;
+  nodeText: (node: AstNode) => string;
 
-  constructor(text: string) {
-    this.text = text;
+  constructor(nodeText: (node: AstNode) => string) {
+    this.nodeText = nodeText;
   }
 
-  nodeText(node: AstNode) {
-    return this.text.slice(...node.range);
-  }
+  // nodeText = (node: AstNode) => {
+  //   return this.text.slice(node.range[0].index, node.range[1].index);
+  // };
 
   *handleStream(node: AstNode) {
     for (const document of iterateAst(node.content, ['document'])) {
@@ -127,7 +128,7 @@ export class AstToSerializationTree {
     const { contentNode, nodeProperty } = groupNodes([body], {
       contentNode: CONTENT_CLASS_NAMES,
       'nodeProperty*': NODE_PROPERTY_CLASS_NAMES,
-    }, this.text);
+    });
 
     const { tag, anchor, annotations } = this.handleNodeProperties(nodeProperty, tagHandles);
 
@@ -191,7 +192,7 @@ export class AstToSerializationTree {
         const stuff = groupNodes(property.content, {
           'annotationName%': ['annotationName'],
           'annotationArguments?': ['annotationArguments'],
-        }, this.text);
+        }, this.nodeText);
         annotations.unshift({ ...stuff, anchor });
         anchor = null;
       } else {
@@ -243,7 +244,7 @@ export class AstToSerializationTree {
           'blockScalarIndentationIndicator?%': ['blockScalarIndentationIndicator'],
           'blockScalarChompingIndicator%': ['blockScalarChompingIndicator'],
           'blockScalarContent%': ['blockScalarContent'],
-        }, this.text);
+        }, this.nodeText);
 
         assertKeyOf(blockScalarChompingIndicator, CHOMPING_BEHAVIOR_LOOKUP, `Unexpected chomping indicator ${blockScalarChompingIndicator}`);
         const chompingBehavior = CHOMPING_BEHAVIOR_LOOKUP[blockScalarChompingIndicator];
