@@ -1,5 +1,7 @@
 export interface Mark {
   index: number;
+  row: number;
+  column: number;
 }
 
 export interface AstNode<T = string> {

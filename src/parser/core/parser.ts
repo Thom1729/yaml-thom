@@ -51,7 +51,12 @@ export function parseAll<T extends string>(
   rootProduction: T,
 ) {
   const operation = new ParseOperation(grammar, text);
-  const result = operation.parseRef({ index: 0 }, {}, {
+  const mark = {
+    index: 0,
+    row: 0,
+    column: 0,
+  };
+  const result = operation.parseRef(mark, {}, {
     type: 'REF',
     name: rootProduction,
     parameters: {},
@@ -71,7 +76,7 @@ export function parseAll<T extends string>(
 
 class ParseOperation {
   readonly grammar: Grammar;
-  readonly text: string;
+  readonly lines: string[];
 
   readonly backtrackCache = new Set<string>();
 
@@ -79,55 +84,76 @@ class ParseOperation {
 
   constructor(grammar: Grammar, text: string) {
     this.grammar = grammar;
-    this.text = text;
+    this.lines = text.split(/^/gm);
+  }
+
+  advance(mark: Mark, n: number) {
+    let { index, row, column } = mark;
+    index += n;
+    column += n;
+    while (column > 0 && column >= (this.lines[row].length)) {
+      column -= (this.lines[row].length);
+      row++;
+    }
+    return { index, row, column };
+  }
+
+  matchString(mark: Mark, string: string) {
+    if (string === '') {
+      return true;
+    } else if (mark.row >= this.lines.length) {
+      return false;
+    } else {
+      return this.lines[mark.row].slice(mark.column, mark.column + string.length) === string;
+    }
   }
 
   parse(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     node: GrammarNode,
   ): ParseResult {
-    const { index } = mark;
     try {
       if (node.type === 'EMPTY') {
-        return [[], mark];
+        return [[], startMark];
       } else if (node.type === 'START_OF_LINE') {
-        if (index === 0 || this.text[index - 1] === '\r' || this.text[index - 1] === '\n') {
-          return [[], mark];
+        // Technically imprecise because it matches the end of stream even if it's not terminated by a newline
+        if (startMark.column === 0) {
+          return [[], startMark];
         } else {
           return null;
         }
       } else if (node.type === 'END_OF_INPUT') {
-        if (index === this.text.length) {
-          return [[], mark];
+        if (startMark.row >= this.lines.length) {
+          return [[], startMark];
         } else {
           return null;
         }
       } else if (node.type === 'STRING') {
-        const j = index + node.string.length;
-        if (this.text.slice(index, j) === node.string) {
-          return [[], { index: j }];
+        if (this.matchString(startMark, node.string)) {
+          const endMark = this.advance(startMark, node.string.length);
+          return [[], endMark];
         } else {
           return null;
         }
       } else if (node.type === 'CHAR_SET') {
-        return this.parseCharSet(mark, node.ranges);
+        return this.parseCharSet(startMark, node.ranges);
       } else if (node.type === 'REF') {
-        return this.parseRef(mark, parameters, node);
+        return this.parseRef(startMark, parameters, node);
       } else if (node.type === 'SEQUENCE') {
-        return this.parseSequence(mark, parameters, node.children);
+        return this.parseSequence(startMark, parameters, node.children);
       } else if (node.type === 'FIRST') {
-        return this.parseFirst(mark, parameters, node.children);
+        return this.parseFirst(startMark, parameters, node.children);
       } else if (node.type === 'REPEAT') {
-        return this.parseRepeat(mark, parameters, node.child, node.min, node.max);
+        return this.parseRepeat(startMark, parameters, node.child, node.min, node.max);
       } else if (node.type === 'LOOKAHEAD') {
-        return this.parseLookahead(mark, parameters, node.child, node.positive);
+        return this.parseLookahead(startMark, parameters, node.child, node.positive);
       } else if (node.type === 'LOOKBEHIND') {
-        return this.parseLookbehind(mark, parameters, node.child);
+        return this.parseLookbehind(startMark, parameters, node.child);
       } else if (node.type === 'DETECT_INDENTATION') {
-        return this.parseDetectIndentation(mark, parameters, node);
+        return this.parseDetectIndentation(startMark, parameters, node);
       } else if (node.type === 'CONTEXT') {
-        return this.parseContext(mark, parameters, node);
+        return this.parseContext(startMark, parameters, node);
       }
 
       throw new TypeError(node);
@@ -146,16 +172,16 @@ class ParseOperation {
   }
 
   parseCharSet(
-    mark: Mark,
+    startMark: Mark,
     ranges: readonly (readonly [number, number])[],
   ) {
-    const codePoint = this.text.codePointAt(mark.index);
+    const codePoint = this.lines[startMark.row]?.codePointAt(startMark.column);
 
     if (codePoint === undefined) return null; // EOF
 
     for (const [min, max] of ranges) {
       if (codePoint >= min && codePoint <= max) {
-        return [[], { index: mark.index + charUtf16Width(codePoint) }] as const;
+        return [[], this.advance(startMark, charUtf16Width(codePoint))] as const;
       }
     }
 
@@ -163,7 +189,7 @@ class ParseOperation {
   }
 
   parseRef(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     node: GrammarNode<'REF'>,
   ) {
@@ -178,7 +204,7 @@ class ParseOperation {
     const params = [newParameters.n, newParameters.c, newParameters.t].filter(p => p !== undefined);
     const displayName = node.name + (params.length ? `(${params.join(',')})` : '');
 
-    const backtrackCacheKey = `${mark.index}:${displayName}`;
+    const backtrackCacheKey = `${startMark.index}:${displayName}`;
     if (this.backtrackCache.has(backtrackCacheKey)) {
       this.stack.pop();
       return null;
@@ -189,19 +215,19 @@ class ParseOperation {
       throw new Error(`No production ${node.name}`);
     }
 
-    const result = this.parse(mark, newParameters, production.body);
+    const result = this.parse(startMark, newParameters, production.body);
 
     if (result) {
-      const [content, { index: j }] = result;
+      const [content, endMark] = result;
       this.stack.pop();
       return [
         [{
           name: node.name,
           parameters: newParameters,
           content,
-          range: [mark, { index: j }],
+          range: [startMark, endMark],
         }],
-        { index: j },
+        endMark,
       ] as const;
     } else {
       this.backtrackCache.add(backtrackCacheKey);
@@ -211,62 +237,62 @@ class ParseOperation {
   }
 
   parseSequence(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     children: readonly GrammarNode[],
   ) {
     const ret = [];
-    let j = mark.index;
+    let m = startMark;
 
     for (const child of children) {
-      const result = this.parse({ index: j }, parameters, child);
+      const result = this.parse(m, parameters, child);
       if (result === null) {
         return null;
       } else {
-        const [nodes, { index: k }] = result;
+        const [nodes, endMark] = result;
         ret.push(...nodes);
-        j = k;
+        m = endMark;
       }
     }
 
-    return [ret, { index: j }] as const;
+    return [ret, m] as const;
   }
 
   parseFirst(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     children: readonly GrammarNode[],
   ) {
     for (const child of children) {
-      const result = this.parse(mark, parameters, child);
+      const result = this.parse(startMark, parameters, child);
       if (result !== null) return result;
     }
     return null;
   }
 
   parseRepeat(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     child: GrammarNode,
     min: number,
     max: number | null,
   ) {
     const ret = [];
-    let j = mark.index;
+    let m = startMark;
     let count = 0;
 
     for (; max === null || count < max; count++) {
-      const result = this.parse({ index: j }, parameters, child);
+      const result = this.parse(m, parameters, child);
       if (result !== null) {
-        const [nodes, { index: k }] = result;
-        const isZeroWidth = (j === k);
+        const [nodes, endMark] = result;
+        const isZeroWidth = (endMark.index === m.index);
 
         ret.push(...nodes);
-        j = k;
+        m = endMark;
 
         if (isZeroWidth && max === null) {
-          if (j < this.text.length) { // else it should be fixed by line ending normalization
-            console.error(`Warning: unbounded repeat matched zero characters at ${j}/${this.text.length}.`);
+          if (m.row < this.lines.length) { // else it should be fixed by line ending normalization
+            console.error(`Warning: unbounded repeat matched zero characters at ${m.index}.`);
             console.error(`Stack: ${this.stack.slice().reverse().join(' ')}`);
             console.error(child);
           }
@@ -278,41 +304,46 @@ class ParseOperation {
     }
 
     if (count >= min) {
-      return [ret, { index: j }] as const;
+      return [ret, m] as const;
     } else {
       return null;
     }
   }
 
   parseLookahead(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     child: GrammarNode,
     positive: boolean,
   ) {
-    const result = this.parse(mark, parameters, child);
+    const result = this.parse(startMark, parameters, child);
     return ((result === null) !== positive)
-      ? [[], mark] as const
+      ? [[], startMark] as const
       : null;
   }
 
   parseLookbehind(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     child: GrammarNode,
   ) {
     // Warning: this only works right if the child is a single non-astral character!
     // This shouldn't matter for the YAML grammar.
     // In the long run, we should remove lookbehinds from the grammar.
-    if (mark.index > 0 && this.parse({ index: mark.index - 1 }, parameters, child) !== null) {
-      return [[], mark] as const;
+    const m = {
+      index: startMark.index - 1,
+      row: startMark.row,
+      column: startMark.column - 1,
+    };
+    if (startMark.index > 0 && this.parse(m, parameters, child) !== null) {
+      return [[], startMark] as const;
     } else {
       return null;
     }
   }
 
   parseDetectIndentation(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     node: GrammarNode<'DETECT_INDENTATION'>,
   ) {
@@ -327,23 +358,23 @@ class ParseOperation {
     }
 
     let m = 0;
-    while (this.text[mark.index + m] === ' ') m++;
+    while (this.lines[startMark.row]?.[startMark.column + m] === ' ') m++;
 
     if (m >= minValue) {
-      return this.parse(mark, { ...parameters, m }, child);
+      return this.parse(startMark, { ...parameters, m }, child);
     } else {
       return null;
     }
   }
 
   parseContext(
-    mark: Mark,
+    startMark: Mark,
     parameters: Parameters,
     node: GrammarNode<'CONTEXT'>,
   ) {
     for (const [constraints, child] of node.cases) {
       if (strictEntries(constraints).every(([p, value]) => parameters[p] === value)) {
-        return this.parse(mark, parameters, child);
+        return this.parse(startMark, parameters, child);
       }
     }
     throw new Error(`Unhandled case`);
