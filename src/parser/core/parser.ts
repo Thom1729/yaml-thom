@@ -7,8 +7,6 @@ import type {
 import { AstNode, Parameters } from './ast';
 import { single, charUtf16Width, strictEntries, strictFromEntries, isArray, assertNotUndefined } from '@/util';
 
-import { EventEmitter } from '@/util/EventEmitter';
-
 type ParseResult = readonly [readonly AstNode[], number] | null;
 
 interface GrammarErrorArgs {
@@ -71,11 +69,7 @@ export function parseAll<T extends string>(
   return node;
 }
 
-class ParseOperation extends EventEmitter<{
-  'node': { displayName: string, index: number, },
-  'node.in': object,
-  'node.out': { result: ParseResult },
-}> {
+class ParseOperation {
   readonly grammar: Grammar;
   readonly text: string;
 
@@ -84,7 +78,6 @@ class ParseOperation extends EventEmitter<{
   readonly stack: ParseStackEntry[] = [];
 
   constructor(grammar: Grammar, text: string) {
-    super();
     this.grammar = grammar;
     this.text = text;
   }
@@ -195,11 +188,7 @@ class ParseOperation extends EventEmitter<{
       throw new Error(`No production ${node.name}`);
     }
 
-    this.emit('node.in', { displayName, index });
-
     const result = this.parse(index, newParameters, production.body);
-
-    this.emit('node.out', { displayName, index, result });
 
     if (result) {
       const [content, j] = result;
