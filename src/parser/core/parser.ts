@@ -47,13 +47,15 @@ interface ParseStackEntry {
 
 export function parseAll<T extends string>(
   lines: string[],
+  lineStart: number,
+  lineEnd: number,
   grammar: Grammar,
   rootProduction: T,
 ) {
-  const operation = new ParseOperation(grammar, lines);
+  const operation = new ParseOperation(grammar, lines, lineEnd);
   const mark = {
     index: 0,
-    row: 0,
+    row: lineStart,
     column: 0,
   };
   const result = operation.parseRef(mark, {}, {
@@ -77,14 +79,20 @@ export function parseAll<T extends string>(
 class ParseOperation {
   readonly grammar: Grammar;
   readonly lines: string[];
+  readonly linesEnd: number;
 
   readonly backtrackCache = new Set<string>();
 
   readonly stack: ParseStackEntry[] = [];
 
-  constructor(grammar: Grammar, lines: string[]) {
+  constructor(grammar: Grammar, lines: string[], lineEnd: number) {
     this.grammar = grammar;
     this.lines = lines;
+    this.linesEnd = lineEnd;
+  }
+
+  atEndOfInput(mark: Mark) {
+    return mark.row >= this.linesEnd;
   }
 
   advance(mark: Mark, n: number) {
@@ -101,7 +109,7 @@ class ParseOperation {
   matchString(mark: Mark, string: string) {
     if (string === '') {
       return true;
-    } else if (mark.row >= this.lines.length) {
+    } else if (this.atEndOfInput(mark)) {
       return false;
     } else {
       return this.lines[mark.row].slice(mark.column, mark.column + string.length) === string;
@@ -124,7 +132,7 @@ class ParseOperation {
           return null;
         }
       } else if (node.type === 'END_OF_INPUT') {
-        if (startMark.row >= this.lines.length) {
+        if (this.atEndOfInput(startMark)) {
           return [[], startMark];
         } else {
           return null;
@@ -291,7 +299,7 @@ class ParseOperation {
         m = endMark;
 
         if (isZeroWidth && max === null) {
-          if (m.row < this.lines.length) { // else it should be fixed by line ending normalization
+          if (m.row < this.linesEnd) { // else it should be fixed by line ending normalization
             console.error(`Warning: unbounded repeat matched zero characters at ${m.index}.`);
             console.error(`Stack: ${this.stack.slice().reverse().join(' ')}`);
             console.error(child);

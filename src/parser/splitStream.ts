@@ -1,3 +1,5 @@
+import type { Mark } from './core/ast';
+
 enum LineClass {
   empty,
   directive,
@@ -55,31 +57,40 @@ const STATES = {
   },
 } as const;
 
-export function *splitStream(lines: Iterator<string>): Generator<SplitStreamResult> {
+export function *splitStream(lines: Iterator<string>): Generator<readonly [Mark, Mark]> {
   let state = State.start;
 
   let emittedAtLeastOne = false;
-  let documentStart = 0;
-  let currentLine = 0;
+  let startMark = {
+    index: 0,
+    row: 0,
+    column: 0,
+  };
+  let currentMark = startMark;
 
   let it = lines.next();
   while (!it.done) {
     const [nextState, includeCurrentLine] = STATES[state][classifyLine(it.value)];
     state = nextState as State;
 
+    const nextMark = {
+      index: currentMark.index + it.value.length,
+      row: currentMark.row + 1,
+      column: 0,
+    };
+
     if (includeCurrentLine !== null) {
-      const start = documentStart;
-      const end = includeCurrentLine ? currentLine + 1 : currentLine;
+      const endMark = includeCurrentLine ? nextMark : currentMark;
+      yield [startMark, endMark];
       emittedAtLeastOne = true;
-      documentStart = end;
-      yield { start, end };
+      startMark = endMark;
     }
 
     it = lines.next();
-    currentLine++;
+    if (!it.done) currentMark = nextMark;
   }
 
   if (!emittedAtLeastOne) {
-    yield { start: documentStart, end: currentLine };
+    yield [startMark, currentMark];
   }
 }

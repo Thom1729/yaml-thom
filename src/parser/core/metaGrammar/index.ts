@@ -7,7 +7,8 @@ import { parseAll } from '../parser';
 
 export function parseGrammar(text: string): Grammar {
   try {
-    const ast = parseAll(text.split(/^/gm), grammar, 'grammar');
+    const lines = text.split(/^/gm);
+    const ast = parseAll(lines, 0, lines.length, grammar, 'grammar');
 
     return astToGrammar(ast, text);
   } catch (e) {

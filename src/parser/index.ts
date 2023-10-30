@@ -21,7 +21,8 @@ const DEFAULT_OPTIONS = {
 export function parseAst(text: string, version: YamlVersion) {
   const { grammar, rootProduction } = versions[version];
 
-  return parseAll(text.split(/^/gm), grammar, rootProduction);
+  const lines = text.split(/^/gm);
+  return parseAll(lines, 0, lines.length, grammar, rootProduction);
 }
 
 export function parseStream(text: string, options?: ParseOptions) {
@@ -29,13 +30,15 @@ export function parseStream(text: string, options?: ParseOptions) {
 
   const { grammar, rootProduction, nodeClasses } = versions[combinedOptions.version];
 
-  const node = parseAll(text.split(/^/gm), grammar, rootProduction);
-
-  const normalized = single(normalizeAst(node, nodeClasses));
-
   function nodeText(node: AstNode) {
     return text.slice(node.range[0].index, node.range[1].index);
   }
+
+  const lines = text.split(/^/gm);
+
+  const node = parseAll(lines, 0, lines.length, grammar, rootProduction);
+
+  const normalized = single(normalizeAst(node, nodeClasses));
 
   return new AstToSerializationTree(nodeText).handleStream(normalized);
 }

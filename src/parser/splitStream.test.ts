@@ -1,4 +1,5 @@
-import { splitStream, type SplitStreamResult } from './splitStream';
+import type { Mark } from './core/ast';
+import { splitStream } from './splitStream';
 
 function *trimmedLines(...args: Parameters<typeof String.raw>) {
   const raw = String.raw(...args);
@@ -19,7 +20,7 @@ function *trimmedLines(...args: Parameters<typeof String.raw>) {
 describe(splitStream, () => {
   function foo(
     lines: Iterator<string>,
-    expected: readonly SplitStreamResult[],
+    expected: readonly [Mark, Mark][],
   ) {
     const actual = Array.from(splitStream(lines));
     expect(actual).toStrictEqual(expected);
@@ -27,13 +28,21 @@ describe(splitStream, () => {
 
   test('empty', () => {
     foo(trimmedLines``, [
-      { start: 0, end: 0 },
+      [
+        { index: 0, row: 0, column: 0 },
+        { index: 0, row: 0, column: 0 },
+      ],
     ]);
   });
 
   test('comments only', () => {
-    foo(trimmedLines`# nothing to see here\n`, [
-      { start: 0, end: 1 },
+    foo(trimmedLines`
+      # nothing to see here
+    `, [
+      [
+        { index: 0, row: 0, column: 0 },
+        { index: 22, row: 1, column: 0 },
+      ],
     ]);
   });
 
@@ -45,8 +54,14 @@ describe(splitStream, () => {
       ...
       # not a document
     `, [
-      { start: 0, end: 2 },
-      { start: 2, end: 4 },
+      [
+        { index: 0, row: 0, column: 0 },
+        { index: 10, row: 2, column: 0 },
+      ],
+      [
+        { index: 10, row: 2, column: 0 },
+        { index: 22, row: 4, column: 0 },
+      ],
     ]);
   });
 
@@ -56,7 +71,10 @@ describe(splitStream, () => {
       ...
       # not a document
     `, [
-      { start: 0, end: 2 },
+      [
+        { index: 0, row: 0, column: 0 },
+        { index: 11, row: 2, column: 0 },
+      ],
     ]);
   });
 
@@ -68,7 +86,10 @@ describe(splitStream, () => {
       ...
       # not a document
     `, [
-      { start: 0, end: 4 },
+      [
+        { index: 0, row: 0, column: 0 },
+        { index: 22, row: 4, column: 0 },
+      ],
     ]);
   });
 
@@ -80,8 +101,14 @@ describe(splitStream, () => {
       ...
       # not a document
     `, [
-      { start: 0, end: 1 },
-      { start: 1, end: 4 },
+      [
+        { index: 0, row: 0, column: 0 },
+        { index: 6, row: 1, column: 0 },
+      ],
+      [
+        { index: 6, row: 1, column: 0 },
+        { index: 20, row: 4, column: 0 },
+      ],
     ]);
   });
 });
