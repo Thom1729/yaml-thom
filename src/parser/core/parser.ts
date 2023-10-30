@@ -47,18 +47,13 @@ interface ParseStackEntry {
 
 export function parseAll<T extends string>(
   lines: string[],
-  lineStart: number,
+  startMark: Mark,
   lineEnd: number,
   grammar: Grammar,
   rootProduction: T,
 ) {
   const operation = new ParseOperation(grammar, lines, lineEnd);
-  const mark = {
-    index: 0,
-    row: lineStart,
-    column: 0,
-  };
-  const result = operation.parseRef(mark, {}, {
+  const result = operation.parseRef(startMark, {}, {
     type: 'REF',
     name: rootProduction,
     parameters: {},

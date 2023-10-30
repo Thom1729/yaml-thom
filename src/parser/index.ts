@@ -22,25 +22,42 @@ export function parseAst(text: string, version: YamlVersion) {
   const { grammar, rootProduction } = versions[version];
 
   const lines = text.split(/^/gm);
-  return parseAll(lines, 0, lines.length, grammar, rootProduction);
+  return parseAll(lines, { index: 0, row: 0, column: 0 }, lines.length, grammar, rootProduction);
 }
 
-export function parseStream(text: string, options?: ParseOptions) {
+export function *parseStream(text: string, options?: ParseOptions) {
   const combinedOptions = { ...DEFAULT_OPTIONS, ...options };
 
   const { grammar, rootProduction, nodeClasses } = versions[combinedOptions.version];
 
-  function nodeText(node: AstNode) {
-    return text.slice(node.range[0].index, node.range[1].index);
-  }
-
   const lines = text.split(/^/gm);
 
-  const node = parseAll(lines, 0, lines.length, grammar, rootProduction);
+  function nodeText(node: AstNode) {
+    const [startMark, endMark] = node.range;
+    if (startMark.row === endMark.row) {
+      if (startMark.column === endMark.column) {
+        return '';
+      } else {
+        return lines[startMark.row].slice(startMark.column, endMark.column);
+      }
+    } else {
+      const ret: string[] = [];
+      ret.push(lines[startMark.row].slice(startMark.column));
+      for (let i = startMark.row + 1; i < endMark.row; i++) {
+        ret.push(lines[i]);
+      }
+      if (endMark.column > 0) {
+        ret.push(lines[endMark.row].slice(0, endMark.column));
+      }
+      return ret.join('');
+    }
+  }
+
+  const node = parseAll(lines, { index: 0, row: 0, column: 0 }, lines.length, grammar, rootProduction);
 
   const normalized = single(normalizeAst(node, nodeClasses));
 
-  return new AstToSerializationTree(nodeText).handleStream(normalized);
+  yield* new AstToSerializationTree(nodeText).handleStream(normalized);
 }
 
 export function parseSingleDocument(text: string, options?: ParseOptions) {
