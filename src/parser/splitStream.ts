@@ -66,7 +66,6 @@ const STATES = {
 export function *splitStream(lines: Iterator<string>): Generator<readonly [Mark, Mark]> {
   let state = State.start;
 
-  let emittedAtLeastOne = false;
   let startMark = {
     index: 0,
     row: 0,
@@ -90,7 +89,6 @@ export function *splitStream(lines: Iterator<string>): Generator<readonly [Mark,
     } else if (action !== null) {
       const endMark = action === Action.emitAfter ? nextMark : currentMark;
       yield [startMark, endMark];
-      emittedAtLeastOne = true;
       startMark = endMark;
     }
 
@@ -98,7 +96,7 @@ export function *splitStream(lines: Iterator<string>): Generator<readonly [Mark,
     currentMark = nextMark;
   }
 
-  if (!emittedAtLeastOne || state !== State.start) {
+  if (state !== State.start) {
     yield [startMark, currentMark];
   }
 }

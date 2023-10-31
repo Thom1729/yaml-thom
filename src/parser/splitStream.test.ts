@@ -27,23 +27,13 @@ describe(splitStream, () => {
   }
 
   test('empty', () => {
-    foo(trimmedLines``, [
-      [
-        { index: 0, row: 0, column: 0 },
-        { index: 0, row: 0, column: 0 },
-      ],
-    ]);
+    foo(trimmedLines``, []);
   });
 
   test('comments only', () => {
     foo(trimmedLines`
       # nothing to see here
-    `, [
-      [
-        { index: 0, row: 0, column: 0 },
-        { index: 22, row: 1, column: 0 },
-      ],
-    ]);
+    `, []);
   });
 
   test('two documents', () => {
