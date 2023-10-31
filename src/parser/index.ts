@@ -2,6 +2,7 @@ export { type AstNode } from './core/ast';
 
 import { parseAll } from './core/parser';
 import { normalizeAst } from './core/normalizeAst';
+import { splitStream } from './splitStream';
 import { AstToSerializationTree } from './core/astToSerializationTree';
 
 import versions from './versions';
@@ -53,11 +54,19 @@ export function *parseStream(text: string, options?: ParseOptions) {
     }
   }
 
-  const node = parseAll(lines, { index: 0, row: 0, column: 0 }, lines.length, grammar, rootProduction);
+  for (const [startMark, endMark] of splitStream(lines[Symbol.iterator]())) {
+    const node = parseAll(lines, startMark, endMark.row, grammar, rootProduction);
 
-  const normalized = single(normalizeAst(node, nodeClasses));
+    const normalized = single(normalizeAst(node, nodeClasses));
 
-  yield* new AstToSerializationTree(nodeText).handleStream(normalized);
+    yield* new AstToSerializationTree(nodeText).handleStream(normalized);
+  }
+
+  // const node = parseAll(lines, { index: 0, row: 0, column: 0 }, lines.length, grammar, rootProduction);
+
+  // const normalized = single(normalizeAst(node, nodeClasses));
+
+  // yield* new AstToSerializationTree(nodeText).handleStream(normalized);
 }
 
 export function parseSingleDocument(text: string, options?: ParseOptions) {

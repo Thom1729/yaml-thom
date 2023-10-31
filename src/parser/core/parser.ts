@@ -64,7 +64,7 @@ export function parseAll<T extends string>(
   const [nodes, endMark] = result;
   const node = single(nodes) as AstNode<T>;
 
-  if (endMark.row < lines.length) {
+  if (endMark.row < lineEnd) {
     throw new TypeError(`did not parse entire string`);
   }
 
@@ -178,6 +178,8 @@ class ParseOperation {
     startMark: Mark,
     ranges: readonly (readonly [number, number])[],
   ) {
+    if (startMark.row >= this.linesEnd) return null;
+
     const codePoint = this.lines[startMark.row]?.codePointAt(startMark.column);
 
     if (codePoint === undefined) return null; // EOF

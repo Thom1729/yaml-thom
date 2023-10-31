@@ -1,28 +1,28 @@
 import type { Mark } from './core/ast';
 import { splitStream } from './splitStream';
 
-function *trimmedLines(...args: Parameters<typeof String.raw>) {
+function trimmedLines(...args: Parameters<typeof String.raw>) {
   const raw = String.raw(...args);
   const lines = raw.split(/^/gm);
 
   if (lines[0] === '\n') lines.shift();
-  if (lines.length === 0) return;
+  if (lines.length === 0) return [];
 
   const match = lines[0].match(/^ */);
   if (match === null) throw new TypeError();
   const n = match[0].length;
 
-  for (const line of lines) {
-    yield line.slice(n);
-  }
+  const ret: string[] = lines.map(line => line.slice(n));
+  if (ret.length > 1 && ret[ret.length - 1].length === 0) ret.pop();
+  return ret;
 }
 
 describe(splitStream, () => {
   function foo(
-    lines: Iterator<string>,
+    lines: string[],
     expected: readonly [Mark, Mark][],
   ) {
-    const actual = Array.from(splitStream(lines));
+    const actual = Array.from(splitStream(lines[Symbol.iterator]()));
     expect(actual).toStrictEqual(expected);
   }
 

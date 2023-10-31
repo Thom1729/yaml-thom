@@ -14,9 +14,8 @@ const DIRECTORY_TEST_FILE_NAMES = {
   'lex.token': 'tokens',
 } as const;
 
-function foo(files: Record<string, string>): TestCase {
+function foo(id: string, files: Record<string, string>): TestCase {
   const {
-    id,
     name,
     emit,
     json,
@@ -80,7 +79,7 @@ export class DirectoryTestLoader {
             ];
           }),
       );
-      yield foo(y);
+      yield foo(id, y);
     }
   }
 

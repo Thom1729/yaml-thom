@@ -14,6 +14,12 @@ enum State {
   body,
 }
 
+enum Action {
+  skip,
+  emitBefore,
+  emitAfter,
+}
+
 function classifyLine(line: string) {
   if (line.startsWith('%')) {
     return LineClass.directive;
@@ -38,21 +44,21 @@ const STATES = {
     [LineClass.empty      ]: [State.start     , null],
     [LineClass.directive  ]: [State.directives, null],
     [LineClass.startMarker]: [State.body      , null],
-    [LineClass.endMarker  ]: [State.start     , true],
+    [LineClass.endMarker  ]: [State.start     , Action.skip],
     [LineClass.other      ]: [State.body      , null],
   },
   [State.directives]: {
     [LineClass.empty      ]: [State.directives, null],
     [LineClass.directive  ]: [State.directives, null],
     [LineClass.startMarker]: [State.body      , null],
-    [LineClass.endMarker  ]: [State.start     , true],
+    [LineClass.endMarker  ]: [State.start     , Action.emitAfter],
     [LineClass.other      ]: [State.directives, null],
   },
   [State.body]: {
     [LineClass.empty      ]: [State.body      , null],
     [LineClass.directive  ]: [State.body      , null],
-    [LineClass.startMarker]: [State.start     , false],
-    [LineClass.endMarker  ]: [State.start     , true],
+    [LineClass.startMarker]: [State.body      , Action.emitBefore],
+    [LineClass.endMarker  ]: [State.start     , Action.emitAfter],
     [LineClass.other      ]: [State.body      , null],
   },
 } as const;
@@ -70,7 +76,7 @@ export function *splitStream(lines: Iterator<string>): Generator<readonly [Mark,
 
   let it = lines.next();
   while (!it.done) {
-    const [nextState, includeCurrentLine] = STATES[state][classifyLine(it.value)];
+    const [nextState, action] = STATES[state][classifyLine(it.value)];
     state = nextState as State;
 
     const nextMark = {
@@ -79,18 +85,20 @@ export function *splitStream(lines: Iterator<string>): Generator<readonly [Mark,
       column: 0,
     };
 
-    if (includeCurrentLine !== null) {
-      const endMark = includeCurrentLine ? nextMark : currentMark;
+    if (action === Action.skip) {
+      startMark = nextMark;
+    } else if (action !== null) {
+      const endMark = action === Action.emitAfter ? nextMark : currentMark;
       yield [startMark, endMark];
       emittedAtLeastOne = true;
       startMark = endMark;
     }
 
     it = lines.next();
-    if (!it.done) currentMark = nextMark;
+    currentMark = nextMark;
   }
 
-  if (!emittedAtLeastOne) {
+  if (!emittedAtLeastOne || state !== State.start) {
     yield [startMark, currentMark];
   }
 }
