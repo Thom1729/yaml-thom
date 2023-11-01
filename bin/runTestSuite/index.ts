@@ -1,11 +1,25 @@
 import chalk from 'chalk';
 import { inspect } from 'util';
 
-import { runTest, pathToString } from '../lib';
+import { runTest, present, type PathEntry, type SerializationNode } from '../lib';
 
 import { DirectoryTestLoader } from './DirectoryTestLoader';
 
 import { Logger } from '../logger';
+
+export function pathToString(path: PathEntry<SerializationNode>[]) {
+  return '/' + path
+    .map(entry => {
+      if (entry === null) {
+        return 'key';
+      } else if (typeof entry === 'number') {
+        return entry;
+      } else {
+        return present(entry);
+      }
+    })
+    .join('/');
+}
 
 export function runTestSuite(testSuitePath: string, testNames: string[], verbose: boolean) {
   const logger = new Logger(process.stdout);

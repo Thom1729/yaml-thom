@@ -12,11 +12,9 @@ import type {
   RepresentationMapping,
 } from '.';
 
-import { present } from '@/presenter';
-
 import { enumerate, zip } from '@/util';
 
-type PathEntry<T> =
+export type PathEntry<T> =
 | number
 | null
 | T;
@@ -86,18 +84,4 @@ export function *diff(
       }
     }
   }
-}
-
-export function pathToString(path: PathEntry<SerializationNode>[]) {
-  return '/' + path
-    .map(entry => {
-      if (entry === null) {
-        return 'key';
-      } else if (typeof entry === 'number') {
-        return entry;
-      } else {
-        return present(entry);
-      }
-    })
-    .join('/');
 }
