@@ -3,7 +3,7 @@ import {
   RepresentationSequence,
   RepresentationMapping,
   RepresentationNode,
-} from '@/nodes';
+} from './representationGraph';
 
 export function isStr(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:str'> {
   return node.kind === 'scalar' && node.tag === 'tag:yaml.org,2002:str';
