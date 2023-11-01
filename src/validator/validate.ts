@@ -68,6 +68,25 @@ const VALIDATORS = {
 
     return true;
   },
+
+  properties: function *(node, validators, path) {
+    if (node.kind === 'mapping') {
+      for (const [key, value] of node) {
+        const pair = validators.find(([k,]) => this.comparator.compare(k, key) === 0);
+        if (pair === undefined) {
+          yield {
+            path: [...path, { type: 'key', key }],
+            key: 'properties',
+            value: validators,
+          };
+        } else {
+          const validator = pair[1];
+          yield* this.validate(validator, value, [...path, { type: 'value', key }]);
+        }
+      }
+    }
+    return true;
+  },
 } satisfies {
   [K in keyof Validator]: (
     this: NodeValidator,

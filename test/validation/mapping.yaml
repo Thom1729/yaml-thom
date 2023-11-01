@@ -1,0 +1,18 @@
+---
+validator:
+  properties:
+    foo:
+      kind: scalar
+      tag: tag:yaml.org,2002:int
+input:
+  foo: 42
+valid: true
+---
+validator:
+  properties:
+    foo:
+      kind: scalar
+      tag: tag:yaml.org,2002:int
+input:
+  foo: '42'
+valid: false

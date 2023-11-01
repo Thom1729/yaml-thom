@@ -18,6 +18,8 @@ export interface Validator {
   maxLength?: bigint;
 
   items?: Validator;
+
+  properties?: readonly (readonly [RepresentationNode, Validator])[];
 }
 
 type Default<T, U> =

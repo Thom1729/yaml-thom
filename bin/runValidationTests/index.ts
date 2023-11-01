@@ -76,7 +76,10 @@ function runValidationTest(test: ValidationTest): ValidationTestResult {
     success = success && deepEquals(failures, test.failures);
   }
 
-  if (!success) logger.log(test, failures);
+  if (!success) {
+    logger.dir(test);
+    logger.dir(failures);
+  }
   return { success };
 }
 

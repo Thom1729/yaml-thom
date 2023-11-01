@@ -1,5 +1,5 @@
 import type { Validator, OneOrMore } from './types';
-import { RepresentationNode, extractSeqItems } from '@/nodes';
+import { RepresentationNode, extractMapEntries, extractSeqItems } from '@/nodes';
 
 import { extractStringMap } from '@/nodes';
 import { defaultConstructor } from '@/constructor';
@@ -25,6 +25,7 @@ export function constructValidator(node: RepresentationNode): Validator {
     'const?', 'enum?',
     'minLength?', 'maxLength?',
     'items?',
+    'properties?',
   ]);
 
   const ret: Validator = {};
@@ -60,6 +61,11 @@ export function constructValidator(node: RepresentationNode): Validator {
 
   if (x.items !== undefined) {
     ret.items = constructValidator(x.items);
+  }
+
+  if (x.properties !== undefined) {
+    ret.properties = extractMapEntries(x.properties)
+      .map(([key, value]) => [key, constructValidator(value)] as const);
   }
 
   return ret;
