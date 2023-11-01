@@ -45,7 +45,19 @@ type ValidatorTypes<T extends Validator> = {
       ? ValidatorTypes<T['items']>
       : undefined
   ),
+
+  properties: (
+    T['properties'] extends readonly (readonly [RepresentationNode, Validator])[]
+      ? Foo<T['properties'][number]>
+      : readonly [RepresentationNode, RepresentationNode]
+  );
 };
+
+type Foo<T extends readonly [RepresentationNode, Validator]> =
+  T extends readonly [RepresentationNode, Validator]
+    ? readonly [T[0], ValidatorTypes<T[1]>]
+    : never
+;
 
 export type Validated<T extends Validator> = _Validated<ValidatorTypes<T>>;
 
@@ -60,5 +72,7 @@ type _Validated<T extends ValidatorTypes<any>> =
       ? _Validated<T['items']>
       : RepresentationNode
   >,
-  'mapping': RepresentationMapping<T['tag']>,
+  'mapping': RepresentationMapping<T['tag'],
+    T['properties']
+  >,
 }[T['kind']];

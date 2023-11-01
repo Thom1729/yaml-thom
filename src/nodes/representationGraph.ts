@@ -13,7 +13,10 @@ abstract class ValueNode<TagType, ContentType> {
   }
 }
 
-export class RepresentationScalar<TagType extends SerializationTag = string> extends ValueNode<TagType, string> {
+export class RepresentationScalar<
+  TagType extends SerializationTag = string,
+  ContentType extends string = string,
+> extends ValueNode<TagType, ContentType> {
   readonly kind = 'scalar';
 
   get size() { return stringCodepointLength(this.content); }

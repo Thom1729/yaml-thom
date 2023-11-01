@@ -126,7 +126,7 @@ export function extractInt(node: RepresentationScalar<'tag:yaml.org,2002:int'>) 
 
 //////////
 
-export function str(value: string) {
+export function str<ContentType extends string>(value: ContentType) {
   return new RepresentationScalar('tag:yaml.org,2002:str', value);
 }
 
