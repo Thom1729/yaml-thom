@@ -54,7 +54,7 @@ function deepEquals(a: unknown, b: unknown) {
     if (aKeys.length !== bKeys.length) return false;
     for (const k of aKeys) {
       if (!Object.hasOwn(b, k)) return false;
-      if (!deepEquals((a as any)[k], (b as any)[k])) return false;
+      if (!deepEquals((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])) return false;
     }
     return true;
   } else {

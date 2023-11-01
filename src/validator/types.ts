@@ -47,11 +47,13 @@ type ValidatorTypes<T extends Validator> = {
 
 export type Validated<T extends Validator> = _Validated<ValidatorTypes<T>>;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type _Validated<T extends ValidatorTypes<any>> =
 & T['const']
 & {
   'scalar': RepresentationScalar<T['tag']>,
   'sequence': RepresentationSequence<T['tag'],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     T['items'] extends ValidatorTypes<any>
       ? _Validated<T['items']>
       : RepresentationNode
