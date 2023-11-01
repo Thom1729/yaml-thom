@@ -14,4 +14,3 @@ valid: false
 failures:
   - path: []
     key: minLength
-    value: 1

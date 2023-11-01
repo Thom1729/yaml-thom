@@ -16,3 +16,15 @@ validator:
 input:
   foo: '42'
 valid: false
+failures:
+  - path: [{ type: value, key: foo }]
+    key: tag
+---
+validator:
+  properties:
+    foo:
+      kind: scalar
+      tag: tag:yaml.org,2002:int
+input:
+  bar: '42'
+valid: false

@@ -33,7 +33,7 @@ export type ValidationFailure<TKey extends keyof Validator = keyof Validator> = 
   [Key in TKey]: {
     path: PathEntry[];
     key: Key;
-    value: Validator[Key];
+    // value: Validator[Key];
   }
 }[TKey];
 
@@ -77,7 +77,6 @@ const VALIDATORS = {
           yield {
             path: [...path, { type: 'key', key }],
             key: 'properties',
-            value: validators,
           };
         } else {
           const validator = pair[1];
@@ -130,7 +129,7 @@ class NodeValidator {
 
         if (!valid) {
           this.cache.set(validator, node, false);
-          yield { path, key, value: validator[key] } as ValidationFailure;
+          yield { path, key } as ValidationFailure;
           return false;
         }
       }

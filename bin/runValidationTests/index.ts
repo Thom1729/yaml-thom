@@ -9,6 +9,10 @@ import {
   defaultConstructor,
   validate, constructValidator, type Validator, type ValidationFailure,
   type RepresentationNode,
+  extractSeqItems,
+  extractStrContent,
+  extractInt,
+  assertInt,
 } from '../lib';
 
 interface ValidationTest {
@@ -31,9 +35,33 @@ function constructValidationTest(document: RepresentationNode): ValidationTest {
   };
 
   if (x.valid !== undefined) ret.valid = defaultConstructor(x.valid) as boolean;
-  if (x.failures !== undefined) ret.failures = defaultConstructor(x.failures) as unknown as ValidationFailure[];
+  if (x.failures !== undefined) {
+    ret.failures = extractSeqItems(x.failures).map(failure => {
+      const y = extractStringMap(failure, ['path', 'key']);
+
+      return {
+        path: extractSeqItems(y.path).map(constructPathEntry),
+        key: extractStrContent(y.key) as ValidationFailure['key'],
+      } as ValidationFailure;
+    });
+  }
 
   return ret;
+}
+
+function constructPathEntry(entry: RepresentationNode) {
+  const z = extractStringMap(entry, ['type', 'index?', 'key?', 'value?']);
+  const type = extractStrContent(z.type);
+  if (type === 'index') {
+    assertInt(z.index!);
+    return { type: type as 'index', index: Number(extractInt(z.index)) };
+  } else if (type === 'key') {
+    return { type: type as 'key', key: z.key! };
+  } else if (type === 'value') {
+    return { type: type as 'value', key: z.key! };
+  } else {
+    throw new TypeError(type);
+  }
 }
 
 // Not cycle-safe!
