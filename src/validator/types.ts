@@ -55,7 +55,7 @@ type ValidatorTypes<T extends Validator> = {
 
 type Foo<T extends readonly [RepresentationNode, Validator]> =
   T extends readonly [RepresentationNode, Validator]
-    ? readonly [T[0], ValidatorTypes<T[1]>]
+    ? readonly [T[0], Validated<T[1]>]
     : never
 ;
 

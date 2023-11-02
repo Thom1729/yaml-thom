@@ -1,10 +1,12 @@
 import { zip, cmpStringsByCodepoint, WeakCache } from '@/util';
 
-import type {
+import {
+  NonSpecificTag,
   RepresentationMapping,
   RepresentationNode,
   RepresentationScalar,
   RepresentationSequence,
+  type UnresolvedNode,
 } from '.';
 
 export function equals(a: RepresentationNode, b: RepresentationNode) {
@@ -19,17 +21,36 @@ const KIND_INDEX = {
 
 // TODO: Handle cycles, etc
 export class NodeComparator {
-  cache = new WeakCache<[RepresentationNode, RepresentationNode], number | null>();
+  cache = new WeakCache<[UnresolvedNode, UnresolvedNode], number | null>();
 
-  equals(a: RepresentationNode, b: RepresentationNode): boolean {
+  equals(a: UnresolvedNode, b: UnresolvedNode): boolean {
     return this.compare(a, b) === 0;
   }
 
-  compare(a: RepresentationNode, b: RepresentationNode): number {
+  compare(a: UnresolvedNode, b: UnresolvedNode): number {
     if (a === b) return 0;
 
     if (a.kind !== b.kind) return KIND_INDEX[a.kind] - KIND_INDEX[b.kind];
-    if (a.tag !== b.tag) return cmpStringsByCodepoint(a.tag, b.tag);
+
+    // if (a.tag !== b.tag) return cmpStringsByCodepoint(a.tag, b.tag);
+    if (a.tag === b.tag) {
+      // pass
+    } else if (a.tag === NonSpecificTag.exclamation) {
+      return -1;
+    } else if (a.tag === NonSpecificTag.question) {
+      if (b.tag === NonSpecificTag.exclamation) {
+        return 1;
+      } else {
+        return -1;
+      }
+    } else {
+      if (typeof b.tag === 'symbol') {
+        return 1;
+      } else {
+        return cmpStringsByCodepoint(a.tag, b.tag);
+      }
+    }
+
     if (a.kind === 'scalar') return cmpStringsByCodepoint(a.content, (b as RepresentationScalar).content);
     if (a.size !== b.size) return a.size - b.size;
 

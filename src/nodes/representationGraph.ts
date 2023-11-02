@@ -47,10 +47,37 @@ export class RepresentationSequence<
   }
 }
 
+export class NodeMap<PairType extends readonly [UnresolvedNode, unknown]> {
+  readonly pairs: PairType[] = [];
+
+  *[Symbol.iterator]() {
+    yield* this.pairs;
+  }
+
+  get size() { return this.pairs.length; }
+
+  get<KeyType extends PairType[0]>(
+    k: KeyType,
+    comparator?: NodeComparator,
+  ): Get<PairType, KeyType> | null {
+    const c = comparator ?? new NodeComparator();
+    for (const [key, value] of this.pairs) {
+      if (c.equals(k, key)) { return value as Get<PairType, KeyType>; }
+    }
+    return null;
+  }
+}
+
+type Get<PairType extends readonly [UnresolvedNode, unknown], KeyType extends PairType[0]> =
+  PairType extends [KeyType, infer ValueType]
+    ? ValueType
+    : never
+;
+
 export class RepresentationMapping<
   TagType extends SerializationTag = string,
-  PairType extends readonly [unknown, unknown] = readonly [RepresentationNode, RepresentationNode],
-> extends ValueNode<TagType, PairType[]> {
+  PairType extends readonly [UnresolvedNode, UnresolvedNode] = readonly [RepresentationNode, RepresentationNode],
+> extends ValueNode<TagType, NodeMap<PairType>> {
   readonly kind = 'mapping';
 
   constructor(
@@ -58,39 +85,35 @@ export class RepresentationMapping<
     content: Iterable<PairType>,
     comparator: NodeComparator | boolean = true,
   ) {
-    const pairs = Array.from(content);
-    if (comparator && pairs.length > 1) {
+    const map = new NodeMap<PairType>();
+    for (const pair of content) map.pairs.push(pair);
+    if (comparator && map.size > 1) {
       const c = (comparator === true) ? new NodeComparator() : comparator;
-      (pairs as (readonly [RepresentationNode, RepresentationNode])[])
+      (map.pairs as (readonly [RepresentationNode, RepresentationNode])[])
         .sort((a, b) => {
           const diff = c.compare(a[0], b[0]);
           if (diff === 0) throw new Error(`duplicate keys`);
           return diff;
         });
     }
-    super(tag, pairs);
+    super(tag, map);
   }
 
   *[Symbol.iterator]() {
     yield* this.content;
   }
 
-  get size() { return this.content.length; }
+  get size() { return this.content.size; }
 
-  get(
-    this: RepresentationMapping,
-    k: PairType[0] & RepresentationNode,
+  get<KeyType extends PairType[0]>(
+    k: KeyType,
     comparator?: NodeComparator,
-  ): PairType[1] | null {
-    const c = comparator ?? new NodeComparator();
-    for (const [key, value] of this.content) {
-      if (c.equals(k, key)) { return value; }
-    }
-    return null;
+  ): Get<PairType, KeyType> | null {
+    return this.content.get(k, comparator);
   }
 
   map(callback: (item: PairType[1]) => PairType[1]) {
-    return new RepresentationMapping(this.tag, this.content.map(([key, value]) => [callback(key), callback(value)]));
+    return new RepresentationMapping(this.tag, this.content.pairs.map(([key, value]) => [callback(key), callback(value)]));
   }
 
   merge(

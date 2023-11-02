@@ -146,6 +146,6 @@ export function seq(items: Iterable<RepresentationNode>) {
   return new RepresentationSequence('tag:yaml.org,2002:seq', Array.from(items));
 }
 
-export function map(items: Iterable<readonly [RepresentationNode, RepresentationNode]>) {
-  return new RepresentationMapping('tag:yaml.org,2002:map', Array.from(items));
+export function map<PairType extends readonly [RepresentationNode, RepresentationNode]>(items: Iterable<PairType>) {
+  return new RepresentationMapping('tag:yaml.org,2002:map', items);
 }

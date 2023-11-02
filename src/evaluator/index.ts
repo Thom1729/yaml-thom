@@ -117,12 +117,12 @@ export function evaluate(
         const result = new RepresentationMapping(node.tag, [] as (readonly [RepresentationNode, RepresentationNode])[]);
         setCached(node, context, result);
         for (const [key, value] of node) {
-          result.content.push([
+          result.content.pairs.push([
             rec(key, context),
             rec(value, context),
           ]);
         }
-        result.content.sort((a, b) => comparator.compare(a[0], b[0]));
+        result.content.pairs.sort((a, b) => comparator.compare(a[0], b[0]));
         return result;
       }
     }

@@ -70,7 +70,7 @@ function link(node: SerializationNode) {
       const result = new RepresentationMapping<SerializationTag, readonly [UnresolvedNode, UnresolvedNode]>(node.tag, []);
       setAnchor(node, result);
       for (const [key, value] of node) {
-        result.content.push([rec(key), rec(value)]);
+        result.content.pairs.push([rec(key), rec(value)]);
       }
       return result;
     }
@@ -107,7 +107,7 @@ function resolve(node: UnresolvedNode, schema: Schema): asserts node is Represen
       for (const child of node) rec(child);
     } else {
       for (const [key, ] of node) rec(key);
-      node.content.sort((a, b) => comparator.compare(a[0] as RepresentationNode, b[0] as RepresentationNode));
+      node.content.pairs.sort((a, b) => comparator.compare(a[0] as RepresentationNode, b[0] as RepresentationNode));
       for (const [, value] of node) rec(value);
     }
   })(node);
