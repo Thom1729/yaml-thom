@@ -84,7 +84,7 @@ export class RepresentationMapping<
   ): PairType[1] | null {
     const c = comparator ?? new NodeComparator();
     for (const [key, value] of this.content) {
-      if (c.compare(k, key) === 0) { return value; }
+      if (c.equals(k, key)) { return value; }
     }
     return null;
   }

@@ -50,11 +50,11 @@ const VALIDATORS = {
   tag: (node, tag) => isOneOrMore(node.tag, tag),
 
   const: function (node, value) {
-    return this.comparator.compare(value, node) === 0;
+    return this.comparator.equals(value, node);
   },
 
   enum: function (node, items) {
-    return items.some(value => this.comparator.compare(value, node) === 0);
+    return items.some(value => this.comparator.equals(value, node));
   },
 
   minLength: (node, minLength) => node.size >= minLength,
@@ -72,7 +72,7 @@ const VALIDATORS = {
   properties: function *(node, validators, path) {
     if (node.kind === 'mapping') {
       for (const [key, value] of node) {
-        const pair = validators.find(([k,]) => this.comparator.compare(k, key) === 0);
+        const pair = validators.find(([k,]) => this.comparator.equals(k, key));
         if (pair === undefined) {
           yield {
             path: [...path, { type: 'key', key }],

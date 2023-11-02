@@ -21,6 +21,10 @@ const KIND_INDEX = {
 export class NodeComparator {
   cache = new WeakCache<[RepresentationNode, RepresentationNode], number | null>();
 
+  equals(a: RepresentationNode, b: RepresentationNode): boolean {
+    return this.compare(a, b) === 0;
+  }
+
   compare(a: RepresentationNode, b: RepresentationNode): number {
     if (a === b) return 0;
 
