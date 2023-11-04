@@ -1,5 +1,6 @@
 import type {
   RepresentationNode, RepresentationScalar, RepresentationSequence, RepresentationMapping,
+  NodeMap,
 } from '@/nodes';
 
 // Not safe if T is an array type
@@ -19,7 +20,7 @@ export interface Validator {
 
   items?: Validator;
 
-  properties?: readonly (readonly [RepresentationNode, Validator])[];
+  properties?: NodeMap<readonly [RepresentationNode, Validator]>;
 }
 
 type Default<T, U> =

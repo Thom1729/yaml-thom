@@ -6,12 +6,12 @@ import {
 import { WeakCache, strictKeys, enumerate, isArray } from '@/util';
 
 import type { Validator } from '.';
-import { OneOrMore } from './types';
+import type { OneOrMore, Validated } from './types';
 
-export function isValid(
+export function isValid<ValidatorType extends Validator>(
   validator: Validator,
   node: RepresentationNode,
-): boolean {
+): node is Validated<ValidatorType> {
   const itr = validate(validator, node);
   const { done } = itr.next();
   return done ?? false;
@@ -72,14 +72,13 @@ const VALIDATORS = {
   properties: function *(node, validators, path) {
     if (node.kind === 'mapping') {
       for (const [key, value] of node) {
-        const pair = validators.find(([k,]) => this.comparator.equals(k, key));
-        if (pair === undefined) {
+        const validator = validators.get(key);
+        if (validator === undefined) {
           yield {
             path: [...path, { type: 'key', key }],
             key: 'properties',
           };
         } else {
-          const validator = pair[1];
           yield* this.validate(validator, value, [...path, { type: 'value', key }]);
         }
       }

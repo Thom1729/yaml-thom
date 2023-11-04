@@ -50,6 +50,22 @@ export class RepresentationSequence<
 export class NodeMap<PairType extends readonly [UnresolvedNode, unknown]> {
   readonly pairs: PairType[] = [];
 
+  constructor(
+    pairs: Iterable<PairType> = [],
+    comparator: NodeComparator | boolean = true,
+  ) {
+    for (const pair of pairs) this.pairs.push(pair);
+    if (comparator && this.size > 1) {
+      const c = (comparator === true) ? new NodeComparator() : comparator;
+      (this.pairs as (readonly [RepresentationNode, RepresentationNode])[])
+        .sort((a, b) => {
+          const diff = c.compare(a[0], b[0]);
+          if (diff === 0) throw new Error(`duplicate keys`);
+          return diff;
+        });
+    }
+  }
+
   *[Symbol.iterator]() {
     yield* this.pairs;
   }
@@ -59,12 +75,12 @@ export class NodeMap<PairType extends readonly [UnresolvedNode, unknown]> {
   get<KeyType extends PairType[0]>(
     k: KeyType,
     comparator?: NodeComparator,
-  ): Get<PairType, KeyType> | null {
+  ): Get<PairType, KeyType> | undefined {
     const c = comparator ?? new NodeComparator();
     for (const [key, value] of this.pairs) {
       if (c.equals(k, key)) { return value as Get<PairType, KeyType>; }
     }
-    return null;
+    return undefined;
   }
 }
 
@@ -85,18 +101,7 @@ export class RepresentationMapping<
     content: Iterable<PairType>,
     comparator: NodeComparator | boolean = true,
   ) {
-    const map = new NodeMap<PairType>();
-    for (const pair of content) map.pairs.push(pair);
-    if (comparator && map.size > 1) {
-      const c = (comparator === true) ? new NodeComparator() : comparator;
-      (map.pairs as (readonly [RepresentationNode, RepresentationNode])[])
-        .sort((a, b) => {
-          const diff = c.compare(a[0], b[0]);
-          if (diff === 0) throw new Error(`duplicate keys`);
-          return diff;
-        });
-    }
-    super(tag, map);
+    super(tag, new NodeMap<PairType>(content, comparator));
   }
 
   *[Symbol.iterator]() {
@@ -109,7 +114,7 @@ export class RepresentationMapping<
     k: KeyType,
     comparator?: NodeComparator,
   ): Get<PairType, KeyType> | null {
-    return this.content.get(k, comparator);
+    return this.content.get(k, comparator) ?? null;
   }
 
   map(callback: (item: PairType[1]) => PairType[1]) {
