@@ -21,6 +21,8 @@ export interface Validator {
   items?: Validator;
 
   properties?: NodeMap<readonly [RepresentationNode, Validator]>;
+
+  anyOf?: readonly Validator[];
 }
 
 type Default<T, U> =
@@ -48,10 +50,12 @@ type ValidatorTypes<T extends Validator> = {
   ),
 
   properties: (
-    T['properties'] extends readonly (readonly [RepresentationNode, Validator])[]
-      ? Foo<T['properties'][number]>
+    T['properties'] extends NodeMap<infer PairType extends readonly [RepresentationNode, Validator]>
+      ? Foo<PairType>
       : readonly [RepresentationNode, RepresentationNode]
-  );
+  ),
+
+  anyOf: T['anyOf'],
 };
 
 type Foo<T extends readonly [RepresentationNode, Validator]> =
@@ -76,4 +80,8 @@ type _Validated<T extends ValidatorTypes<any>> =
   'mapping': RepresentationMapping<T['tag'],
     T['properties']
   >,
-}[T['kind']];
+}[T['kind']]
+& (T['anyOf'] extends readonly (infer U extends Validator)[]
+  ? Validated<U>
+  : unknown
+);

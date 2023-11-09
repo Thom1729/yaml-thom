@@ -85,8 +85,8 @@ export class NodeMap<PairType extends readonly [UnresolvedNode, unknown]> {
 }
 
 type Get<PairType extends readonly [UnresolvedNode, unknown], KeyType extends PairType[0]> =
-  PairType extends [KeyType, infer ValueType]
-    ? ValueType
+  PairType extends readonly [infer PairKey, infer PairValue]
+    ? (KeyType extends PairKey ? PairValue : never)
     : never
 ;
 

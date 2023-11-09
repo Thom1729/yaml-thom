@@ -1,8 +1,9 @@
 import type { Validator, OneOrMore } from './types';
+import { assertValid } from './validate';
 
 import {
   RepresentationNode, NodeMap,
-  extractMapEntries, extractSeqItems, extractStringMap,
+  extractMapEntries, extractSeqItems, extractStringMap, str,
 } from '@/nodes';
 
 import { defaultConstructor } from '@/constructor';
@@ -22,7 +23,28 @@ function assertMaybeArray<T, U extends T>(
   }
 }
 
+const validatorValidator = {
+  kind: 'mapping',
+  tag: 'tag:yaml.org,2002:map',
+
+  // properties: new NodeMap([
+  //   [str('kind'), { enum: [str('scalar')] }],
+  //   [str('tag'), {}],
+  //   [str('const'), {}],
+  //   [str('enum'), {}],
+
+  //   [str('minLength'), {}],
+  //   [str('maxLength'), {}],
+
+  //   [str('items'), {}],
+
+  //   [str('properties'), {}],
+  // ]),
+} as const satisfies Validator;
+
 export function constructValidator(node: RepresentationNode): Validator {
+  assertValid(validatorValidator, node);
+
   const x = extractStringMap(node, [
     'kind?', 'tag?',
     'const?', 'enum?',

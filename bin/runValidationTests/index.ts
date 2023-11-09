@@ -36,17 +36,27 @@ function constructValidationTest(document: RepresentationNode): ValidationTest {
 
   if (x.valid !== undefined) ret.valid = defaultConstructor(x.valid) as boolean;
   if (x.failures !== undefined) {
-    ret.failures = extractSeqItems(x.failures).map(failure => {
-      const y = extractStringMap(failure, ['path', 'key']);
-
-      return {
-        path: extractSeqItems(y.path).map(constructPathEntry),
-        key: extractStrContent(y.key) as ValidationFailure['key'],
-      } as ValidationFailure;
-    });
+    ret.failures = constructTestFailures(x.failures);
   }
 
   return ret;
+}
+
+function constructTestFailures(failures: RepresentationNode): ValidationFailure[] {
+  return extractSeqItems(failures).map(failure => {
+    const y = extractStringMap(failure, ['path', 'key', 'children?']);
+
+    const ret: ValidationFailure = {
+      path: extractSeqItems(y.path).map(constructPathEntry),
+      key: extractStrContent(y.key) as ValidationFailure['key'],
+    };
+
+    if (y.children) {
+      ret.children = constructTestFailures(y.children);
+    }
+
+    return ret;
+  });
 }
 
 function constructPathEntry(entry: RepresentationNode) {

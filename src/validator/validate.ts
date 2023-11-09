@@ -9,12 +9,19 @@ import type { Validator } from '.';
 import type { OneOrMore, Validated } from './types';
 
 export function isValid<ValidatorType extends Validator>(
-  validator: Validator,
+  validator: ValidatorType,
   node: RepresentationNode,
 ): node is Validated<ValidatorType> {
   const itr = validate(validator, node);
   const { done } = itr.next();
   return done ?? false;
+}
+
+export function assertValid<ValidatorType extends Validator>(
+  validator: ValidatorType,
+  node: RepresentationNode,
+): asserts node is Validated<ValidatorType> {
+  if (!isValid(validator, node)) throw new TypeError('invalid');
 }
 
 export function validate(
@@ -33,7 +40,7 @@ export type ValidationFailure<TKey extends keyof Validator = keyof Validator> = 
   [Key in TKey]: {
     path: PathEntry[];
     key: Key;
-    // value: Validator[Key];
+    children?: ValidationFailure[];
   }
 }[TKey];
 
@@ -60,31 +67,50 @@ const VALIDATORS = {
   minLength: (node, minLength) => node.size >= minLength,
 
   items: function *(node, validator, path) {
+    let valid = true;
     if (node.kind === 'sequence') {
       for (const [index, item] of enumerate(node)) {
-        yield* this.validate(validator, item, [...path, { type: 'index', index }]);
+        // valid = yield* this.validate(validator, item, [...path, { type: 'index', index }]);
+        for (const failure of this.validate(validator, item, [...path, { type: 'index', index }])) {
+          valid = false;
+          yield failure;
+        }
       }
     }
 
-    return true;
+    return valid;
   },
 
   properties: function *(node, validators, path) {
+    let valid = true;
     if (node.kind === 'mapping') {
       for (const [key, value] of node) {
         const validator = validators.get(key);
         if (validator === undefined) {
+          valid = false;
           yield {
             path: [...path, { type: 'key', key }],
             key: 'properties',
           };
         } else {
-          yield* this.validate(validator, value, [...path, { type: 'value', key }]);
+          for (const failure of this.validate(validator, value, [...path, { type: 'value', key }])) {
+            valid = false;
+            yield failure;
+          }
         }
       }
     }
-    return true;
+    return valid;
   },
+
+  // anyOf: function*(node, validators, path) {
+  //   for (const alternative of validators) {
+  //     const failures = Array.from(this.validate(alternative, node, path));
+  //     if (failures.length === 0) return true;
+  //   }
+  //   yield* [];
+  //   return false;
+  // },
 } satisfies {
   [K in keyof Validator]: (
     this: NodeValidator,
@@ -97,21 +123,21 @@ const VALIDATORS = {
 const VALIDATOR_KEYS = strictKeys(VALIDATORS);
 
 class NodeValidator {
-  readonly cache = new WeakCache<[Validator, RepresentationNode], boolean | null>();
+  readonly cache = new WeakCache<[Validator, RepresentationNode], ValidationFailure[]>();
   readonly comparator = new NodeComparator();
 
   *validate(
     validator: Validator,
     node: RepresentationNode,
     path: PathEntry[],
-  ): Generator<ValidationFailure, boolean> {
+  ): Generator<ValidationFailure, undefined, undefined> {
     const cached = this.cache.get(validator, node);
-    if (cached === true || cached === null) {
-      return true;
-    } else if (cached === false) {
-      return false;
+    let failures: ValidationFailure[];
+    if (cached !== undefined) {
+      return;
     } else {
-      this.cache.set(validator, node, null);
+      failures = [];
+      this.cache.set(validator, node, failures);
     }
 
     for (const key of VALIDATOR_KEYS) {
@@ -124,17 +150,37 @@ class NodeValidator {
         ) => boolean | Generator<ValidationFailure, boolean>;
 
         const result = f.call(this, node, validator[key], path);
-        const valid = typeof result === 'boolean' ? result : yield* result;
+
+        let children: ValidationFailure[] | undefined = undefined;
+        let valid: boolean;
+        if (typeof result === 'boolean') {
+          valid = result;
+        } else {
+          [children, valid] = collect(result);
+          // children = Array.from(result);
+          // valid = (children.length === 0);
+        }
 
         if (!valid) {
-          this.cache.set(validator, node, false);
-          yield { path, key } as ValidationFailure;
-          return false;
+          const failure: ValidationFailure = { path, key };
+          if (children?.length) failure.children = children;
+          failures.push(failure);
+          yield failure;
+          return;
         }
       }
     }
-
-    this.cache.set(validator, node, true);
-    return true;
   }
+}
+
+function collect<T, R>(
+  generator: Generator<T, R>
+): [T[], R] {
+  const yielded: T[] = [];
+  let result = generator.next();
+  while (!result.done) {
+    yielded.push(result.value);
+    result = generator.next();
+  }
+  return [yielded, result.value];
 }
