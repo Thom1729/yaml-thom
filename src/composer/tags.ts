@@ -23,6 +23,14 @@ const FLOAT_CANONICAL_FORMS = new Map([
 
 const FLOAT_EXPR = /^(?<sign>[-+])?(?:0*\.(?<decimalOnly>[0-9]+?)0*|0*(?<intPart>[0-9]+)(\.(?<decimalPart>[0-9]*?)0*)?)([eE](?<exponent>[-+]?[0-9]+))?$/;
 
+export interface TagDefinition {
+  canonicalForm: (content: string) => string | null;
+}
+
+export type TagDefinitions = {
+  [T in string]: TagDefinition;
+};
+
 export const CORE_TAGS = {
   'tag:yaml.org,2002:str': {
     canonicalForm(content: string) { return content; }
@@ -133,4 +141,4 @@ export const CORE_TAGS = {
       return result;
     }
   },
-};
+} satisfies TagDefinitions;

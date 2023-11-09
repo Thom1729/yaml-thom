@@ -3,7 +3,8 @@ import { assertValid } from './validate';
 
 import {
   RepresentationNode, NodeMap,
-  extractMapEntries, extractSeqItems, extractStringMap, str,
+  extractMapEntries, extractSeqItems, extractStringMap,
+  // str,
 } from '@/nodes';
 
 import { defaultConstructor } from '@/constructor';
