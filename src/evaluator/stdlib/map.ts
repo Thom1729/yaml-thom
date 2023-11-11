@@ -17,4 +17,4 @@ export default {
       return result;
     }
   })
-} satisfies Library;
+} as Library;

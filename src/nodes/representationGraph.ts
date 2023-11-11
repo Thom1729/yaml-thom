@@ -166,11 +166,10 @@ export class RepresentationMapping<
   }
 }
 
-type RepresentationNodeKind = 'scalar' | 'sequence' | 'mapping';
-export type RepresentationNode<Kind extends RepresentationNodeKind = RepresentationNodeKind, Tag extends SerializationTag = string> =
-  | Kind extends 'scalar' ? RepresentationScalar<Tag> : never
-  | Kind extends 'sequence' ? RepresentationSequence<Tag> : never
-  | Kind extends 'mapping' ? RepresentationMapping<Tag> : never;
+export type RepresentationNode =
+| RepresentationScalar
+| RepresentationSequence
+| RepresentationMapping;
 
 export type UnresolvedNode =
 | RepresentationScalar<SerializationTag>

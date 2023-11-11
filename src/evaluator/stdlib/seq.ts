@@ -36,4 +36,4 @@ export default {
       return extractBool(result);
     }));
   },
-} satisfies Library;
+} as Library;

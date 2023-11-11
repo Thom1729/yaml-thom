@@ -50,4 +50,4 @@ export default {
   unquote() {
     throw new Error(`Can't evaluate unquote.`);
   }
-} satisfies Library;
+} as Library;

@@ -45,4 +45,4 @@ export default {
   isFloat: simpleAnnotation({}, [], value => bool(isFloat(value))),
   isSeq: simpleAnnotation({}, [], value => bool(isSeq(value))),
   isMap: simpleAnnotation({}, [], value => bool(isMap(value))),
-} satisfies Library;
+} as Library;

@@ -50,4 +50,4 @@ export default {
     }
     throw new Error(`no case matched`);
   },
-} satisfies Library;
+} as Library;

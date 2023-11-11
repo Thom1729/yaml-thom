@@ -7,4 +7,4 @@ export default {
   lowercase: simpleAnnotation(specs.str, [], value => str(value.content.toLowerCase())),
 
   join: simpleAnnotation(specs.seqOf(specs.str), [], value => str(Array.from(value).map(extractStrContent).join('')))
-} satisfies Library;
+} as Library;
