@@ -75,7 +75,8 @@ const STATUS_COLORS = {
 export function runEvaluationTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
 
-  for (const { text } of loadTestFiles('test/annotations', suiteNames)) {
+  for (const { name, text } of loadTestFiles('test/annotations', suiteNames)) {
+    logger.log(name);
     logger.indented(() => {
       for (const [i, test] of enumerate(loadAnnotationTest(text), 1)) {
         const testName = test.name ?? i;
