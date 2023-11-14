@@ -3,15 +3,10 @@ import { zip, cmpStringsByCodepoint, WeakCache } from '@/util';
 import {
   NonSpecificTag,
   RepresentationMapping,
-  RepresentationNode,
   RepresentationScalar,
   RepresentationSequence,
   type UnresolvedNode,
 } from '.';
-
-export function equals(a: RepresentationNode, b: RepresentationNode) {
-  return new NodeComparator().compare(a, b) === 0;
-}
 
 const KIND_INDEX = {
   scalar: 0,

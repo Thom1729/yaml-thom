@@ -5,7 +5,7 @@ import {
   extractInt,
 } from '@/helpers';
 
-import { equals } from '@/nodes/equality';
+import { NodeComparator } from '@/nodes/equality';
 import { assertType, simpleAnnotation, specs } from '../signature';
 
 export default {
@@ -32,7 +32,7 @@ export default {
     if (value.size > 0) {
       const [first, ...rest] = value;
       for (const node of rest) {
-        if (!equals(first, node)) return bool(false);
+        if (!(new NodeComparator()).equals(first, node)) return bool(false);
       }
     }
     return bool(true);

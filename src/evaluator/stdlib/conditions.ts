@@ -1,5 +1,5 @@
 import type { Library } from '.';
-import { equals } from '@/nodes';
+import { NodeComparator } from '@/nodes';
 import { assertMap, extractBool } from '@/helpers';
 import { specs, assertType, assertArgumentTypes } from '../signature';
 
@@ -30,7 +30,7 @@ export default {
       const [[rawComparison, rawBody]] = c;
 
       const comparison = evaluate(rawComparison, context);
-      if (equals(comparison, ref)) return evaluate(rawBody, context);
+      if (new NodeComparator().equals(comparison, ref)) return evaluate(rawBody, context);
     }
     throw new Error(`no case matched`); // TODO: default option
   },
