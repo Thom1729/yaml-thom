@@ -29,14 +29,7 @@ export default {
   }),
 
   equal: simpleAnnotation({ kind: 'sequence', tag: 'tag:yaml.org,2002:seq' }, [], value => {
-    if (value.size > 0) {
-      const [first, ...rest] = value;
-      const comparator = new NodeComparator();
-      for (const node of rest) {
-        if (!comparator.equals(first, node)) return bool(false);
-      }
-    }
-    return bool(true);
+    return bool(new NodeComparator().equals(...value));
   }),
 
   isStr: simpleAnnotation({}, [], value => bool(isStr(value))),

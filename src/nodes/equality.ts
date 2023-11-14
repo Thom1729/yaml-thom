@@ -14,12 +14,34 @@ const KIND_INDEX = {
   mapping: 2,
 };
 
+function *consecutivePairs<T>(iterable: Iterable<T>) {
+  let first = true;
+  let previous!: T;
+
+  for (const item of iterable) {
+    if (first) {
+      first = false;
+    } else {
+      yield [previous, item];
+    }
+    previous = item;
+  }
+}
+
 // TODO: Handle cycles, etc
 export class NodeComparator {
   private readonly cache = new WeakCache<[UnresolvedNode, UnresolvedNode], number | null>();
 
-  equals(a: UnresolvedNode, b: UnresolvedNode): boolean {
-    return this.compare(a, b) === 0;
+  private consecutiveCompare(nodes: UnresolvedNode[], callback: (n: number) => boolean) {
+    for (const [a, b] of consecutivePairs(nodes)) {
+      const result = this.compare(a, b);
+      if (!callback(result)) return false;
+    }
+    return true;
+  }
+
+  equals(...nodes: UnresolvedNode[]) {
+    return this.consecutiveCompare(nodes, n => n === 0);
   }
 
   compare(a: UnresolvedNode, b: UnresolvedNode): number {
