@@ -49,7 +49,9 @@ export class NodeComparator {
     if (a.kind === 'scalar') return cmpStringsByCodepoint(a.content, (b as RepresentationScalar).content);
     if (a.size !== b.size) return a.size - b.size;
 
-    const cached = this.cache.get(a, b) ?? this.cache.get(b, a);
+    let cached = this.cache.get(a, b);
+    if (cached === undefined) cached = this.cache.get(b, a);
+
     if (cached !== undefined) return cached ?? 0;
 
     this.cache.set(a, b, null);

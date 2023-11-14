@@ -31,8 +31,9 @@ export default {
   equal: simpleAnnotation({ kind: 'sequence', tag: 'tag:yaml.org,2002:seq' }, [], value => {
     if (value.size > 0) {
       const [first, ...rest] = value;
+      const comparator = new NodeComparator();
       for (const node of rest) {
-        if (!(new NodeComparator()).equals(first, node)) return bool(false);
+        if (!comparator.equals(first, node)) return bool(false);
       }
     }
     return bool(true);

@@ -69,10 +69,10 @@ export function evaluate(
     context: RepresentationMapping,
   ): RepresentationNode {
     const cached = getCached(node, context);
-    if (cached) {
-      return cached;
-    } else if (cached === null) {
+    if (cached === null) {
       throw new Error(`Recursively evaluating same annotation node with different context`);
+    } else if (cached !== undefined) {
+      return cached;
     }
 
     if (isAnnotation(node)) {
