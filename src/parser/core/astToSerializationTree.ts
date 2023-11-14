@@ -136,7 +136,7 @@ export class AstToSerializationTree {
 
     for (const { annotationName, annotationArguments, anchor } of annotations) {
       const args = annotationArguments
-        ? iterateAst(annotationArguments.content, ['nodeWithProperties'])
+        ? iterateAst(annotationArguments.content, ['nodeWithProperties', 'flowPair'])
           .map(arg => this.buildNode(arg, tagHandles))
         : [];
 
