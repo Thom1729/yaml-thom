@@ -21,7 +21,7 @@ const KIND_INDEX = {
 
 // TODO: Handle cycles, etc
 export class NodeComparator {
-  cache = new WeakCache<[UnresolvedNode, UnresolvedNode], number | null>();
+  private readonly cache = new WeakCache<[UnresolvedNode, UnresolvedNode], number | null>();
 
   equals(a: UnresolvedNode, b: UnresolvedNode): boolean {
     return this.compare(a, b) === 0;

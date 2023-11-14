@@ -3,7 +3,7 @@ import {
   str, bool,
   isStr, isNull, isBool, isInt, isFloat, isSeq, isMap, int,
   extractInt,
-} from '@/nodes';
+} from '@/helpers';
 
 import { equals } from '@/nodes/equality';
 import { assertType, simpleAnnotation, specs } from '../signature';

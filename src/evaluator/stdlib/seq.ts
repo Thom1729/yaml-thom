@@ -1,5 +1,5 @@
 import type { Library } from '.';
-import { extractBool, extractSeqItems, seq, str } from '@/nodes';
+import { extractBool, extractSeqItems, seq, str } from '@/helpers';
 import { assertType, simpleAnnotation, specs } from '../signature';
 import type { AnnotationFunction } from '..';
 

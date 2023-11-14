@@ -1,7 +1,7 @@
 import type { Library } from '.';
 import {
   bool, extractBool,
-} from '@/nodes';
+} from '@/helpers';
 import { simpleAnnotation, specs } from '../signature';
 
 export default {

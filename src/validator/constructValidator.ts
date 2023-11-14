@@ -2,10 +2,12 @@ import type { Validator, OneOrMore } from './types';
 import { assertValid } from './validate';
 
 import {
-  RepresentationNode, NodeMap,
-  extractMapEntries, extractSeqItems, extractStringMap,
-  // str,
+  NodeMap, type RepresentationNode,
 } from '@/nodes';
+
+import {
+  extractMapEntries, extractSeqItems, extractStringMap,
+} from '@/helpers';
 
 import { defaultConstructor } from '@/constructor';
 import { isArray, assertEnum, assertString, assertBigInt } from '@/util';

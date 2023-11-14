@@ -1,0 +1,13 @@
+{
+  "entryPoints": [
+    "../src/loadDump.ts",
+    "../src/nodes",
+  ],
+  "sort": ["source-order"],
+  "sortEntryPoints": false,
+  "excludePrivate": true,
+  "plugin": ["./docs-theme.cjs"],
+  "theme": "module",
+  "categorizeByGroup": false,
+  "customCss": "./style.css",
+}

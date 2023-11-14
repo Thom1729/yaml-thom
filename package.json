@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "rollup --config rollup.config.js",
-    "build:docs": "typedoc src/nodes src/testSuite",
+    "build:docs": "typedoc --options ./docs-build/typedoc.json",
     "test": "npm run test:lint && npm run test:unit && npm run test:suite",
     "test:unit": "jest src",
     "test:suite": "npx yaml-util run-test-suite ../yaml-test-suite",

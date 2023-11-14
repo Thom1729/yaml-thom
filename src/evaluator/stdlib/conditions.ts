@@ -1,5 +1,6 @@
 import type { Library } from '.';
-import { assertMap, extractBool, equals } from '@/nodes';
+import { equals } from '@/nodes';
+import { assertMap, extractBool } from '@/helpers';
 import { specs, assertType, assertArgumentTypes } from '../signature';
 
 export default {
