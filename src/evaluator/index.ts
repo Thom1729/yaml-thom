@@ -41,34 +41,37 @@ export function evaluate(
   node: RepresentationNode,
   context: RepresentationMapping,
 ) {
-  const cache = new WeakMap<RepresentationNode, NodeMap<readonly [RepresentationNode, RepresentationNode | null]>>();
-  const comparator = new NodeComparator();
+  return new Evaluator().evaluate(node, context);
+}
 
-  function getCached(
+class Evaluator {
+  readonly cache = new WeakMap<RepresentationNode, NodeMap<readonly [RepresentationNode, RepresentationNode | null]>>();
+  readonly comparator = new NodeComparator();
+
+  getCached(
     node: RepresentationNode,
     context: RepresentationMapping,
   ) {
-    return cache.get(node)?.get(context);
+    return this.cache.get(node)?.get(context);
   }
 
-  function setCached(
+  setCached(
     node: RepresentationNode,
     context: RepresentationMapping,
     value: RepresentationNode | null,
   ) {
-    let child = cache.get(node);
+    let child = this.cache.get(node);
     if (child === undefined) {
-      cache.set(node, child = new NodeMap());
+      this.cache.set(node, child = new NodeMap());
     }
-
     child.set(context, value);
   }
 
-  function rec(
+  evaluate(
     node: RepresentationNode,
     context: RepresentationMapping,
   ): RepresentationNode {
-    const cached = getCached(node, context);
+    const cached = this.getCached(node, context);
     if (cached === null) {
       throw new Error(`Recursively evaluating same annotation node with different context`);
     } else if (cached !== undefined) {
@@ -83,15 +86,15 @@ export function evaluate(
         throw new EvaluationError(node, null, 'Invalid annotation node', e);
       }
 
-      const f = STDLIB[annotation.name];
-      if (f === undefined) {
+      const annotationFunction = STDLIB[annotation.name];
+      if (annotationFunction === undefined) {
         throw new EvaluationError(node, annotation, `Unknown annotation ${annotation.name}`);
       }
 
       try {
-        setCached(node, context, null);
-        const result = f(annotation.value, annotation.arguments, context, rec);
-        setCached(node, context, result);
+        this.setCached(node, context, null);
+        const result = annotationFunction(annotation.value, annotation.arguments, context, this.evaluate.bind(this));
+        this.setCached(node, context, result);
         return result;
       } catch (e) {
         if (e instanceof EvaluationError) {
@@ -105,31 +108,29 @@ export function evaluate(
     switch (node.kind) {
       case 'scalar': {
         const result = node.clone();
-        setCached(node, context, result);
+        this.setCached(node, context, result);
         return result;
       }
       case 'sequence': {
-        const result = new RepresentationSequence(node.tag, [] as RepresentationNode[]);
-        setCached(node, context, result);
+        const result = new RepresentationSequence<string, RepresentationNode>(node.tag, []);
+        this.setCached(node, context, result);
         for (const item of node) {
-          result.content.push(rec(item, context));
+          result.content.push(this.evaluate(item, context));
         }
         return result;
       }
       case 'mapping': {
-        const result = new RepresentationMapping(node.tag, [] as (readonly [RepresentationNode, RepresentationNode])[]);
-        setCached(node, context, result);
+        const result = new RepresentationMapping<string, readonly [RepresentationNode, RepresentationNode]>(node.tag, []);
+        this.setCached(node, context, result);
         for (const [key, value] of node) {
           result.content.pairs.push([
-            rec(key, context),
-            rec(value, context),
+            this.evaluate(key, context),
+            this.evaluate(value, context),
           ]);
         }
-        result.content.pairs.sort((a, b) => comparator.compare(a[0], b[0]));
+        result.content.pairs.sort((a, b) => this.comparator.compare(a[0], b[0]));
         return result;
       }
     }
   }
-
-  return rec(node, context);
 }
