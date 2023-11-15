@@ -3,6 +3,7 @@ import {
   RepresentationMapping,
   RepresentationSequence,
   NodeComparator,
+  NodeMap,
 } from '@/nodes';
 
 import {
@@ -40,7 +41,7 @@ export function evaluate(
   node: RepresentationNode,
   context: RepresentationMapping,
 ) {
-  const cache = new Map<RepresentationNode, Map<RepresentationMapping, RepresentationNode | null>>();
+  const cache = new WeakMap<RepresentationNode, NodeMap<readonly [RepresentationNode, RepresentationNode | null]>>();
   const comparator = new NodeComparator();
 
   function getCached(
@@ -57,8 +58,7 @@ export function evaluate(
   ) {
     let child = cache.get(node);
     if (child === undefined) {
-      child = new Map();
-      cache.set(node, child);
+      cache.set(node, child = new NodeMap());
     }
 
     child.set(context, value);

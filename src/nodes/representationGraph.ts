@@ -1,5 +1,6 @@
 import type { SerializationTag } from './serializationTree';
 import { NodeComparator } from './equality';
+import { NodeMap, type Get } from './nodeMap';
 
 import { stringCodepointLength } from '@/util';
 
@@ -46,49 +47,6 @@ export class RepresentationSequence<
     return new RepresentationSequence(this.tag, this.content.map(callback));
   }
 }
-
-export class NodeMap<PairType extends readonly [UnresolvedNode, unknown]> {
-  readonly pairs: PairType[] = [];
-
-  constructor(
-    pairs: Iterable<PairType> = [],
-    comparator: NodeComparator | boolean = true,
-  ) {
-    for (const pair of pairs) this.pairs.push(pair);
-    if (comparator && this.size > 1) {
-      const c = (comparator === true) ? new NodeComparator() : comparator;
-      (this.pairs as (readonly [RepresentationNode, RepresentationNode])[])
-        .sort((a, b) => {
-          const diff = c.compare(a[0], b[0]);
-          if (diff === 0) throw new Error(`duplicate keys`);
-          return diff;
-        });
-    }
-  }
-
-  *[Symbol.iterator]() {
-    yield* this.pairs;
-  }
-
-  get size() { return this.pairs.length; }
-
-  get<KeyType extends PairType[0]>(
-    k: KeyType,
-    comparator?: NodeComparator,
-  ): Get<PairType, KeyType> | undefined {
-    const c = comparator ?? new NodeComparator();
-    for (const [key, value] of this.pairs) {
-      if (c.equals(k, key)) { return value as Get<PairType, KeyType>; }
-    }
-    return undefined;
-  }
-}
-
-type Get<PairType extends readonly [UnresolvedNode, unknown], KeyType extends PairType[0]> =
-  PairType extends readonly [infer PairKey, infer PairValue]
-    ? (KeyType extends PairKey ? PairValue : never)
-    : never
-;
 
 export class RepresentationMapping<
   TagType extends SerializationTag = string,
