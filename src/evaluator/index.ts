@@ -44,34 +44,20 @@ export function evaluate(
   return new Evaluator().evaluate(node, context);
 }
 
+import { NestedMap } from '@/util/nestedMap';
+
 class Evaluator {
-  readonly cache = new WeakMap<RepresentationNode, NodeMap<readonly [RepresentationNode, RepresentationNode | null]>>();
+  readonly cache = new NestedMap<[RepresentationNode, RepresentationMapping], RepresentationNode | null>(
+    () => new WeakMap(),
+    () => new NodeMap(),
+  );
   readonly comparator = new NodeComparator();
-
-  getCached(
-    node: RepresentationNode,
-    context: RepresentationMapping,
-  ) {
-    return this.cache.get(node)?.get(context);
-  }
-
-  setCached(
-    node: RepresentationNode,
-    context: RepresentationMapping,
-    value: RepresentationNode | null,
-  ) {
-    let child = this.cache.get(node);
-    if (child === undefined) {
-      this.cache.set(node, child = new NodeMap());
-    }
-    child.set(context, value);
-  }
 
   evaluate(
     node: RepresentationNode,
     context: RepresentationMapping,
   ): RepresentationNode {
-    const cached = this.getCached(node, context);
+    const cached = this.cache.get(node, context);
     if (cached === null) {
       throw new Error(`Recursively evaluating same annotation node with different context`);
     } else if (cached !== undefined) {
@@ -92,9 +78,9 @@ class Evaluator {
       }
 
       try {
-        this.setCached(node, context, null);
+        this.cache.set(node, context, null);
         const result = annotationFunction(annotation.value, annotation.arguments, context, this.evaluate.bind(this));
-        this.setCached(node, context, result);
+        this.cache.set(node, context, result);
         return result;
       } catch (e) {
         if (e instanceof EvaluationError) {
@@ -108,12 +94,12 @@ class Evaluator {
     switch (node.kind) {
       case 'scalar': {
         const result = node.clone();
-        this.setCached(node, context, result);
+        this.cache.set(node, context, result);
         return result;
       }
       case 'sequence': {
         const result = new RepresentationSequence<string, RepresentationNode>(node.tag, []);
-        this.setCached(node, context, result);
+        this.cache.set(node, context, result);
         for (const item of node) {
           result.content.push(this.evaluate(item, context));
         }
@@ -121,7 +107,7 @@ class Evaluator {
       }
       case 'mapping': {
         const result = new RepresentationMapping<string, readonly [RepresentationNode, RepresentationNode]>(node.tag, []);
-        this.setCached(node, context, result);
+        this.cache.set(node, context, result);
         for (const [key, value] of node) {
           result.content.pairs.push([
             this.evaluate(key, context),
