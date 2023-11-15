@@ -1,6 +1,7 @@
 export * from './char';
 export * from './collection';
 export * from './groupBy';
+export * from './interleave';
 export * from './number';
 export * from './object';
 export * from './regexp';

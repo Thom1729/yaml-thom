@@ -1,5 +1,6 @@
 import { NodeComparator } from './equality';
 import type { UnresolvedNode } from './representationGraph';
+import { cmpFirst, insertSortedExclusive } from '@/util';
 
 export class NodeMap<PairType extends readonly [UnresolvedNode, unknown]> {
   readonly pairs: PairType[] = [];
@@ -52,18 +53,7 @@ export class NodeMap<PairType extends readonly [UnresolvedNode, unknown]> {
     const newPair = [key, value] as unknown as PairType;
     const c = comparator ?? new NodeComparator();
 
-    for (let i = 0; i < this.pairs.length; i++) {
-      const currentKey = this.pairs[i][0];
-      const result = c.compare(key, currentKey);
-
-      if (result < 0) {
-        this.pairs.splice(i, 0, newPair);
-        return;
-      } else if (result === 0) {
-        this.pairs[i] = newPair;
-        return;
-      }
-    }
+    insertSortedExclusive(this.pairs, newPair, cmpFirst(c.compare.bind(c)));
 
     this.pairs.push(newPair);
   }
