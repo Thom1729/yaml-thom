@@ -1,4 +1,3 @@
-import type { Library } from '.';
 import { extractBool, extractSeqItems, seq, str } from '@/helpers';
 import { assertType, simpleAnnotation, specs } from '../signature';
 import type { AnnotationFunction, Evaluator } from '..';
@@ -18,22 +17,20 @@ function helper(this: Evaluator, ...[value, args, context]: Parameters<Annotatio
   };
 }
 
-export default {
-  concatenate: simpleAnnotation(specs.seq, [], value => seq(Array.from(value).flatMap(extractSeqItems))),
+export const concatenate = simpleAnnotation(specs.seq, [], value => seq(Array.from(value).flatMap(extractSeqItems)));
 
-  map(value, args, context) {
-    const { items, name, body } = helper.call(this, value, args, context);
+export const map: AnnotationFunction = function (value, args, context) {
+  const { items, name, body } = helper.call(this, value, args, context);
 
-    return seq(items.map(item => this.evaluate(body, context.merge([[str(name), item]]))));
-  },
+  return seq(items.map(item => this.evaluate(body, context.merge([[str(name), item]]))));
+};
 
-  filter(value, args, context) {
-    const { items, name, body } = helper.call(this, value, args, context);
+export const filter: AnnotationFunction = function (value, args, context) {
+  const { items, name, body } = helper.call(this, value, args, context);
 
-    return seq(items.filter(item => {
-      const result = this.evaluate(body, context.merge([[str(name), item]]));
-      assertType(result, specs.bool);
-      return extractBool(result);
-    }));
-  },
-} as Library;
+  return seq(items.filter(item => {
+    const result = this.evaluate(body, context.merge([[str(name), item]]));
+    assertType(result, specs.bool);
+    return extractBool(result);
+  }));
+};
