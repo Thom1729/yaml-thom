@@ -1,5 +1,3 @@
-import { WeakCache } from '@/util';
-
 export interface Result<T extends object, TReturn> {
   value: TReturn;
   deferred: undefined | ((recurse: (value: T) => TReturn) => void);
@@ -36,7 +34,7 @@ export function transformer<T extends object, TReturn>(
     ) => Result<T, TReturn>,
   ) => Result<T, TReturn>,
 ) {
-  const cache = new WeakCache<[T], TReturn | typeof PENDING>();
+  const cache = new WeakMap<T, TReturn | typeof PENDING>();
 
   function recurse(node: T): TReturn {
     const cached = cache.get(node);

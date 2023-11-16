@@ -1,4 +1,4 @@
-import { zip, cmpStringsByCodepoint, WeakCache } from '@/util';
+import { zip, cmpStringsByCodepoint, NestedMap } from '@/util';
 
 import {
   NonSpecificTag,
@@ -30,7 +30,10 @@ function *consecutivePairs<T>(iterable: Iterable<T>) {
 
 // TODO: Handle cycles, etc
 export class NodeComparator {
-  private readonly cache = new WeakCache<[UnresolvedNode, UnresolvedNode], number | null>();
+  private readonly cache = new NestedMap<[UnresolvedNode, UnresolvedNode], number | null>(
+    () => new WeakMap(),
+    () => new WeakMap(),
+  );
 
   private consecutiveCompare(nodes: UnresolvedNode[], callback: (n: number) => boolean) {
     for (const [a, b] of consecutivePairs(nodes)) {

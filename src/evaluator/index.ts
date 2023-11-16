@@ -10,6 +10,8 @@ import {
   isAnnotation, extractAnnotationInfo,
 } from '@/helpers';
 
+import { NestedMap } from '@/util';
+
 import STDLIB from './stdlib';
 
 interface Annotation {
@@ -43,8 +45,6 @@ export function evaluate(
 ) {
   return new Evaluator().evaluate(node, context);
 }
-
-import { NestedMap } from '@/util/nestedMap';
 
 class Evaluator {
   readonly cache = new NestedMap<[RepresentationNode, RepresentationMapping], RepresentationNode | null>(

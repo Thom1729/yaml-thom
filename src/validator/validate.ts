@@ -3,7 +3,7 @@ import {
   type RepresentationNode,
 } from '@/nodes';
 
-import { WeakCache, strictKeys, enumerate, isArray } from '@/util';
+import { NestedMap, strictKeys, enumerate, isArray } from '@/util';
 
 import type { Validator } from '.';
 import type { OneOrMore, Validated } from './types';
@@ -123,7 +123,10 @@ const VALIDATORS = {
 const VALIDATOR_KEYS = strictKeys(VALIDATORS);
 
 class NodeValidator {
-  readonly cache = new WeakCache<[Validator, RepresentationNode], ValidationFailure[]>();
+  readonly cache = new NestedMap<[Validator, RepresentationNode], ValidationFailure[]>(
+    () => new WeakMap(),
+    () => new WeakMap(),
+  );
   readonly comparator = new NodeComparator();
 
   *validate(

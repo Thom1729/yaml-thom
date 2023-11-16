@@ -1,16 +1,21 @@
 interface BasicMapping {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get: (key: any) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   set: (key: any, value: any) => void;
 }
 
-type MapFactories = readonly (() => BasicMapping)[];
+type MapFactories<TKey extends readonly unknown[]> =
+  TKey extends [unknown, ...infer Rest]
+    ? [() => BasicMapping, ...MapFactories<Rest>]
+    : [];
 
 export class NestedMap<TKey extends readonly [unknown, ...unknown[]], TValue> {
   private readonly rootMap: BasicMapping;
-  private readonly childFactories: MapFactories;
+  private readonly childFactories: (() => BasicMapping)[];
 
-  constructor(...mapFactories: MapFactories) {
-    const [rootFactory, ...childFactories] = mapFactories;
+  constructor(...mapFactories: MapFactories<TKey>) {
+    const [rootFactory, ...childFactories] = mapFactories as (() => BasicMapping)[];
     this.rootMap = rootFactory();
     this.childFactories = childFactories;
   }
