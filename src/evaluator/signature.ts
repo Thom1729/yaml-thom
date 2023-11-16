@@ -6,6 +6,8 @@ import type {
 } from '@/nodes';
 import { zip } from '@/util';
 
+import type { Evaluator } from '.';
+
 interface NodeTypeSpec {
   kind?: 'scalar' | 'sequence' | 'mapping',
   tag?: string,
@@ -87,19 +89,19 @@ export function simpleAnnotation<T extends NodeTypeSpec, const U extends readonl
   valueType: T,
   argumentTypes: U,
   implementation: (
+    this: Evaluator,
     value: NodeType<T>,
     args: NodeArgumentsType<U>,
     context: RepresentationMapping,
-    evaluate: (value: RepresentationNode, context: RepresentationMapping) => RepresentationNode,
   ) => RepresentationNode,
 ): AnnotationFunction {
-  return (rawValue, rawArgs, context, evaluate) => {
-    const args = rawArgs.map(arg => evaluate(arg, context));
+  return function (rawValue, rawArgs, context) {
+    const args = rawArgs.map(arg => this.evaluate(arg, context));
     assertArgumentTypes(args, argumentTypes);
 
-    const value = evaluate(rawValue, context);
+    const value = this.evaluate(rawValue, context);
     assertType(value, valueType);
 
-    return implementation(value, args, context, evaluate);
+    return implementation.call(this, value, args, context);
   };
 }

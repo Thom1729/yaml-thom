@@ -4,8 +4,8 @@ import { assertMap, extractBool } from '@/helpers';
 import { specs, assertType, assertArgumentTypes } from '../signature';
 
 export default {
-  if(value, rawArgs, context, evaluate) {
-    const args = rawArgs.map(arg => evaluate(arg, context));
+  if(value, rawArgs, context) {
+    const args = rawArgs.map(arg => this.evaluate(arg, context));
     assertArgumentTypes(args, [specs.bool]);
     const [condition] = args;
 
@@ -14,13 +14,13 @@ export default {
     const [ifTrue, ifFalse] = value;
 
     return extractBool(condition)
-      ? evaluate(ifTrue, context)
-      : evaluate(ifFalse, context);
+      ? this.evaluate(ifTrue, context)
+      : this.evaluate(ifFalse, context);
   },
 
-  switch(value, args, context, evaluate) {
+  switch(value, args, context) {
     assertArgumentTypes(args, [{}]);
-    const ref = evaluate(args[0], context);
+    const ref = this.evaluate(args[0], context);
 
     assertType(value, specs.seqOf(specs.map));
 
@@ -29,13 +29,13 @@ export default {
       if (c.size !== 1) throw new TypeError(`Each branch should have one key/value`);
       const [[rawComparison, rawBody]] = c;
 
-      const comparison = evaluate(rawComparison, context);
-      if (new NodeComparator().equals(comparison, ref)) return evaluate(rawBody, context);
+      const comparison = this.evaluate(rawComparison, context);
+      if (new NodeComparator().equals(comparison, ref)) return this.evaluate(rawBody, context);
     }
     throw new Error(`no case matched`); // TODO: default option
   },
 
-  cond(value, args, context, evaluate) {
+  cond(value, args, context) {
     assertArgumentTypes(args, []);
 
     assertType(value, specs.seqOf(specs.map));
@@ -45,9 +45,9 @@ export default {
       if (branch.size !== 1) throw new TypeError(`Each branch should have one key/value`);
       const [[rawTest, rawBody]] = branch;
 
-      const testResult = evaluate(rawTest, context);
+      const testResult = this.evaluate(rawTest, context);
       assertType(testResult, specs.bool);
-      if (extractBool(testResult)) return evaluate(rawBody, context);
+      if (extractBool(testResult)) return this.evaluate(rawBody, context);
     }
     throw new Error(`no case matched`);
   },

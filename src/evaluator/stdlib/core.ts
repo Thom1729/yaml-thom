@@ -13,13 +13,13 @@ export default {
     return result;
   }),
 
-  let(value, args, context, evaluate) {
+  let(value, args, context) {
     let newContext = context;
     for (const arg of args) {
       assertMap(arg, 'let args should be maps');
-      newContext = newContext.merge(arg.map(node => evaluate(node, newContext)));
+      newContext = newContext.merge(arg.map(node => this.evaluate(node, newContext)));
     }
-    return evaluate(value, newContext);
+    return this.evaluate(value, newContext);
   },
 
   quote(value, args) {
@@ -27,16 +27,16 @@ export default {
     return value;
   },
 
-  eval: simpleAnnotation({}, [], (value, _, context, evaluate) => evaluate(value, context)),
+  eval: simpleAnnotation({}, [], function (value, _, context) { return this.evaluate(value, context); }),
 
-  quasiquote(value, args, context, evaluate) {
+  quasiquote(value, args, context) {
     assertArgumentTypes(args, []);
     // TODO handle cycles
     return Y<RepresentationNode, [RepresentationNode]>((rec, node): RepresentationNode => {
       if (isAnnotation(node)) {
         const childAnnotation = extractAnnotationInfo(node);
         if (childAnnotation.name === 'unquote') {
-          return evaluate(childAnnotation.value, context);
+          return this.evaluate(childAnnotation.value, context);
         }
       }
 

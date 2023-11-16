@@ -21,10 +21,10 @@ interface Annotation {
 }
 
 export type AnnotationFunction = (
+  this: Evaluator,
   value: RepresentationNode,
   args: readonly RepresentationNode[],
   context: RepresentationMapping,
-  evaluate: (node: RepresentationNode, context: RepresentationMapping) => RepresentationNode,
 ) => RepresentationNode;
 
 export class EvaluationError extends Error {
@@ -46,7 +46,7 @@ export function evaluate(
   return new Evaluator().evaluate(node, context);
 }
 
-class Evaluator {
+export class Evaluator {
   readonly cache = new NestedMap<[RepresentationNode, RepresentationMapping], RepresentationNode | null>(
     () => new WeakMap(),
     () => new NodeMap(),
@@ -79,7 +79,7 @@ class Evaluator {
 
       try {
         this.cache.set(node, context, null);
-        const result = annotationFunction(annotation.value, annotation.arguments, context, this.evaluate.bind(this));
+        const result = annotationFunction.call(this, annotation.value, annotation.arguments, context);
         this.cache.set(node, context, result);
         return result;
       } catch (e) {
