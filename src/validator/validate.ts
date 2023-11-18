@@ -35,13 +35,11 @@ type PathEntry =
 | { type: 'key', key: RepresentationNode }
 | { type: 'value', key: RepresentationNode };
 
-export type ValidationFailure<TKey extends keyof Validator = keyof Validator> = {
-  [Key in TKey]: {
-    path: PathEntry[];
-    key: Key;
-    children?: ValidationFailure[];
-  }
-}[TKey];
+export interface ValidationFailure {
+  path: PathEntry[];
+  key: keyof Validator;
+  children?: ValidationFailure[];
+}
 
 const VALIDATORS = {
   kind: (node, kind) => kind.includes(node.kind),
