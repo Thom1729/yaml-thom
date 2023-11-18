@@ -5,8 +5,7 @@ import {
 
 import { NestedMap, strictKeys, enumerate } from '@/util';
 
-import type { Validator } from '.';
-import type { Validated } from './types';
+import type { Validator, Validated } from './types';
 
 export function isValid<ValidatorType extends Validator>(
   validator: ValidatorType,
@@ -47,10 +46,6 @@ export type ValidationFailure<TKey extends keyof Validator = keyof Validator> = 
 const VALIDATORS = {
   kind: (node, kind) => kind.includes(node.kind),
   tag: (node, tag) => tag.includes(node.tag),
-
-  const: function (node, value) {
-    return this.comparator.equals(value, node);
-  },
 
   enum: function (node, items) {
     return items.some(value => this.comparator.equals(value, node));

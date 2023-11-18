@@ -72,11 +72,14 @@ export function constructValidator(node: RepresentationNode): Validator {
   }
 
   if (x.const !== undefined) {
-    ret.const = x.const;
+    if (x.enum !== undefined) throw new TypeError(`const and enum are exclusive`);
+    ret.enum = [x.const];
   }
 
   if (x.enum !== undefined) {
-    ret.enum = extractSeqItems(x.enum);
+    const items = extractSeqItems(x.enum);
+    if (items.length === 0) throw new TypeError();
+    ret.enum = items as [RepresentationNode, ...RepresentationNode[]];
   }
 
   for (const key of ['minLength', 'maxLength'] as const) {

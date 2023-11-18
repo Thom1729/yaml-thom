@@ -6,11 +6,10 @@ import type {
 type NodeKind = 'scalar' | 'sequence' | 'mapping';
 
 export interface Validator {
-  kind?: readonly NodeKind[];
-  tag?: readonly string[];
+  kind?: readonly [NodeKind, ...NodeKind[]];
+  tag?: readonly [string, ...string[]];
 
-  const?: RepresentationNode;
-  enum?: readonly RepresentationNode[];
+  enum?: readonly [RepresentationNode, ...RepresentationNode[]];
 
   minLength?: bigint;
   maxLength?: bigint;
@@ -35,10 +34,7 @@ type ValidatorTypes<T extends Validator> = {
   kind: Default<ExtractOneOrMore<T['kind']>, NodeKind>,
   tag: Default<ExtractOneOrMore<T['tag']>, string>,
 
-  const: (
-    & Default<T['const'], unknown>
-    & Default<ExtractOneOrMore<T['enum']>, unknown>
-  ),
+  const: Default<ExtractOneOrMore<T['enum']>, unknown>,
 
   items: (
     T['items'] extends Validator
