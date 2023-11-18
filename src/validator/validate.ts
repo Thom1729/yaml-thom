@@ -3,10 +3,10 @@ import {
   type RepresentationNode,
 } from '@/nodes';
 
-import { NestedMap, strictKeys, enumerate, isArray } from '@/util';
+import { NestedMap, strictKeys, enumerate } from '@/util';
 
 import type { Validator } from '.';
-import type { OneOrMore, Validated } from './types';
+import type { Validated } from './types';
 
 export function isValid<ValidatorType extends Validator>(
   validator: ValidatorType,
@@ -44,17 +44,9 @@ export type ValidationFailure<TKey extends keyof Validator = keyof Validator> = 
   }
 }[TKey];
 
-function isOneOrMore<T>(value: T, values: OneOrMore<T>) {
-  if (isArray(values)) {
-    return values.includes(value);
-  } else {
-    return value === values;
-  }
-}
-
 const VALIDATORS = {
-  kind: (node, kind) => isOneOrMore(node.kind, kind),
-  tag: (node, tag) => isOneOrMore(node.tag, tag),
+  kind: (node, kind) => kind.includes(node.kind),
+  tag: (node, tag) => tag.includes(node.tag),
 
   const: function (node, value) {
     return this.comparator.equals(value, node);

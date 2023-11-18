@@ -1,4 +1,4 @@
-import type { Validator, OneOrMore } from './types';
+import type { Validator } from './types';
 import { assertValid } from './validate';
 
 import {
@@ -12,23 +12,24 @@ import {
 import { defaultConstructor } from '@/constructor';
 import { isArray, assertEnum, assertString, assertBigInt } from '@/util';
 
-function assertMaybeArray<T, U extends T>(
-  value: OneOrMore<T>,
+function assertArrayOf<T, U extends T>(
+  value: readonly T[],
   assertion: (value: T) => asserts value is U,
-): asserts value is OneOrMore<U> {
-  if (isArray(value)) {
-    if (value.length === 0) throw new TypeError();
-    for (const item of value as T[]) {
-      assertion(item);
-    }
-  } else {
-    assertion(value);
+): asserts value is [U, ...U[]] {
+  if (!isArray(value)) throw new TypeError();
+  if (value.length === 0) throw new TypeError();
+  for (const item of value) {
+    assertion(item);
   }
 }
 
+function wrapArray(value: unknown): readonly unknown[] {
+  return isArray(value) ? value : [value];
+}
+
 const validatorValidator = {
-  kind: 'mapping',
-  tag: 'tag:yaml.org,2002:map',
+  kind: ['mapping'],
+  tag: ['tag:yaml.org,2002:map'],
 
   // properties: new NodeMap([
   //   [str('kind'), { enum: [str('scalar')] }],
@@ -59,14 +60,14 @@ export function constructValidator(node: RepresentationNode): Validator {
   const ret: Validator = {};
 
   if (x.kind !== undefined) {
-    const kind = defaultConstructor(x.kind);
-    assertMaybeArray(kind, assertEnum(['scalar', 'sequence', 'mapping']));
+    const kind = wrapArray(defaultConstructor(x.kind));
+    assertArrayOf(kind, assertEnum(['scalar', 'sequence', 'mapping']));
     ret.kind = kind;
   }
 
   if (x.tag !== undefined) {
-    const tag = defaultConstructor(x.tag);
-    assertMaybeArray(tag, assertString);
+    const tag = wrapArray(defaultConstructor(x.tag));
+    assertArrayOf(tag, assertString);
     ret.tag = tag;
   }
 

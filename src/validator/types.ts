@@ -3,14 +3,11 @@ import type {
   NodeMap,
 } from '@/nodes';
 
-// Not safe if T is an array type
-export type OneOrMore<T> = T | readonly [T, ...T[]];
-
 type NodeKind = 'scalar' | 'sequence' | 'mapping';
 
 export interface Validator {
-  kind?: OneOrMore<NodeKind>;
-  tag?: OneOrMore<string>;
+  kind?: readonly NodeKind[];
+  tag?: readonly string[];
 
   const?: RepresentationNode;
   enum?: readonly RepresentationNode[];
