@@ -1,5 +1,5 @@
 export * from './constructValidator';
 export * from './validate';
 
-export { Validator } from './types';
+export type { Validator, Validated } from './types';
 

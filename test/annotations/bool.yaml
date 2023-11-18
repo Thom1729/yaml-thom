@@ -1,8 +1,10 @@
 input:
   - @not true
   - @not false
+  - @not @not true
 expected:
   - false
+  - true
   - true
 ---
 input:
