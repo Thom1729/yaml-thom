@@ -10,12 +10,12 @@ import { Logger } from '../logger';
 export function pathToString(path: PathEntry<SerializationNode>[]) {
   return '/' + path
     .map(entry => {
-      if (entry === null) {
+      if (entry.type === 'key') {
         return 'key';
-      } else if (typeof entry === 'number') {
-        return entry;
+      } else if (entry.type === 'index') {
+        return entry.index;
       } else {
-        return present(entry);
+        return present(entry.key);
       }
     })
     .join('/');

@@ -14,10 +14,10 @@ import type {
 
 import { enumerate, zip } from '@/util';
 
-export type PathEntry<T> =
-| number
-| null
-| T;
+export type PathEntry<T = RepresentationNode> =
+| { type: 'index', index: number }
+| { type: 'key', key: T }
+| { type: 'value', key: T };
 
 export interface Difference<T> {
   path: PathEntry<T>[];
@@ -69,7 +69,7 @@ export function *diff(
           yield difference('SIZE');
         } else {
           for (const [i, [expectedChild, actualChild]] of enumerate(zip(expected, actual as SerializationSequence | RepresentationSequence))) {
-            yield* _diff(expectedChild, actualChild, [...path, i]);
+            yield* _diff(expectedChild, actualChild, [...path, { type: 'index', index: i }]);
           }
         }
       } else {
@@ -77,8 +77,8 @@ export function *diff(
           yield difference('SIZE');
         } else {
           for (const [[expectedKey, actualKey], [bKey, bValue]] of zip(expected, (actual as SerializationMapping | RepresentationMapping))) {
-            yield* _diff(expectedKey, bKey, [...path, null]);
-            yield* _diff(actualKey, bValue, [...path, expectedKey]);
+            yield* _diff(expectedKey, bKey, [...path, { type: 'key', key: expectedKey }]);
+            yield* _diff(actualKey, bValue, [...path, { type: 'value', key: expectedKey }]);
           }
         }
       }

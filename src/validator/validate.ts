@@ -1,6 +1,7 @@
 import {
   NodeComparator,
   type RepresentationNode,
+  type PathEntry,
 } from '@/nodes';
 
 import { NestedMap, strictKeys, enumerate } from '@/util';
@@ -29,11 +30,6 @@ export function validate(
 ) {
   return new NodeValidator().validate(validator, node, []);
 }
-
-type PathEntry =
-| { type: 'index', index: number }
-| { type: 'key', key: RepresentationNode }
-| { type: 'value', key: RepresentationNode };
 
 export interface ValidationFailure {
   path: PathEntry[];
