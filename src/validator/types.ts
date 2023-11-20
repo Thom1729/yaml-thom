@@ -21,20 +21,15 @@ export interface Validator {
   anyOf?: readonly Validator[];
 }
 
-type Default<T, U> =
-| (U & Exclude<T, undefined>)
-| (undefined extends T ? U : never);
-
-type ExtractOneOrMore<T> =
-  T extends readonly (infer U)[]
-    ? U
-    : T;
+type ExtractOptionalArray<TBase, TChild extends (readonly TBase[] | undefined)> =
+| (Exclude<TChild, undefined> extends readonly (infer U extends TBase)[] ? U : never)
+| (undefined extends TChild ? TBase : never);
 
 type ValidatorTypes<T extends Validator> = {
-  kind: Default<ExtractOneOrMore<T['kind']>, NodeKind>,
-  tag: Default<ExtractOneOrMore<T['tag']>, string>,
+  kind: ExtractOptionalArray<NodeKind, T['kind']>,
+  tag: ExtractOptionalArray<string, T['tag']>,
 
-  const: Default<ExtractOneOrMore<T['enum']>, unknown>,
+  const: ExtractOptionalArray<unknown, T['enum']>,
 
   items: (
     T['items'] extends Validator
