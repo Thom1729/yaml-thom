@@ -8,6 +8,7 @@ import { evaluateStream } from './evaluate';
 import { runEvaluationTests } from './runEvaluationTests';
 import { runValidationTests } from './runValidationTests';
 import { roundtrip } from './roundtrip';
+import { runPresentTests } from './runPresentTests';
 
 yargs(hideBin(process.argv))
   .option('yaml-version', {
@@ -67,5 +68,13 @@ yargs(hideBin(process.argv))
     yargs => yargs
       .positional('filename', { type: 'string', demandOption: true }),
     args => roundtrip(args['filename']),
+  )
+  .command(
+    'run-present-tests [test-name..]',
+    '',
+    yargs => yargs
+      .positional('test-name', { type: 'string', array: true, demandOption: true }),
+    args => runPresentTests(args['test-name']),
+
   )
   .parse();
