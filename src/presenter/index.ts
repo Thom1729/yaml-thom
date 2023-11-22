@@ -35,10 +35,10 @@ export function present(document: SerializationNode, options: PresentOptions = {
 
 const SCALAR_STYLE_PREDICATES = {
   [ScalarStyle.plain]: (node: SerializationScalar) => canBePlainScalar(node.content),
-  [ScalarStyle.single]: (node: SerializationScalar) => false,
+  [ScalarStyle.single]: () => false,
   [ScalarStyle.double]: (node: SerializationScalar) => node.tag !== NonSpecificTag.question,
-  [ScalarStyle.block]: (node: SerializationScalar) => false,
-  [ScalarStyle.folded]: (node: SerializationScalar) => false,
+  [ScalarStyle.block]: () => false,
+  [ScalarStyle.folded]: () => false,
 };
 
 function filter<T extends PropertyKey, U extends SerializationNode>(
@@ -269,7 +269,8 @@ class PresentOperation {
 const NON_PLAIN_REGEXP = regexp`
   ^[?:\-{}[\],#&*!|>'"%@\`]
   | [?:-] (?= \s | [,{}[\]] )
-  | \s
+  | ^\s
+  | \s$
 `;
 
 export function canBePlainScalar(content: string) {

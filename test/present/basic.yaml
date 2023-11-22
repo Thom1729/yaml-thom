@@ -3,5 +3,5 @@ input:
 expected: |
   %YAML 1.2
   ---
-  - ! "Hello, World!"
+  - Hello, World!
   ...

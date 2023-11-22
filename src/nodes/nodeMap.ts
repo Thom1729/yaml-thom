@@ -2,7 +2,7 @@ import { NodeComparator } from './equality';
 import type { UnresolvedNode } from './representationGraph';
 import { cmpFirst, insertSortedExclusive } from '@/util';
 
-export class NodeMap<PairType extends readonly [UnresolvedNode, unknown]> {
+export class NodeMap<const PairType extends readonly [UnresolvedNode, unknown]> {
   readonly pairs: PairType[] = [];
 
   constructor(
