@@ -2,7 +2,7 @@ import type {
   SerializationNode,
   SerializationValueNode,
   RepresentationNode,
-}  from '../lib';
+}  from '@/index';
 
 import chalk from 'chalk';
 

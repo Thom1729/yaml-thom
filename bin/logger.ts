@@ -12,7 +12,7 @@ export function repeat(count: number, s: string) {
   return new Array(count + 1).join(s);
 }
 
-import { RepresentationScalar, RepresentationSequence, RepresentationMapping } from './lib';
+import { RepresentationScalar, RepresentationSequence, RepresentationMapping } from '@/index';
 
 type InspectType = typeof inspect;
 

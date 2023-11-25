@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 
-import { loadStream, dumpStream, evaluate, RepresentationMapping } from './lib';
+import { loadStream, dumpStream, evaluate, RepresentationMapping } from '@/index';
 
 export function evaluateStream(filename: string) {
   const text = readFileSync(filename, { encoding: 'utf-8' });

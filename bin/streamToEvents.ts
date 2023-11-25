@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import {
   parseStream, serializationTreeToEvents, stringifyEvent,
   type YamlVersion,
-} from './lib';
+} from '@/index';
 
 export function streamToEvents(filename: string, version: YamlVersion) {
   const text = readFileSync(filename, { encoding: 'utf-8' });

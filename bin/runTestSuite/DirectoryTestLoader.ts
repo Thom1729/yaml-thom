@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 
-import { parseEvent, type TestCase } from '../lib';
+import { parseEvent, type TestCase } from '@/index';
 
 const DIRECTORY_TEST_FILE_NAMES = {
   '===': 'name',

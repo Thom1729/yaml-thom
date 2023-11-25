@@ -13,7 +13,7 @@ import {
   extractStrContent,
   extractInt,
   assertInt,
-} from '../lib';
+} from '@/index';
 
 interface ValidationTest {
   validator: Validator;

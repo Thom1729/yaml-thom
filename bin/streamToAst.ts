@@ -4,7 +4,7 @@ import {
   parseAst,
   type YamlVersion,
   type AstNode,
-} from './lib';
+} from '@/index';
 
 import { repeat } from './logger';
 

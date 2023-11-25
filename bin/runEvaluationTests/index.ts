@@ -8,7 +8,7 @@ import {
   evaluate,
   diff,
   extractMapEntries, extractStrContent, extractStringMap,
-} from '../lib';
+} from '@/index';
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';

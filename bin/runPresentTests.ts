@@ -10,7 +10,7 @@ import {
   type RepresentationNode,
   type Validator,
   str,
-} from './lib';
+} from '@/index';
 
 const presenterTestValidator = {
   kind: ['mapping'],

@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { inspect } from 'util';
 
-import { runTest, present, type PathEntry, type SerializationNode } from '../lib';
+import { runTest, present, type PathEntry, type SerializationNode } from '@/index';
 
 import { DirectoryTestLoader } from './DirectoryTestLoader';
 
