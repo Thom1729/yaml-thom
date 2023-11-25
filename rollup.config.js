@@ -2,17 +2,24 @@ import ts from 'rollup-plugin-ts';
 import shebang from 'rollup-plugin-add-shebang';
 import executable from 'rollup-plugin-executable-output';
 
+const manualChunks = {
+  nodes: ['src/nodes/index.ts'],
+  util: ['src/util/index.ts'],
+};
+
 export default [
   {
-    input: 'src/index.ts',
+    input: ['src/index.ts', 'src/helpers.ts'],
     output: [
       {
-        file: 'dist/esm/index.js',
+        dir: 'dist/esm',
         format: 'esm',
+        manualChunks,
       },
       {
-        file: 'dist/cjs/index.js',
+        dir: 'dist/cjs',
         format: 'cjs',
+        manualChunks,
       },
     ],
     plugins: [
@@ -21,8 +28,6 @@ export default [
   },
   {
     external: [
-      '../dist/esm/index.js',
-
       'yargs',
       'yargs/helpers',
       'chalk',

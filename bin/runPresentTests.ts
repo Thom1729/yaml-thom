@@ -9,8 +9,9 @@ import {
   NodeMap,
   type RepresentationNode,
   type Validator,
-  str,
 } from '@/index';
+
+import { str } from '@/helpers';
 
 const presenterTestValidator = {
   kind: ['mapping'],

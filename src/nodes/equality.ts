@@ -2,11 +2,14 @@ import { zip, cmpStringsByCodepoint, NestedMap } from '@/util';
 
 import {
   NonSpecificTag,
-  RepresentationMapping,
-  RepresentationScalar,
-  RepresentationSequence,
+} from './tags';
+
+import {
+  type RepresentationMapping,
+  type RepresentationScalar,
+  type RepresentationSequence,
   type UnresolvedNode,
-} from '.';
+} from './representationGraph';
 
 const KIND_INDEX = {
   scalar: 0,

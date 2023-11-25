@@ -23,7 +23,7 @@ import {
   Y,
 } from '@/util';
 
-import { NodeComparator } from '@/nodes/equality';
+import { NodeComparator } from '@/nodes';
 
 export interface ComposeOptions {
   schema?: Schema;

@@ -7,8 +7,9 @@ import {
   RepresentationMapping, type RepresentationNode,
   evaluate,
   diff,
-  extractMapEntries, extractStrContent, extractStringMap,
 } from '@/index';
+
+import { extractMapEntries, extractStrContent, extractStringMap } from '@/helpers';
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';

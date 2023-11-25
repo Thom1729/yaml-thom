@@ -4,7 +4,7 @@ import {
   extractInt,
 } from '@/helpers';
 
-import { NodeComparator } from '@/nodes/equality';
+import { NodeComparator } from '@/nodes';
 import { assertType, simpleAnnotation, specs } from '../signature';
 
 export const kind = simpleAnnotation({}, [], value => str(value.kind));

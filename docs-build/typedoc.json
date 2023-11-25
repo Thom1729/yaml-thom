@@ -2,6 +2,7 @@
   "entryPoints": [
     "../src/loadDump.ts",
     "../src/nodes",
+    "../src/helpers.ts",
   ],
   "sort": ["source-order"],
   "sortEntryPoints": false,

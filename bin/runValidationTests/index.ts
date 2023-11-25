@@ -5,15 +5,18 @@ import {
 
 import {
   loadStream,
-  extractStringMap,
   defaultConstructor,
   validate, constructValidator, type Validator, type ValidationFailure,
   type RepresentationNode,
+} from '@/index';
+
+import {
+  extractStringMap,
   extractSeqItems,
   extractStrContent,
   extractInt,
   assertInt,
-} from '@/index';
+} from '@/helpers';
 
 interface ValidationTest {
   validator: Validator;
