@@ -36,7 +36,7 @@ export function present(document: SerializationNode, options: PresentOptions = {
   ).join('');
 }
 
-type Tokens = Iterable<string | null>;
+type Tokens = Iterable<string | number | null>;
 
 function *wrapWithSpaces(itr: Tokens) {
   let needSpace = false;
@@ -44,6 +44,11 @@ function *wrapWithSpaces(itr: Tokens) {
     if (token === null) {
       if (needSpace) {
         yield ' ';
+        needSpace = false;
+      }
+    } else if (typeof token === 'number') {
+      if (token > 0) {
+        yield repeat(token, ' ');
         needSpace = false;
       }
     } else {
@@ -82,10 +87,6 @@ class PresentOperation {
     this.options = options;
   }
 
-  *indent(level: number) {
-    yield repeat(level, ' ');
-  }
-
   implicitKey(node: SerializationNode) {
     return node.kind === 'scalar';
   }
@@ -121,12 +122,14 @@ class PresentOperation {
     }
   }
 
-  *presentTag(tag: SerializationTag) {
+  *presentTag(tag: SerializationTag, exclamationContext: boolean = false) {
     if (tag === NonSpecificTag.question) {
-      // pass
+      if (exclamationContext) throw new Error(`Can't emit implicit question tag here`);
     } else if (tag === NonSpecificTag.exclamation) {
-      yield null;
-      yield '!';
+      if (!exclamationContext) {
+        yield null;
+        yield '!';
+      }
     } else {
       yield null;
       yield '!<' + tag + '>';
@@ -135,7 +138,6 @@ class PresentOperation {
 
   *presentScalar(node: SerializationScalar) {
     yield* this.presentAnchor(node.anchor);
-    yield* this.presentTag(node.tag);
 
     yield null;
 
@@ -154,10 +156,13 @@ class PresentOperation {
 
   *presentPlainScalar(node: SerializationScalar) {
     if (!canBePlainScalar(node.content)) throw new TypeError(`Cannot present ${JSON.stringify(node.content)} as plain scalar`);
+
+    yield* this.presentTag(node.tag);
     yield node.content;
   }
 
   *presentDoubleQuotedScalar(node: SerializationScalar) {
+    yield* this.presentTag(node.tag, true);
     yield JSON.stringify(node.content);
   }
 
@@ -175,7 +180,7 @@ class PresentOperation {
 
     for (const item of node.content) {
       yield '\n';
-      yield* this.indent(level);
+      yield level;
       yield '-';
       yield* this.presentNode(item, level + this.options.indentation, false);
     }
@@ -185,22 +190,23 @@ class PresentOperation {
     this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag);
 
+    const childLevel = level + this.options.indentation;
     for (const [key, value] of node.content) {
       yield '\n';
-      yield* this.indent(level);
+      yield level;
 
       if (this.implicitKey(key)) {
         yield* this.presentNode(key, level, true);
         yield ':';
-        yield* this.presentNode(value, level + this.options.indentation, false);
+        yield* this.presentNode(value, childLevel, false);
       } else {
         yield '?';
-        yield* this.presentNode(key, level + this.options.indentation, false);
+        yield* this.presentNode(key, childLevel, false);
 
         yield '\n';
-        yield* this.indent(level);
+        yield level;
         yield ':';
-        yield* this.presentNode(value, level + this.options.indentation, false);
+        yield* this.presentNode(value, childLevel, false);
       }
     }
   }
@@ -210,6 +216,8 @@ class PresentOperation {
     yield* this.presentTag(node.tag);
 
     yield null;
+
+    const childLevel = level + this.options.indentation;
     if (node.content.length === 0) {
       yield '[]';
     } else {
@@ -217,13 +225,13 @@ class PresentOperation {
 
       for (const item of node.content) {
         yield '\n';
-        yield* this.indent(level + this.options.indentation);
-        yield* this.presentNode(item, level + this.options.indentation, true);
+        yield childLevel;
+        yield* this.presentNode(item, childLevel, true);
         yield ',';
       }
 
       yield '\n';
-      yield* this.indent(level);
+      yield level;
       yield ']';
     }
   }
@@ -246,29 +254,30 @@ class PresentOperation {
     } else {
       yield '{';
 
+      const childLevel = level + this.options.indentation;
       for (const [key, value] of node.content) {
         if (this.implicitKey(key)) {
           yield '\n';
-          yield* this.indent(level + this.options.indentation);
-          yield* this.presentNode(key, level + this.options.indentation, true);
+          yield level + this.options.indentation;
+          yield* this.presentNode(key, childLevel, true);
 
           yield ':';
-          yield* this.presentNode(value, level + this.options.indentation, true);
+          yield* this.presentNode(value, childLevel, true);
         } else {
           yield '\n';
-          yield* this.indent(level + this.options.indentation);
+          yield childLevel;
           yield '?';
-          yield* this.presentNode(key, level + this.options.indentation, true);
+          yield* this.presentNode(key, childLevel, true);
 
           yield '\n';
-          yield* this.indent(level + this.options.indentation);
+          yield childLevel;
           yield ':';
-          yield* this.presentNode(value, level + this.options.indentation, true);
+          yield* this.presentNode(value, childLevel, true);
         }
       }
 
       yield '\n';
-      yield* this.indent(level);
+      yield level;
       yield '}';
     }
   }
