@@ -14,7 +14,7 @@ import { NestedMap } from '@/util';
 
 import STDLIB from './stdlib';
 
-interface Annotation {
+export interface Annotation {
   name: string,
   value: RepresentationNode,
   arguments: readonly RepresentationNode[],
@@ -26,6 +26,8 @@ export type AnnotationFunction = (
   args: readonly RepresentationNode[],
   context: RepresentationMapping,
 ) => RepresentationNode;
+
+export type Library = Partial<Record<string, AnnotationFunction>>;
 
 export class EvaluationError extends Error {
   node: RepresentationNode;
@@ -39,11 +41,23 @@ export class EvaluationError extends Error {
   }
 }
 
+interface EvaluationOptions {
+  annotationFunctions?: Library;
+}
+
+const DEFAULT_OPTIONS: Required<EvaluationOptions> = {
+  annotationFunctions: STDLIB,
+};
+
 export function evaluate(
   node: RepresentationNode,
   context: RepresentationMapping,
+  options: EvaluationOptions = {},
 ) {
-  return new Evaluator().evaluate(node, context);
+  return new Evaluator({
+    ...options,
+    ...DEFAULT_OPTIONS,
+  }).evaluate(node, context);
 }
 
 export class Evaluator {
@@ -52,6 +66,11 @@ export class Evaluator {
     () => new NodeMap(),
   );
   readonly comparator = new NodeComparator();
+  readonly options: Required<EvaluationOptions>;
+
+  constructor(options: Required<EvaluationOptions>) {
+    this.options = options;
+  }
 
   evaluate(
     node: RepresentationNode,
@@ -72,7 +91,7 @@ export class Evaluator {
         throw new EvaluationError(node, null, 'Invalid annotation node', e);
       }
 
-      const annotationFunction = STDLIB[annotation.name];
+      const annotationFunction = this.options.annotationFunctions[annotation.name];
       if (annotationFunction === undefined) {
         throw new EvaluationError(node, annotation, `Unknown annotation ${annotation.name}`);
       }

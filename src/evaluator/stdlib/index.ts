@@ -7,10 +7,8 @@ import * as map from './map';
 import * as seq from './seq';
 import * as string from './string';
 
-import type { AnnotationFunction } from '..';
+import type { Library } from '..';
 import { strictEntries, strictFromEntries } from '@/util';
-
-export type Library = Partial<Record<string, AnnotationFunction>>;
 
 export default strictFromEntries(
   strictEntries({
