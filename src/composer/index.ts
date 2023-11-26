@@ -5,8 +5,8 @@ import {
   type SerializationNode,
   type SerializationValueNode,
   type RepresentationNode,
-  SerializationTag,
-  UnresolvedNode,
+  type SerializationTag,
+  type UnresolvedNode,
 } from '@/nodes';
 
 import {
