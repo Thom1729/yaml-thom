@@ -1,13 +1,18 @@
 ---
 name: Plain
+options:
+  scalarStyle: ['plain']
 input: Hello, World!
 expected: |
   %YAML 1.2
   --- Hello, World!
   ...
 ---
-input: Goodbye, World!
+name: Double
+options:
+  scalarStyle: ['double']
+input: "- Hello, World!"
 expected: |
   %YAML 1.2
-  --- Goodbye, World!
+  --- ! "- Hello, World!"
   ...

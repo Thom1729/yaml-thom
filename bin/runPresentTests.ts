@@ -6,39 +6,37 @@ import { Logger } from './logger';
 import {
   loadStream, dumpDocument,
   assertValid,
-  NodeMap,
   type RepresentationNode,
-  type Validator,
+  defaultConstructor,
+  DumpOptions,
 } from '@/index';
+
+import * as V from '@/validator/validatorHelpers';
 
 import { str } from '@/helpers';
 
-const presenterTestValidator = {
-  kind: ['mapping'],
-  tag: ['tag:yaml.org,2002:map'],
-
-  properties: new NodeMap([
-    [str('name'), {
-      kind: ['scalar'],
-      tag: ['tag:yaml.org,2002:str'],
-    }],
-    [str('input'), {}],
-    [str('expected'), {
-      kind: ['scalar'],
-      tag: ['tag:yaml.org,2002:str'],
-    }],
-  ]),
-} as const satisfies Validator;
+const presenterTestValidator = V.stringMapOf({
+  name: V.str,
+  options: V.stringMapOf({
+    scalarStyle: V.seqOf({
+      enum: [str('plain'), str('double')],
+    }),
+  }),
+  input: {},
+  expected: V.str,
+});
 
 function constructTest(node: RepresentationNode) {
   assertValid(presenterTestValidator, node);
 
   const name = node.get(str('name'))?.content;
+  const options = node.get(str('options'));
   const input = node.get(str('input'))!;
   const expected = node.get(str('expected'))!.content;
 
   return {
     name,
+    options: options && (defaultConstructor(options) as DumpOptions),
     input,
     expected,
   };
@@ -46,7 +44,7 @@ function constructTest(node: RepresentationNode) {
 
 function runTest(test: ReturnType<typeof constructTest>) {
   try {
-    const actual = dumpDocument(test.input);
+    const actual = dumpDocument(test.input, test.options ?? undefined);
     return {
       status: actual === test.expected ? 'success' : 'failure',
       actual,
