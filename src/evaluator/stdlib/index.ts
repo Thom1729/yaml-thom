@@ -10,7 +10,11 @@ import * as string from './string';
 import type { Library } from '..';
 import { strictEntries, strictFromEntries } from '@/util';
 
-export default strictFromEntries(
+function stripLeadingUnderscore<T extends string>(s: T) {
+  return s.replace(/^_/, '') as T extends `_${infer Rest}` ? Rest : T;
+}
+
+const stdlib = strictFromEntries(
   strictEntries({
     ...core,
     ...nodes,
@@ -21,5 +25,7 @@ export default strictFromEntries(
     ...int,
     ...seq,
     ...map,
-  }).map(([name, func]) => [name.replace(/^_/, ''), func])
-) as Library;
+  }).map(([name, func]) => [stripLeadingUnderscore(name), func])
+) satisfies Library;
+
+export default stdlib;
