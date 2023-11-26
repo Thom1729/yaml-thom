@@ -4,6 +4,7 @@ import {
   SerializationSequence,
   SerializationMapping,
   NonSpecificTag,
+  canBePlainScalar,
   type SerializationNode,
   type SerializationValueNode,
   type RepresentationNode,
@@ -13,8 +14,6 @@ import {
   coreSchema,
   type Schema,
 } from '@/composer/schema';
-
-import { canBePlainScalar } from '@/presenter';
 
 export interface SerializeOptions {
   schema?: Schema;

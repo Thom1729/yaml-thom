@@ -1,16 +1,17 @@
 import {
+  canBePlainScalar,
+  NonSpecificTag,
+  ScalarStyle,
+
   type SerializationNode,
   type Alias,
   type SerializationScalar,
   type SerializationSequence,
   type SerializationMapping,
   type SerializationTag,
-
-  NonSpecificTag,
-  ScalarStyle,
 } from '@/nodes';
 
-import { repeat, regexp } from '@/util';
+import { repeat } from '@/util';
 
 export interface PresentOptions {
   indentation?: number;
@@ -133,7 +134,7 @@ class PresentOperation {
 
     const style = filter(this.options.scalarStyle, node, SCALAR_STYLE_PREDICATES);
 
-    if (style === undefined) throw new Error(`no valid scalar style`);
+    if (style === undefined) throw new Error(`no valid scalar style for content ${JSON.stringify(node.content)}`);
 
     switch (style) {
       case ScalarStyle.plain : return yield* this.presentPlainScalar(node);
@@ -264,15 +265,4 @@ class PresentOperation {
       yield* this.emit('}');
     }
   }
-}
-
-const NON_PLAIN_REGEXP = regexp`
-  ^[?:\-{}[\],#&*!|>'"%@\`]
-  | [?:-] (?= \s | [,{}[\]] )
-  | ^\s
-  | \s$
-`;
-
-export function canBePlainScalar(content: string) {
-  return !NON_PLAIN_REGEXP.test(content);
 }
