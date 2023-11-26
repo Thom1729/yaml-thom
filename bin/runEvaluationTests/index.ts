@@ -13,14 +13,7 @@ import { extractMapEntries, extractStrContent, extractStringMap } from '@/helper
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';
-import { loadTestFiles } from '../helpers';
-
-export function *enumerate<T>(iterable: Iterable<T>, start: number = 0) {
-  let i = start;
-  for (const item of iterable) {
-    yield [i++, item] as const;
-  }
-}
+import { loadTestFiles, enumerate } from '../helpers';
 
 interface AnnotationTest {
   name?: string;

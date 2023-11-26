@@ -1,5 +1,13 @@
+---
+name: Plain
 input: Hello, World!
 expected: |
   %YAML 1.2
   --- Hello, World!
+  ...
+---
+input: Goodbye, World!
+expected: |
+  %YAML 1.2
+  --- Goodbye, World!
   ...

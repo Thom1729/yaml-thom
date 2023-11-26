@@ -28,3 +28,10 @@ export function *loadTestFiles(p: string, testNames: string[]) {
     };
   }
 }
+
+export function *enumerate<T>(iterable: Iterable<T>, start: number = 0) {
+  let i = start;
+  for (const item of iterable) {
+    yield [i++, item] as const;
+  }
+}
