@@ -80,6 +80,11 @@ function filter<T extends PropertyKey, U extends SerializationNode>(
   return undefined;
 }
 
+interface PresentationContext {
+  level: number;
+  flow: boolean;
+}
+
 class PresentOperation {
   readonly options: Required<PresentOptions>;
 
@@ -94,19 +99,19 @@ class PresentOperation {
   *presentDocument(node: SerializationNode) {
     yield '%YAML 1.2\n';
     yield '---';
-    yield* this.presentNode(node, 0, this.options.flow);
+    yield* this.presentNode(node, { level: 0, flow: this.options.flow });
     yield '\n...\n';
   }
 
-  *presentNode(node: SerializationNode, level: number, flow: boolean) {
+  *presentNode(node: SerializationNode, context: PresentationContext) {
     if (node.kind === 'alias') {
       yield* this.presentAlias(node);
     } else if (node.kind === 'scalar') {
       yield* this.presentScalar(node);
     } else if (node.kind === 'sequence') {
-      yield* this.presentSequence(node, level, flow);
+      yield* this.presentSequence(node, context);
     } else if (node.kind === 'mapping') {
-      yield* this.presentMapping(node, level, flow);
+      yield* this.presentMapping(node, context);
     }
   }
 
@@ -168,58 +173,71 @@ class PresentOperation {
     yield JSON.stringify(node.content);
   }
 
-  *presentSequence(node: SerializationSequence, level: number, flow: boolean): Tokens {
-    if (flow || node.size === 0) {
-      yield* this.presentFlowSequence(node, level);
+  *presentSequence(node: SerializationSequence, context: PresentationContext): Tokens {
+    if (context.flow || node.size === 0) {
+      yield* this.presentFlowSequence(node, context);
     } else {
-      yield* this.presentBlockSequence(node, level);
+      yield* this.presentBlockSequence(node, context);
     }
   }
 
-  *presentBlockSequence(node: SerializationSequence, level: number): Tokens {
+  *presentBlockSequence(node: SerializationSequence, context: PresentationContext): Tokens {
     yield* this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag);
 
+    const childContext = {
+      level: context.level + this.options.indentation,
+      flow: false,
+    };
     for (const item of node.content) {
       yield '\n';
-      yield level;
+      yield context.level;
       yield '-';
-      yield* this.presentNode(item, level + this.options.indentation, false);
+      yield* this.presentNode(item, childContext);
     }
   }
 
-  *presentBlockMapping(node: SerializationMapping, level: number): Tokens {
+  *presentBlockMapping(node: SerializationMapping, context: PresentationContext): Tokens {
     this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag);
 
-    const childLevel = level + this.options.indentation;
+    const childContext = {
+      level: context.level + this.options.indentation,
+      flow: false,
+    };
     for (const [key, value] of node.content) {
       yield '\n';
-      yield level;
+      yield context.level;
 
       if (this.implicitKey(key)) {
-        yield* this.presentNode(key, level, true);
+        yield* this.presentNode(key, {
+          level: context.level,
+          flow: true,
+        });
         yield ':';
-        yield* this.presentNode(value, childLevel, false);
+        yield* this.presentNode(value, childContext);
       } else {
         yield '?';
-        yield* this.presentNode(key, childLevel, false);
+        yield* this.presentNode(key, childContext);
 
         yield '\n';
-        yield level;
+        yield context.level;
         yield ':';
-        yield* this.presentNode(value, childLevel, false);
+        yield* this.presentNode(value, childContext);
       }
     }
   }
 
-  *presentFlowSequence(node: SerializationSequence, level: number): Tokens {
+  *presentFlowSequence(node: SerializationSequence, context: PresentationContext): Tokens {
     yield* this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag);
 
     yield null;
 
-    const childLevel = level + this.options.indentation;
+    const childContext = {
+      level: context.level + this.options.indentation,
+      flow: true,
+    };
     if (node.content.length === 0) {
       yield '[]';
     } else {
@@ -227,26 +245,26 @@ class PresentOperation {
 
       for (const item of node.content) {
         yield '\n';
-        yield childLevel;
-        yield* this.presentNode(item, childLevel, true);
+        yield childContext.level;
+        yield* this.presentNode(item, childContext);
         yield ',';
       }
 
       yield '\n';
-      yield level;
+      yield context.level;
       yield ']';
     }
   }
 
-  *presentMapping(node: SerializationMapping, level: number, flow: boolean): Tokens {
-    if (flow || node.size === 0) {
-      yield* this.presentFlowMapping(node, level);
+  *presentMapping(node: SerializationMapping, context: PresentationContext): Tokens {
+    if (context.flow || node.size === 0) {
+      yield* this.presentFlowMapping(node, context);
     } else {
-      yield* this.presentBlockMapping(node, level);
+      yield* this.presentBlockMapping(node, context);
     }
   }
 
-  *presentFlowMapping(node: SerializationMapping, level: number): Tokens {
+  *presentFlowMapping(node: SerializationMapping, context: PresentationContext): Tokens {
     yield* this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag);
     
@@ -256,30 +274,33 @@ class PresentOperation {
     } else {
       yield '{';
 
-      const childLevel = level + this.options.indentation;
+      const childContext = {
+        level: context.level + this.options.indentation,
+        flow: true,
+      };
       for (const [key, value] of node.content) {
         if (this.implicitKey(key)) {
           yield '\n';
-          yield level + this.options.indentation;
-          yield* this.presentNode(key, childLevel, true);
+          yield context.level + this.options.indentation;
+          yield* this.presentNode(key, childContext);
 
           yield ':';
-          yield* this.presentNode(value, childLevel, true);
+          yield* this.presentNode(value, childContext);
         } else {
           yield '\n';
-          yield childLevel;
+          yield childContext.level;
           yield '?';
-          yield* this.presentNode(key, childLevel, true);
+          yield* this.presentNode(key, childContext);
 
           yield '\n';
-          yield childLevel;
+          yield childContext.level;
           yield ':';
-          yield* this.presentNode(value, childLevel, true);
+          yield* this.presentNode(value, childContext);
         }
       }
 
       yield '\n';
-      yield level;
+      yield context.level;
       yield '}';
     }
   }
