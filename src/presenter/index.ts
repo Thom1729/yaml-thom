@@ -11,7 +11,7 @@ import {
   type SerializationTag,
 } from '@/nodes';
 
-import { repeat } from '@/util';
+import { assertNotUndefined, repeat } from '@/util';
 
 export interface PresentOptions {
   indentation?: number;
@@ -170,7 +170,26 @@ class PresentOperation {
     yield* this.presentTag(node.tag, true);
 
     yield null;
-    yield JSON.stringify(node.content);
+    yield '"';
+    for (const char of node.content) {
+      const codepoint = char.codePointAt(0);
+      assertNotUndefined(codepoint);
+      if (mustEscapeInDoubleString(codepoint)) {
+        const prettyEscape = DOUBLE_QUOTE_ESCAPES.get(codepoint);
+        if (prettyEscape !== undefined) {
+          yield '\\' + prettyEscape;
+        } else if (codepoint <= 0xff) {
+          yield '\\' + 'x' + codepoint.toString(16).padStart(2, '0');
+        } else if (codepoint <= 0xffff) {
+          yield '\\' + 'u' + codepoint.toString(16).padStart(4, '0');
+        } else {
+          yield '\\' + 'U' + codepoint.toString(16).padStart(8, '0');
+        }
+      } else {
+        yield char;
+      }
+    }
+    yield '"';
   }
 
   *presentSequence(node: SerializationSequence, context: PresentationContext): Tokens {
@@ -304,4 +323,28 @@ class PresentOperation {
       yield '}';
     }
   }
+}
+
+const DOUBLE_QUOTE_ESCAPES = new Map([
+  [0x00, '0'],
+  [0x07, 'a'],
+  [0x08, 'b'],
+  [0x09, 't'],
+  [0x0a, 'n'],
+  [0x0b, 'v'],
+  [0x0c, 'f'],
+  [0x0d, 'r'],
+  [0x1b, 'e'],
+  [0x20, ' '],
+  [0x22, '"'],
+  [0x2f, '/'],
+  [0x5c, '\\'],
+  [0x85, 'N'], // next line
+  [0xa0, '_'], // non-breaking space
+  [0x2028, 'L'], // line separator
+  [0x2029, 'P'], // paragraph separator
+]);
+
+function mustEscapeInDoubleString(codepoint: number) {
+  return codepoint < 0x20 || codepoint === 0x09 || codepoint === 0x5c || codepoint === 0x22;
 }
