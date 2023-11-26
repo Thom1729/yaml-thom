@@ -137,10 +137,6 @@ class PresentOperation {
   }
 
   *presentScalar(node: SerializationScalar) {
-    yield* this.presentAnchor(node.anchor);
-
-    yield null;
-
     const style = filter(this.options.scalarStyle, node, SCALAR_STYLE_PREDICATES);
 
     if (style === undefined) throw new Error(`no valid scalar style for content ${JSON.stringify(node.content)}`);
@@ -157,12 +153,18 @@ class PresentOperation {
   *presentPlainScalar(node: SerializationScalar) {
     if (!canBePlainScalar(node.content)) throw new TypeError(`Cannot present ${JSON.stringify(node.content)} as plain scalar`);
 
+    yield* this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag);
+
+    yield null;
     yield node.content;
   }
 
   *presentDoubleQuotedScalar(node: SerializationScalar) {
+    yield* this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag, true);
+
+    yield null;
     yield JSON.stringify(node.content);
   }
 
