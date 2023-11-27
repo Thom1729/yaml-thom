@@ -71,8 +71,8 @@ export class RepresentationMapping<
   get<KeyType extends PairType[0]>(
     k: KeyType,
     comparator?: NodeComparator,
-  ): Get<PairType, KeyType> | null {
-    return this.content.get(k, comparator) ?? null;
+  ): Get<PairType, KeyType> | undefined {
+    return this.content.get(k, comparator) ?? undefined;
   }
 
   map(callback: (item: PairType[1]) => PairType[1]) {

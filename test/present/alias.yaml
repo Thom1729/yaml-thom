@@ -1,0 +1,13 @@
+---
+# name: Plain
+# options:
+#   scalarStyle: ['plain']
+input:
+  - &a a
+  - *a
+expected: |
+  %YAML 1.2
+  ---
+  - &0 a
+  - *0
+  ...

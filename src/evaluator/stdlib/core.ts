@@ -1,15 +1,14 @@
-// import type { Library } from '.';
 import type { AnnotationFunction } from '..';
 
 import type { RepresentationNode } from '@/nodes';
 import { assertMap, isAnnotation, extractAnnotationInfo} from '@/helpers';
-import { Y } from '@/util';
+import { Y, assertNotUndefined } from '@/util';
 
 import { simpleAnnotation, assertArgumentTypes } from '../signature';
 
 export const _var: AnnotationFunction = simpleAnnotation({ kind: 'scalar' }, [], (value, _, context) => {
   const result = context.get(value);
-  if (result === null) throw new TypeError(`var ${value} not found`);
+  assertNotUndefined(result, `var ${value} not found`);
   return result;
 });
 

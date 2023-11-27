@@ -6,6 +6,7 @@ import {
 
 import { NodeComparator } from '@/nodes';
 import { assertType, simpleAnnotation, specs } from '../signature';
+import { assertNotUndefined } from '@/util';
 
 export const kind = simpleAnnotation({}, [], value => str(value.kind));
 export const tag = simpleAnnotation({}, [], value => str(value.tag));
@@ -14,12 +15,13 @@ export const size = simpleAnnotation({}, [], value => int(BigInt(value.size)));
 export const get = simpleAnnotation({}, [{}], (value, [key]) => {
   if (value.kind === 'sequence') {
     assertType(key, specs.int);
-    const result = value.get(Number(extractInt(key)));
-    if (result === null) throw new TypeError(`index out of bounds`);
+    const index = Number(extractInt(key));
+    const result = value.get(index);
+    assertNotUndefined(result, `index ${index} out of bounds`);
     return result;
   } else if (value.kind === 'mapping') {
     const result = value.get(key);
-    if (result === null) throw new TypeError(`key not in mapping`);
+    assertNotUndefined(result, `key not in mapping`);
     return result;
   } else {
     throw new TypeError(`scalar`);
