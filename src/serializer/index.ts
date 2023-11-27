@@ -17,12 +17,23 @@ import {
 
 export interface SerializeOptions {
   schema?: Schema;
+  anchorNames?: () => Generator<string>;
 }
 
+const DEFAULT_OPTIONS = {
+  schema: coreSchema,
+  anchorNames: function*() {
+    for (let i = 0;; i++) {
+      yield i.toString();
+    }
+  },
+} satisfies Required<SerializeOptions>;
+
 export function serialize(doc: RepresentationNode, options: SerializeOptions = {}) {
-  const schema = options.schema ?? coreSchema;
+  const { schema, anchorNames } = { ...DEFAULT_OPTIONS, ...options };
+  const anchorNameGenerator = anchorNames();
+
   const cache = new Map<RepresentationNode, SerializationValueNode>();
-  let anchorIndex = 0;
 
   function unresolveTag(node: RepresentationNode) {
     if (
@@ -42,7 +53,9 @@ export function serialize(doc: RepresentationNode, options: SerializeOptions = {
     const x = cache.get(node);
     if (x !== undefined) {
       if (x.anchor === null) {
-        x.anchor = (anchorIndex++).toString();
+        const result = anchorNameGenerator.next();
+        if (result.done) throw new Error(`Anchor name generator is exhausted`);
+        x.anchor = result.value;
       }
       return new Alias(x.anchor);
     }
