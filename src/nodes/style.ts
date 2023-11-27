@@ -13,12 +13,15 @@ export enum CollectionStyle {
   flow = 'flow',
 }
 
-const NON_PLAIN_REGEXP = regexp`
-  ^ [-?:] (?=$|\s|[,\[\]\{\}])
-  # | [,\[\]\{\}] # only banned in flow
-  | ^\s
-  | \s$
-`;
+const NON_PLAIN_REGEXP = new RegExp(
+  regexp`
+    ^ [-?:] (?=$|\s|[,\[\]\{\}])
+    # | [,\[\]\{\}] # only banned in flow
+    | ^\s
+    | \s$
+  `.source,
+  'u',
+);
 
 export function canBePlainScalar(content: string) {
   return !NON_PLAIN_REGEXP.test(content);

@@ -16,3 +16,23 @@ expected: |
   %YAML 1.2
   --- "- Hello, World!"
   ...
+---
+name: Escape
+options:
+  scalarStyle: ['double']
+input: "- Hello\"World!"
+expected: |
+  %YAML 1.2
+  --- "- Hello\"World!"
+  ...
+
+---
+name: Escape U
+options:
+  scalarStyle: ['double']
+  doubleQuoteEscapeStyle: ['U']
+input: "- Hello\"World!"
+expected: |
+  %YAML 1.2
+  --- "- Hello\U00000022World!"
+  ...

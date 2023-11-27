@@ -13,16 +13,24 @@ import {
 
 import { assertNotUndefined, repeat } from '@/util';
 
+type DoubleQuoteEscapeStyle =
+| 'builtin'
+| 'x'
+| 'u'
+| 'U';
+
 export interface PresentOptions {
   indentation?: number;
   flow?: boolean;
-  scalarStyle?: ScalarStyle[],
+  scalarStyle?: readonly ScalarStyle[],
+  doubleQuoteEscapeStyle?: readonly DoubleQuoteEscapeStyle[],
 }
 
 const DEFAULT_PRESENT_OPTIONS = {
   indentation: 2,
   flow: false,
   scalarStyle: [ScalarStyle.double, ScalarStyle.plain],
+  doubleQuoteEscapeStyle: ['builtin', 'x', 'u', 'U'],
 } satisfies Required<PresentOptions>;
 
 export function present(document: SerializationNode, options: PresentOptions = {}) {
@@ -175,16 +183,9 @@ class PresentOperation {
       const codepoint = char.codePointAt(0);
       assertNotUndefined(codepoint);
       if (mustEscapeInDoubleString(codepoint)) {
-        const prettyEscape = DOUBLE_QUOTE_ESCAPES.get(codepoint);
-        if (prettyEscape !== undefined) {
-          yield '\\' + prettyEscape;
-        } else if (codepoint <= 0xff) {
-          yield '\\' + 'x' + codepoint.toString(16).padStart(2, '0');
-        } else if (codepoint <= 0xffff) {
-          yield '\\' + 'u' + codepoint.toString(16).padStart(4, '0');
-        } else {
-          yield '\\' + 'U' + codepoint.toString(16).padStart(8, '0');
-        }
+        const result = applyStyle(codepoint, doubleQuoteEscapeStyles, this.options.doubleQuoteEscapeStyle);
+        assertNotUndefined(result);
+        yield '\\' + result;
       } else {
         yield char;
       }
@@ -347,4 +348,22 @@ const DOUBLE_QUOTE_ESCAPES = new Map([
 
 function mustEscapeInDoubleString(codepoint: number) {
   return codepoint < 0x20 || codepoint === 0x09 || codepoint === 0x5c || codepoint === 0x22;
+}
+
+const doubleQuoteEscapeStyles = {
+  builtin: (codepoint: number) => DOUBLE_QUOTE_ESCAPES.get(codepoint),
+  x: (codepoint: number) => codepoint <= 0xff ? 'x' + codepoint.toString(16).padStart(2, '0') : undefined,
+  u: (codepoint: number) => codepoint <= 0xffff ? 'u' + codepoint.toString(16).padStart(4, '0') : undefined,
+  U: (codepoint: number) => 'U' + codepoint.toString(16).padStart(8, '0'),
+};
+
+function applyStyle<U, T extends PropertyKey, R>(
+  value: U,
+  strategyFunctions: Record<T, (value: U) => undefined | R>,
+  strategies: Iterable<T>,
+) {
+  for (const strategy of strategies) {
+    const result = strategyFunctions[strategy](value);
+    if (result !== undefined) return result;
+  }
 }

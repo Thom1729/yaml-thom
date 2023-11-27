@@ -21,6 +21,9 @@ const presenterTestValidator = V.stringMapOf({
     scalarStyle: V.seqOf({
       enum: [str('plain'), str('double')],
     }),
+    doubleQuoteEscapeStyle: V.seqOf({
+      enum: [str('builtin'), str('x'), str('u'), str('U')],
+    }),
   }),
   input: {},
   expected: V.str,
@@ -75,10 +78,12 @@ export function runPresentTests(suiteNames: string[]) {
         } else if (result.status === 'failure') {
           logger.log(chalk.red('failure'));
 
-          logger.log('expected:');
-          logger.logCode(test.expected);
-          logger.log('actual:');
-          logger.logCode(result.actual);
+          logger.indented(() => {
+            logger.log('expected:');
+            logger.logCode(test.expected);
+            logger.log('actual:');
+            logger.logCode(result.actual);
+          });
         } else {
           logger.log(chalk.red('error'));
           logger.log(result.error);
