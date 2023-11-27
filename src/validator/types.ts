@@ -1,6 +1,6 @@
 import type {
   RepresentationNode, RepresentationScalar, RepresentationSequence, RepresentationMapping,
-  NodeMap,
+  NodeMap, NodeSet,
 } from '@/nodes';
 
 type NodeKind = 'scalar' | 'sequence' | 'mapping';
@@ -17,6 +17,7 @@ export interface Validator {
   items?: Validator;
 
   properties?: NodeMap<readonly [RepresentationNode, Validator]>;
+  requiredProperties?: NodeSet<RepresentationNode>;
 
   anyOf?: readonly Validator[];
 }
@@ -32,18 +33,30 @@ export type Validated<T extends Validator> =
 )
 
 & {
-  'scalar': RepresentationScalar<ExtractOptionalArray<string, T['tag']>, string>,
-  'sequence': RepresentationSequence<ExtractOptionalArray<string, T['tag']>,
+  'scalar': RepresentationScalar<
+    ExtractOptionalArray<string, T['tag']>,
+    string
+  >,
+
+  'sequence': RepresentationSequence<
+    ExtractOptionalArray<string, T['tag']>,
     T['items'] extends Validator
       ? Validated<T['items']>
       : RepresentationNode
   >,
-  'mapping': RepresentationMapping<ExtractOptionalArray<string, T['tag']>,
-    ValidatedMappingPairs<T['properties']>
+
+  'mapping': RepresentationMapping<
+    ExtractOptionalArray<string, T['tag']>,
+    ValidatedMappingPairs<T['properties']>,
+    (T['requiredProperties'] extends NodeSet<infer RequiredKeys>
+      ? (RequiredKeys & ValidatedMappingPairs<T['properties']>[0])
+      : never)
   >,
 }[ExtractOptionalArray<NodeKind, T['kind']>];
 
-type ValidatedMappingPairs<TProperties extends Validator['properties']> =
+type ValidatedMappingPairs<
+  TProperties extends Validator['properties'],
+> =
   TProperties extends NodeMap<infer PairType>
     ? (
       PairType extends readonly [infer K extends RepresentationNode, infer V extends Validator]

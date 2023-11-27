@@ -1,7 +1,7 @@
 import type { Validator } from './types';
 
-import { NodeMap, type RepresentationScalar } from '@/nodes';
-import { strictEntries } from '@/util';
+import { NodeMap, NodeSet, type RepresentationScalar } from '@/nodes';
+import { strictEntries, strictKeys } from '@/util';
 import * as H from '@/helpers';
 
 export const str = {
@@ -32,16 +32,24 @@ export const map = {
 } as const satisfies Validator;
 
 export function stringMapOf<T extends Record<string, Validator>>(properties: T) {
-  const pairs = strictEntries(properties).map(([key, value]) => [H.str(key as string), value]) as
-    {
-      [K in keyof T & string]: [
-        RepresentationScalar<'tag:yaml.org,2002:str', K>,
+  type TKey = keyof T & string;
+
+  const pairs = strictEntries(properties)
+    .map(([key, value]) => [H.str((key as TKey).replace(/\?$/, '')), value]) as {
+      [K in TKey]: [
+        RepresentationScalar<'tag:yaml.org,2002:str', K extends `${infer L}?` ? L : K>,
         T[K],
       ]
-    }[keyof T & string][];
+    }[TKey][];
+
+  const requiredProperties = strictKeys(properties)
+    .filter(key => !(key as TKey).endsWith('?'))
+    .map(key => H.str(key as TKey)) as
+    RepresentationScalar<'tag:yaml.org,2002:str', TKey extends `${string}?` ? never : TKey>[];
 
   return {
     ...map,
     properties: new NodeMap(pairs),
+    requiredProperties: new NodeSet(requiredProperties),
   } satisfies Validator;
 }

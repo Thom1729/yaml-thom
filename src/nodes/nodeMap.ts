@@ -32,17 +32,25 @@ export class NodeMap<const PairType extends readonly [UnresolvedNode, unknown]> 
 
   get size() { return this.pairs.length; }
 
+  private _findPair(key: PairType[0], comparator?: NodeComparator) {
+    const c = comparator ?? new NodeComparator();
+    for (const pair of this.pairs) {
+      if (c.equals(key, pair[0])) {
+        return pair;
+      }
+    }
+    return undefined;
+  }
+
+  has(key: PairType[0], comparator?: NodeComparator) {
+    return this._findPair(key, comparator) !== undefined;
+  }
+
   get<KeyType extends PairType[0]>(
     key: KeyType,
     comparator?: NodeComparator,
   ): Get<PairType, KeyType> | undefined {
-    const c = comparator ?? new NodeComparator();
-    for (const [currentKey, currentValue] of this.pairs) {
-      if (c.equals(key, currentKey)) {
-        return currentValue as Get<PairType, KeyType>;
-      }
-    }
-    return undefined;
+    return this._findPair(key, comparator)?.[1] as Get<PairType, KeyType> | undefined;
   }
 
   set<K extends PairType[0]>(
@@ -59,7 +67,38 @@ export class NodeMap<const PairType extends readonly [UnresolvedNode, unknown]> 
   }
 }
 
-export type Get<PairType extends readonly [UnresolvedNode, unknown], KeyType extends PairType[0]> =
+export class NodeSet<T extends UnresolvedNode> {
+  readonly map = new NodeMap<readonly [T, undefined]>();
+
+  constructor(items?: Iterable<T>) {
+    if (items !== undefined) {
+      for (const item of items) {
+        this.add(item);
+      }
+    }
+  }
+
+  *[Symbol.iterator]() {
+    for (const [key] of this.map) {
+      yield key;
+    }
+  }
+
+  get size() { return this.map.size; }
+
+  has(key: T, comparator?: NodeComparator) {
+    return this.map.has(key, comparator);
+  }
+
+  add(key: T, comparator?: NodeComparator) {
+    this.map.set(key, undefined, comparator);
+  }
+}
+
+export type Get<
+  PairType extends readonly [UnresolvedNode, unknown],
+  KeyType extends PairType[0],
+> =
   PairType extends readonly [infer PairKey, infer PairValue]
     ? (KeyType extends PairKey ? PairValue : never)
     : never

@@ -21,7 +21,11 @@ export function assertValid<ValidatorType extends Validator>(
   validator: ValidatorType,
   node: RepresentationNode,
 ): asserts node is Validated<ValidatorType> {
-  if (!isValid(validator, node)) throw new TypeError('invalid');
+  const itr = validate(validator, node);
+  const result = itr.next();
+  if (!result.done) {
+    throw new TypeError(JSON.stringify(result.value, null, 2));
+  }
 }
 
 export function validate(
@@ -83,6 +87,19 @@ const VALIDATORS = {
     }
     return valid;
   },
+
+  requiredProperties: function *(node, requiredProperties, path) {
+    let valid = true;
+    if (node.kind === 'mapping') {
+      for (const key of requiredProperties) {
+        if (!node.has(key)) {
+          valid = false;
+          yield { path, key: 'requiredProperties' };
+        }
+      }
+    }
+    return valid;
+  }
 
   // anyOf: function*(node, validators, path) {
   //   for (const alternative of validators) {

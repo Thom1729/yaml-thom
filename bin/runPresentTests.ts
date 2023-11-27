@@ -16,12 +16,12 @@ import * as V from '@/validator/validatorHelpers';
 import { str } from '@/helpers';
 
 const presenterTestValidator = V.stringMapOf({
-  name: V.str,
-  options: V.stringMapOf({
-    scalarStyle: V.seqOf({
+  'name?': V.str,
+  'options?': V.stringMapOf({
+    'scalarStyle?': V.seqOf({
       enum: [str('plain'), str('double')],
     }),
-    doubleQuoteEscapeStyle: V.seqOf({
+    'doubleQuoteEscapeStyle?': V.seqOf({
       enum: [str('builtin'), str('x'), str('u'), str('U')],
     }),
   }),
@@ -34,8 +34,8 @@ function constructTest(node: RepresentationNode) {
 
   const name = node.get(str('name'))?.content;
   const options = node.get(str('options'));
-  const input = node.get(str('input'))!;
-  const expected = node.get(str('expected'))!.content;
+  const input = node.get(str('input'));
+  const expected = node.get(str('expected')).content;
 
   return {
     name,

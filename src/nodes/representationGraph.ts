@@ -51,6 +51,7 @@ export class RepresentationSequence<
 export class RepresentationMapping<
   TagType extends SerializationTag = string,
   PairType extends readonly [UnresolvedNode, UnresolvedNode] = readonly [RepresentationNode, RepresentationNode],
+  in RequiredKeys extends PairType[0] = never,
 > extends ValueNode<TagType, NodeMap<PairType>> {
   readonly kind = 'mapping';
 
@@ -68,11 +69,24 @@ export class RepresentationMapping<
 
   get size() { return this.content.size; }
 
-  get<KeyType extends PairType[0]>(
-    k: KeyType,
+  has(key: PairType[0]) {
+    return this.content.has(key);
+  }
+
+  get<KeyType extends RequiredKeys>(
+    key: KeyType,
     comparator?: NodeComparator,
-  ): Get<PairType, KeyType> | undefined {
-    return this.content.get(k, comparator) ?? undefined;
+  ): Get<PairType, KeyType>;
+  get<KeyType extends PairType[0]>(
+    key: KeyType,
+    comparator?: NodeComparator,
+  ): Get<PairType, KeyType> | undefined;
+
+  get<KeyType extends PairType[0]>(
+    key: KeyType,
+    comparator?: NodeComparator,
+  ) {
+    return this.content.get(key, comparator) as Get<PairType, KeyType>;
   }
 
   map(callback: (item: PairType[1]) => PairType[1]) {
@@ -80,9 +94,9 @@ export class RepresentationMapping<
   }
 
   merge(
-    this: RepresentationMapping<TagType, readonly [RepresentationNode, RepresentationNode]>,
+    this: RepresentationMapping<TagType, readonly [RepresentationNode, RepresentationNode], never>,
     other: Iterable<readonly [RepresentationNode, RepresentationNode]>,
-  ): RepresentationMapping<TagType, readonly [RepresentationNode, RepresentationNode]> {
+  ): RepresentationMapping<TagType, readonly [RepresentationNode, RepresentationNode], never> {
     const content: (readonly [RepresentationNode, RepresentationNode])[] = [];
 
     const
@@ -132,4 +146,4 @@ export type RepresentationNode =
 export type UnresolvedNode =
 | RepresentationScalar<SerializationTag>
 | RepresentationSequence<SerializationTag, UnresolvedNode>
-| RepresentationMapping<SerializationTag, readonly [UnresolvedNode, UnresolvedNode]>;
+| RepresentationMapping<SerializationTag, readonly [UnresolvedNode, UnresolvedNode], never>;
