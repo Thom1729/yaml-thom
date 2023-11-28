@@ -25,7 +25,6 @@ expected: |
   %YAML 1.2
   --- "- Hello\"World!"
   ...
-
 ---
 name: Escape U
 options:

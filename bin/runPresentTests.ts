@@ -22,7 +22,7 @@ const presenterTestValidator = V.stringMapOf({
       enum: [str('plain'), str('double')],
     }),
     'doubleQuoteEscapeStyle?': V.seqOf({
-      enum: [str('builtin'), str('x'), str('u'), str('U')],
+      enum: [str('builtin'), str('x'), str('u'), str('U'), str('surrogate')],
     }),
   }),
   input: {},

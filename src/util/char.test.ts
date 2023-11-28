@@ -1,8 +1,10 @@
+import { splitStream } from '@/parser/splitStream';
 import {
   assertCodePoint,
   charForCodePoint,
   charUtf16Width,
   combineSurrogates,
+  splitSurrogates,
 } from './char';
 
 describe(assertCodePoint, () => {
@@ -53,8 +55,14 @@ describe(charUtf16Width, () => {
   });
 });
 
+describe(splitSurrogates, () => {
+  test('𐐷', () => {
+    expect(splitSurrogates(0x1_0437)).toStrictEqual([0xD801, 0xDC37]);
+  });
+});
+
 describe(combineSurrogates, () => {
-  test('', () => {
+  test('𐐷', () => {
     expect(combineSurrogates(0xD801, 0xDC37)).toBe(0x01_0437);
   });
 });

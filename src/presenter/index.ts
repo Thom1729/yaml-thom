@@ -11,7 +11,7 @@ import {
   type SerializationTag,
 } from '@/nodes';
 
-import { assertNotUndefined, repeat } from '@/util';
+import { assertNotUndefined, repeat, isAstral, isBmp, splitSurrogates } from '@/util';
 
 type DoubleQuoteEscapeStyle =
 | 'builtin'
@@ -353,8 +353,16 @@ function mustEscapeInDoubleString(codepoint: number) {
 const doubleQuoteEscapeStyles = {
   builtin: (codepoint: number) => DOUBLE_QUOTE_ESCAPES.get(codepoint),
   x: (codepoint: number) => codepoint <= 0xff ? 'x' + codepoint.toString(16).padStart(2, '0') : undefined,
-  u: (codepoint: number) => codepoint <= 0xffff ? 'u' + codepoint.toString(16).padStart(4, '0') : undefined,
+  u: (codepoint: number) => isBmp(codepoint) ? 'u' + codepoint.toString(16).padStart(4, '0') : undefined,
   U: (codepoint: number) => 'U' + codepoint.toString(16).padStart(8, '0'),
+  surrogate: (codepoint: number) => {
+    if (isAstral(codepoint)) {
+      const [high, low] = splitSurrogates(codepoint);
+      return `u${high.toString(16).padStart(4, '0')}\\u${low.toString(16).padStart(4, '0')}`;
+    } else {
+      return undefined;
+    }
+  },
 };
 
 function applyStyle<U, T extends PropertyKey, R>(
