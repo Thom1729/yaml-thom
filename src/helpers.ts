@@ -3,6 +3,7 @@ import {
   RepresentationSequence,
   RepresentationMapping,
   RepresentationNode,
+  type Get,
 } from '@/nodes';
 
 export function isStr(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:str'> {
@@ -103,6 +104,18 @@ export function _extractStringMap<T extends string>(
   return ret as {
     [K in T as (K extends `${infer L}?` ? L : K)]:
       RepresentationNode | (K extends `${string}?` ? undefined : never)
+  };
+}
+
+export function extractTypedStringMap<
+  PairType extends readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
+  RequiredKeys extends PairType[0],
+>(node: RepresentationMapping<'tag:yaml.org,2002:map', PairType, RequiredKeys>) {
+  return Object.fromEntries(Array.from(node).map(([key, value]) => [key.content, value])) as {
+    [K in PairType[0] as K['content']]: (
+      | Get<PairType, K>
+      | (K extends RequiredKeys ? never : undefined)
+    )
   };
 }
 

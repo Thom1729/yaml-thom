@@ -13,7 +13,7 @@ import {
 
 import * as V from '@/validator/validatorHelpers';
 
-import { str } from '@/helpers';
+import { str, extractTypedStringMap } from '@/helpers';
 
 const presenterTestValidator = V.stringMapOf({
   'name?': V.str,
@@ -31,11 +31,12 @@ const presenterTestValidator = V.stringMapOf({
 
 function constructTest(node: RepresentationNode) {
   assertValid(presenterTestValidator, node);
+  const x = extractTypedStringMap(node);
 
-  const name = node.get(str('name'))?.content;
-  const options = node.get(str('options'));
-  const input = node.get(str('input'));
-  const expected = node.get(str('expected')).content;
+  const name = x.name?.content;
+  const options = x.options;
+  const input = x.input;
+  const expected = x.expected.content;
 
   return {
     name,

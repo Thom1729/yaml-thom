@@ -1,4 +1,3 @@
-import { splitStream } from '@/parser/splitStream';
 import {
   assertCodePoint,
   charForCodePoint,
