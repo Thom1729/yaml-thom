@@ -33,16 +33,11 @@ function constructTest(node: RepresentationNode) {
   assertValid(presenterTestValidator, node);
   const x = extractTypedStringMap(node);
 
-  const name = x.name?.content;
-  const options = x.options;
-  const input = x.input;
-  const expected = x.expected.content;
-
   return {
-    name,
-    options: options && (defaultConstructor(options) as DumpOptions),
-    input,
-    expected,
+    name: x.name?.content,
+    options: x.options && (defaultConstructor(x.options) as DumpOptions),
+    input: x.input,
+    expected: x.expected.content,
   };
 }
 

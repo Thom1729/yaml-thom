@@ -7,9 +7,11 @@ import {
   RepresentationMapping, type RepresentationNode,
   evaluate,
   diff,
+  assertValid,
 } from '@/index';
 
-import { extractMapEntries, extractStrContent, extractStringMap } from '@/helpers';
+import { extractTypedStringMap } from '@/helpers';
+import * as V from '@/validator/validatorHelpers';
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';
@@ -17,22 +19,31 @@ import { loadTestFiles, enumerate } from '../helpers';
 
 interface AnnotationTest {
   name?: string;
-  context: readonly (readonly [RepresentationNode, RepresentationNode])[];
+  context?: RepresentationMapping<'tag:yaml.org,2002:map'>;
   input: RepresentationNode;
   expected: RepresentationNode | undefined;
   error: boolean | undefined;
 }
 
+const validator = V.stringMapOf({
+  'name?': V.str,
+  'context?': V.map,
+  input: {},
+  'expected?': {},
+  'error?': V.bool,
+});
+
 function *loadAnnotationTest(text: string): Generator<AnnotationTest> {
   for (const test of loadStream(text, { version: '1.3' })) {
-    const testProperties = extractStringMap(test, ['context?', 'input', 'expected?', 'error?', 'name?']);
+    assertValid(validator, test);
+    const x = extractTypedStringMap(test);
 
     yield {
-      name: testProperties.name && extractStrContent(testProperties.name),
-      input: testProperties.input,
-      expected: testProperties.expected,
-      context: testProperties.context ? extractMapEntries(testProperties.context) : [],
-      error: Boolean(testProperties.error),
+      name: x.name?.content,
+      input: x.input,
+      expected: x.expected,
+      context: x.context,
+      error: Boolean(x.error),
     };
   }
 }
@@ -42,7 +53,7 @@ function runAnnotationTest(test: AnnotationTest) {
   let actual = null;
   let error = null;
 
-  const context = new RepresentationMapping('tag:yaml.org,2002:map', test.context);
+  const context = test.context ?? new RepresentationMapping('tag:yaml.org,2002:map', []);
   try {
     actual = evaluate(test.input, context);
   } catch (e) {
