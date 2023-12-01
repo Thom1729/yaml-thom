@@ -6,69 +6,56 @@ import {
 } from '@/nodes';
 
 import {
-  extractMapEntries, extractSeqItems, extractStringMap,
+  extractInt,
+  extractMapEntries, extractSeqItems, extractTypedStringMap, str,
 } from '@/helpers';
 
-import { defaultConstructor } from '@/constructor';
-import { isArray, assertEnum, assertString, assertBigInt } from '@/util';
+import * as V from './validatorHelpers';
 
-function assertArrayOf<T, U extends T>(
-  value: readonly T[],
-  assertion: (value: T) => asserts value is U,
-): asserts value is [U, ...U[]] {
-  if (!isArray(value)) throw new TypeError();
-  if (value.length === 0) throw new TypeError();
-  for (const item of value) {
-    assertion(item);
-  }
-}
+import { assertNotEmpty } from '@/util';
 
-function wrapArray(value: unknown): readonly unknown[] {
-  return isArray(value) ? value : [value];
-}
+const nodeKindValidator = {
+  enum: [str('scalar'), str('sequence'), str('mapping')],
+} satisfies Validator;
 
-const validatorValidator = {
-  kind: ['mapping'],
-  tag: ['tag:yaml.org,2002:map'],
+const validatorValidator = V.stringMapOf({
+  'kind?': { anyOf: [ nodeKindValidator, V.seqOf(nodeKindValidator) ] },
+  'tag?': { anyOf: [ V.str, V.seqOf(V.str) ] },
+  'const?': {},
+  'enum?': V.seq,
 
-  // properties: new NodeMap([
-  //   [str('kind'), { enum: [str('scalar')] }],
-  //   [str('tag'), {}],
-  //   [str('const'), {}],
-  //   [str('enum'), {}],
+  'minLength?': V.int,
+  'maxLength?': V.int,
 
-  //   [str('minLength'), {}],
-  //   [str('maxLength'), {}],
-
-  //   [str('items'), {}],
-
-  //   [str('properties'), {}],
-  // ]),
-} as const satisfies Validator;
+  'items?': {},
+  'properties?': V.map,
+  'requiredProperties?': V.seq,
+});
 
 export function constructValidator(node: RepresentationNode): Validator {
   assertValid(validatorValidator, node);
-
-  const x = extractStringMap(node, [
-    'kind?', 'tag?',
-    'const?', 'enum?',
-    'minLength?', 'maxLength?',
-    'items?',
-    'properties?',
-  ]);
+  const x = extractTypedStringMap(node);
 
   const ret: Validator = {};
 
   if (x.kind !== undefined) {
-    const kind = wrapArray(defaultConstructor(x.kind));
-    assertArrayOf(kind, assertEnum(['scalar', 'sequence', 'mapping']));
-    ret.kind = kind;
+    if (x.kind.kind === 'scalar') {
+      ret.kind = [x.kind.content];
+    } else {
+      const kind = Array.from(x.kind).map(scalar => scalar.content);
+      assertNotEmpty(kind);
+      ret.kind = kind;
+    }
   }
 
   if (x.tag !== undefined) {
-    const tag = wrapArray(defaultConstructor(x.tag));
-    assertArrayOf(tag, assertString);
-    ret.tag = tag;
+    if (x.tag.kind === 'scalar') {
+      ret.tag = [x.tag.content];
+    } else {
+      const kind = Array.from(x.tag).map(scalar => scalar.content);
+      assertNotEmpty(kind);
+      ret.tag = kind;
+    }
   }
 
   if (x.const !== undefined) {
@@ -78,15 +65,14 @@ export function constructValidator(node: RepresentationNode): Validator {
 
   if (x.enum !== undefined) {
     const items = extractSeqItems(x.enum);
-    if (items.length === 0) throw new TypeError();
-    ret.enum = items as [RepresentationNode, ...RepresentationNode[]];
+    assertNotEmpty(items);
+    ret.enum = items;
   }
 
   for (const key of ['minLength', 'maxLength'] as const) {
     const rawValue = x[key];
     if (rawValue !== undefined) {
-      const value = defaultConstructor(rawValue);
-      assertBigInt(value);
+      const value = extractInt(rawValue);
       ret[key] = value;
     }
   }

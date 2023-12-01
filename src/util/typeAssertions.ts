@@ -28,6 +28,10 @@ export function assertNotNull<T>(value: T, message?: string): asserts value is E
 
 export const isArray = Array.isArray as (arg: unknown) => arg is ReadonlyArray<unknown> | Array<unknown>;
 
+export function assertNotEmpty<T>(array: readonly T[]): asserts array is readonly [T, ...T[]] {
+  if (array.length === 0) throw new TypeError(`expected nonempty`);
+}
+
 export function isKeyOf<K extends string | number | symbol, T extends object>(
   key: K,
   obj: T,
