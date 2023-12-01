@@ -108,15 +108,26 @@ export function _extractStringMap<T extends string>(
 }
 
 export function extractTypedStringMap<
-  PairType extends readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
-  RequiredKeys extends PairType[0],
->(node: RepresentationMapping<'tag:yaml.org,2002:map', PairType, RequiredKeys>) {
-  return Object.fromEntries(Array.from(node).map(([key, value]) => [key.content, value])) as {
-    [K in PairType[0] as K['content']]: (
-      | Get<PairType, K>
-      | (K extends RequiredKeys ? never : undefined)
-    )
-  };
+  T extends RepresentationMapping<
+    'tag:yaml.org,2002:map',
+    readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
+    never
+  >
+>(node: T) {
+  return Object.fromEntries(Array.from(node).map(([key, value]) => [key.content, value])) as (
+    T extends RepresentationMapping<
+      'tag:yaml.org,2002:map',
+      infer PairType extends readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
+      infer RequiredKeys
+    >
+      ? {
+      [K in PairType[0] as K['content']]: (
+        | Get<PairType, K>
+        | (K extends RequiredKeys ? never : undefined)
+      )
+    }
+      : never
+  );
 }
 
 export function extractAnnotationInfo(annotation: RepresentationMapping<'tag:yaml.org,2002:annotation'>) {

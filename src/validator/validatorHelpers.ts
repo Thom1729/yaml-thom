@@ -14,6 +14,11 @@ export const bool = {
   tag: ['tag:yaml.org,2002:bool'],
 } as const satisfies Validator;
 
+export const int = {
+  kind: ['scalar'],
+  tag: ['tag:yaml.org,2002:int'],
+} as const satisfies Validator;
+
 export const seq = {
   kind: ['sequence'],
   tag: ['tag:yaml.org,2002:seq'],

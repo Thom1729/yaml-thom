@@ -8,15 +8,11 @@ import {
   defaultConstructor,
   validate, constructValidator, type Validator, type ValidationFailure,
   type RepresentationNode,
+  assertValid,
+  type PathEntry,
 } from '@/index';
 
-import {
-  extractStringMap,
-  extractSeqItems,
-  extractStrContent,
-  extractInt,
-  assertInt,
-} from '@/helpers';
+import { extractTypedStringMap } from '@/helpers';
 
 interface ValidationTest {
   validator: Validator;
@@ -29,8 +25,19 @@ interface ValidationTestResult {
   success: boolean;
 }
 
+import * as V from '@/validator/validatorHelpers';
+import { assertNotUndefined } from '@/util';
+
+const testValidator = V.stringMapOf({
+  validator: {},
+  input: {},
+  'valid?': V.bool,
+  'failures?': {},
+});
+
 function constructValidationTest(document: RepresentationNode): ValidationTest {
-  const x = extractStringMap(document, ['validator', 'input', 'valid?', 'failures?']);
+  assertValid(testValidator, document);
+  const x = extractTypedStringMap(document);
 
   const ret: ValidationTest = {
     validator: constructValidator(x.validator),
@@ -45,13 +52,20 @@ function constructValidationTest(document: RepresentationNode): ValidationTest {
   return ret;
 }
 
+const failuresValidator = V.seqOf(V.stringMapOf({
+  path: V.seq,
+  key: V.str,
+  'children?': {},
+}));
+
 function constructTestFailures(failures: RepresentationNode): ValidationFailure[] {
-  return extractSeqItems(failures).map(failure => {
-    const y = extractStringMap(failure, ['path', 'key', 'children?']);
+  assertValid(failuresValidator, failures);
+  return Array.from(failures).map(failure => {
+    const y = extractTypedStringMap(failure);
 
     const ret: ValidationFailure = {
-      path: extractSeqItems(y.path).map(constructPathEntry),
-      key: extractStrContent(y.key) as ValidationFailure['key'],
+      path: Array.from(y.path).map(constructPathEntry),
+      key: y.key.content as ValidationFailure['key'],
     };
 
     if (y.children) {
@@ -62,16 +76,26 @@ function constructTestFailures(failures: RepresentationNode): ValidationFailure[
   });
 }
 
-function constructPathEntry(entry: RepresentationNode) {
-  const z = extractStringMap(entry, ['type', 'index?', 'key?', 'value?']);
-  const type = extractStrContent(z.type);
+const pathEntryValidator = V.stringMapOf({
+  type: V.str,
+  'index?': V.int,
+  'key?': {},
+  'value?': {},
+});
+
+function constructPathEntry(entry: RepresentationNode): PathEntry {
+  assertValid(pathEntryValidator, entry);
+  const z = extractTypedStringMap(entry);
+  const type = z.type.content;
   if (type === 'index') {
-    assertInt(z.index!);
-    return { type: type as 'index', index: Number(extractInt(z.index)) };
+    assertNotUndefined(z.index);
+    return { type, index: Number(z.index.content) };
   } else if (type === 'key') {
-    return { type: type as 'key', key: z.key! };
+    assertNotUndefined(z.key);
+    return { type, key: z.key };
   } else if (type === 'value') {
-    return { type: type as 'value', key: z.key! };
+    assertNotUndefined(z.key);
+    return { type, key: z.key };
   } else {
     throw new TypeError(type);
   }

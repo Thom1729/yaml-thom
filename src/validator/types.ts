@@ -26,12 +26,12 @@ type ExtractOptionalArray<TBase, TChild extends (readonly TBase[] | undefined)> 
   TChild extends readonly (infer U extends TBase)[] ? U : TBase;
 
 export type Validated<T extends Validator> =
-& ExtractOptionalArray<unknown, T['enum']>
 & (T['anyOf'] extends readonly (infer U extends Validator)[]
   ? Validated<U>
   : unknown
 )
 
+& ExtractOptionalArray<unknown, T['enum']>
 & {
   'scalar': RepresentationScalar<
     ExtractOptionalArray<string, T['tag']>,

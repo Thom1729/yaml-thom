@@ -99,16 +99,16 @@ const VALIDATORS = {
       }
     }
     return valid;
-  }
+  },
 
-  // anyOf: function*(node, validators, path) {
-  //   for (const alternative of validators) {
-  //     const failures = Array.from(this.validate(alternative, node, path));
-  //     if (failures.length === 0) return true;
-  //   }
-  //   yield* [];
-  //   return false;
-  // },
+  anyOf: function*(node, validators, path) {
+    for (const alternative of validators) {
+      const failures = Array.from(this.validate(alternative, node, path));
+      if (failures.length === 0) return true;
+    }
+    yield* [];
+    return false;
+  },
 } satisfies {
   [K in keyof Validator]: (
     this: NodeValidator,
