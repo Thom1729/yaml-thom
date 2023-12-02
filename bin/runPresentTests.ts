@@ -18,12 +18,8 @@ import { str, extractTypedStringMap } from '@/helpers';
 const presenterTestValidator = V.stringMapOf({
   'name?': V.str,
   'options?': V.stringMapOf({
-    'scalarStyle?': V.seqOf({
-      enum: [str('plain'), str('double')],
-    }),
-    'doubleQuoteEscapeStyle?': V.seqOf({
-      enum: [str('builtin'), str('x'), str('u'), str('U'), str('surrogate')],
-    }),
+    'scalarStyle?': V.seqOf(V.enumOf(str('plain'), str('double'))),
+    'doubleQuoteEscapeStyle?': V.seqOf(V.enumOf(str('builtin'), str('x'), str('u'), str('U'), str('surrogate'))),
   }),
   input: {},
   expected: V.str,

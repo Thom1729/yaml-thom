@@ -46,7 +46,7 @@ const VALIDATORS = {
   tag: (node, tag) => tag.has(node.tag),
 
   enum: function (node, items) {
-    return items.some(value => this.comparator.equals(value, node));
+    return items.has(node, this.comparator);
   },
 
   minLength: (node, minLength) => node.size >= minLength,

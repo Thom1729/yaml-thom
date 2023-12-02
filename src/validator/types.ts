@@ -9,7 +9,7 @@ export interface Validator {
   kind?: Set<NodeKind>;
   tag?: Set<string>;
 
-  enum?: readonly [RepresentationNode, ...RepresentationNode[]];
+  enum?: NodeSet<RepresentationNode>;
 
   minLength?: bigint;
   maxLength?: bigint;
@@ -25,9 +25,6 @@ export interface Validator {
 type ExtractSet<TBase, TChild extends Set<TBase> | undefined> =
   TChild extends Set<infer U> ? U : TBase;
 
-type ExtractOptionalArray<TBase, TChild extends (readonly TBase[] | undefined)> =
-  TChild extends readonly (infer U extends TBase)[] ? U : TBase;
-
 export type Validated<T extends Validator> =
 & (T['anyOf'] extends readonly (infer U extends Validator)[]
   ? (
@@ -37,7 +34,7 @@ export type Validated<T extends Validator> =
 );
 
 type Validated2<T extends Validator> =
-& ExtractOptionalArray<unknown, T['enum']>
+& (T['enum'] extends NodeSet<infer U> ? U : unknown)
 & {
   'scalar': RepresentationScalar<
     ExtractSet<string, T['tag']>,

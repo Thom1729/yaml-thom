@@ -2,7 +2,7 @@ import type { Validator } from './types';
 import { assertValid } from './validate';
 
 import {
-  NodeMap, type RepresentationNode,
+  NodeMap, NodeSet, type RepresentationNode,
 } from '@/nodes';
 
 import {
@@ -15,7 +15,7 @@ import * as V from './validatorHelpers';
 import { assertNotEmpty } from '@/util';
 
 const nodeKindValidator = {
-  enum: [str('scalar'), str('sequence'), str('mapping')],
+  enum: new NodeSet([str('scalar'), str('sequence'), str('mapping')]),
 } satisfies Validator;
 
 const validatorValidator = V.stringMapOf({
@@ -60,13 +60,13 @@ export function constructValidator(node: RepresentationNode): Validator {
 
   if (x.const !== undefined) {
     if (x.enum !== undefined) throw new TypeError(`const and enum are exclusive`);
-    ret.enum = [x.const];
+    ret.enum = new NodeSet([x.const]);
   }
 
   if (x.enum !== undefined) {
     const items = extractSeqItems(x.enum);
     assertNotEmpty(items);
-    ret.enum = items;
+    ret.enum = new NodeSet(items);
   }
 
   for (const key of ['minLength', 'maxLength'] as const) {

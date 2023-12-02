@@ -1,6 +1,6 @@
 import type { Validator } from './types';
 
-import { NodeMap, NodeSet, type RepresentationScalar } from '@/nodes';
+import { NodeMap, NodeSet, RepresentationNode, type RepresentationScalar } from '@/nodes';
 import { strictEntries, strictKeys } from '@/util';
 import * as H from '@/helpers';
 
@@ -57,4 +57,10 @@ export function stringMapOf<T extends Record<string, Validator>>(properties: T) 
     properties: new NodeMap(pairs),
     requiredProperties: new NodeSet(requiredProperties),
   } satisfies Validator;
+}
+
+export function enumOf<const T extends readonly RepresentationNode[]>(...items: T) {
+  return {
+    enum: new NodeSet<T[number]>(items),
+  };
 }
