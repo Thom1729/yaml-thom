@@ -6,7 +6,7 @@ import type {
 type NodeKind = 'scalar' | 'sequence' | 'mapping';
 
 export interface Validator {
-  kind?: readonly [NodeKind, ...NodeKind[]];
+  kind?: Set<NodeKind>;
   tag?: readonly [string, ...string[]];
 
   enum?: readonly [RepresentationNode, ...RepresentationNode[]];
@@ -55,7 +55,7 @@ type Validated2<T extends Validator> =
       ? (RequiredKeys & ValidatedMappingPairs<T['properties']>[0])
       : never)
   >,
-}[ExtractOptionalArray<NodeKind, T['kind']>];
+}[T['kind'] extends Set<infer Kind extends NodeKind> ? Kind : NodeKind];
 
 type ValidatedMappingPairs<
   TProperties extends Validator['properties'],

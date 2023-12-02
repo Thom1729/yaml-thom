@@ -42,7 +42,7 @@ export interface ValidationFailure {
 }
 
 const VALIDATORS = {
-  kind: (node, kind) => kind.includes(node.kind),
+  kind: (node, kind) => kind.has(node.kind),
   tag: (node, tag) => tag.includes(node.tag),
 
   enum: function (node, items) {

@@ -5,23 +5,28 @@ import { strictEntries, strictKeys } from '@/util';
 import * as H from '@/helpers';
 
 export const str = {
-  kind: ['scalar'],
+  kind: new Set(['scalar']),
   tag: ['tag:yaml.org,2002:str'],
 } as const satisfies Validator;
 
 export const bool = {
-  kind: ['scalar'],
+  kind: new Set(['scalar']),
   tag: ['tag:yaml.org,2002:bool'],
 } as const satisfies Validator;
 
 export const int = {
-  kind: ['scalar'],
+  kind: new Set(['scalar']),
   tag: ['tag:yaml.org,2002:int'],
 } as const satisfies Validator;
 
 export const seq = {
-  kind: ['sequence'],
+  kind: new Set(['sequence']),
   tag: ['tag:yaml.org,2002:seq'],
+} as const satisfies Validator;
+
+export const map = {
+  kind: new Set(['mapping']),
+  tag: ['tag:yaml.org,2002:map'],
 } as const satisfies Validator;
 
 export function seqOf<T extends Validator>(items: T) {
@@ -30,11 +35,6 @@ export function seqOf<T extends Validator>(items: T) {
     items,
   } satisfies Validator;
 }
-
-export const map = {
-  kind: ['mapping'],
-  tag: ['tag:yaml.org,2002:map'],
-} as const satisfies Validator;
 
 export function stringMapOf<T extends Record<string, Validator>>(properties: T) {
   type TKey = keyof T & string;
