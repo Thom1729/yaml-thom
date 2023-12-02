@@ -7,7 +7,7 @@ type NodeKind = 'scalar' | 'sequence' | 'mapping';
 
 export interface Validator {
   kind?: Set<NodeKind>;
-  tag?: readonly [string, ...string[]];
+  tag?: Set<string>;
 
   enum?: readonly [RepresentationNode, ...RepresentationNode[]];
 
@@ -21,6 +21,9 @@ export interface Validator {
 
   anyOf?: readonly Validator[];
 }
+
+type ExtractSet<TBase, TChild extends Set<TBase> | undefined> =
+  TChild extends Set<infer U> ? U : TBase;
 
 type ExtractOptionalArray<TBase, TChild extends (readonly TBase[] | undefined)> =
   TChild extends readonly (infer U extends TBase)[] ? U : TBase;
@@ -37,25 +40,25 @@ type Validated2<T extends Validator> =
 & ExtractOptionalArray<unknown, T['enum']>
 & {
   'scalar': RepresentationScalar<
-    ExtractOptionalArray<string, T['tag']>,
+    ExtractSet<string, T['tag']>,
     string
   >,
 
   'sequence': RepresentationSequence<
-    ExtractOptionalArray<string, T['tag']>,
+    ExtractSet<string, T['tag']>,
     T['items'] extends Validator
       ? Validated<T['items']>
       : RepresentationNode
   >,
 
   'mapping': RepresentationMapping<
-    ExtractOptionalArray<string, T['tag']>,
+    ExtractSet<string, T['tag']>,
     ValidatedMappingPairs<T['properties']>,
     (T['requiredProperties'] extends NodeSet<infer RequiredKeys>
       ? (RequiredKeys & ValidatedMappingPairs<T['properties']>[0])
       : never)
   >,
-}[T['kind'] extends Set<infer Kind extends NodeKind> ? Kind : NodeKind];
+}[ExtractSet<NodeKind, T['kind']>];
 
 type ValidatedMappingPairs<
   TProperties extends Validator['properties'],

@@ -6,27 +6,27 @@ import * as H from '@/helpers';
 
 export const str = {
   kind: new Set(['scalar']),
-  tag: ['tag:yaml.org,2002:str'],
+  tag: new Set(['tag:yaml.org,2002:str'] as const),
 } as const satisfies Validator;
 
 export const bool = {
   kind: new Set(['scalar']),
-  tag: ['tag:yaml.org,2002:bool'],
+  tag: new Set(['tag:yaml.org,2002:bool'] as const),
 } as const satisfies Validator;
 
 export const int = {
   kind: new Set(['scalar']),
-  tag: ['tag:yaml.org,2002:int'],
+  tag: new Set(['tag:yaml.org,2002:int'] as const),
 } as const satisfies Validator;
 
 export const seq = {
   kind: new Set(['sequence']),
-  tag: ['tag:yaml.org,2002:seq'],
+  tag: new Set(['tag:yaml.org,2002:seq'] as const),
 } as const satisfies Validator;
 
 export const map = {
   kind: new Set(['mapping']),
-  tag: ['tag:yaml.org,2002:map'],
+  tag: new Set(['tag:yaml.org,2002:map'] as const),
 } as const satisfies Validator;
 
 export function seqOf<T extends Validator>(items: T) {

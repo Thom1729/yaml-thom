@@ -50,11 +50,11 @@ export function constructValidator(node: RepresentationNode): Validator {
 
   if (x.tag !== undefined) {
     if (x.tag.kind === 'scalar') {
-      ret.tag = [x.tag.content];
+      ret.tag = new Set([x.tag.content]);
     } else {
       const kind = Array.from(x.tag).map(scalar => scalar.content);
       assertNotEmpty(kind);
-      ret.tag = kind;
+      ret.tag = new Set(kind);
     }
   }
 
