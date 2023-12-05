@@ -30,54 +30,52 @@ const DEFAULT_OPTIONS = {
 } satisfies Required<SerializeOptions>;
 
 export function serialize(doc: RepresentationNode, options: SerializeOptions = {}) {
-  const { schema, anchorNames } = { ...DEFAULT_OPTIONS, ...options };
-  const anchorNameGenerator = anchorNames();
+  return new SerializeOperation({
+    ...DEFAULT_OPTIONS,
+    ...options,
+  }).serialize(doc);
+}
 
-  const cache = new Map<RepresentationNode, SerializationValueNode>();
+class SerializeOperation {
+  readonly options: Required<SerializeOptions>;
+  readonly anchorNameGenerator: Generator<string>;
+  readonly cache = new Map<RepresentationNode, SerializationValueNode>();
 
-  function unresolveTag(node: RepresentationNode) {
-    if (
-      // Don't resolve a scalar to ? if it can't be presented as a plain scalar
-      (node.kind !== 'scalar' || canBePlainScalar(node.content))
-      && schema.resolveNode({ ...node, tag: NonSpecificTag.question }) === node.tag
-    ) {
-      return NonSpecificTag.question;
-    } else if (schema.resolveNode({ ...node, tag: NonSpecificTag.exclamation }) === node.tag) {
-      return NonSpecificTag.exclamation;
-    } else {
-      return node.tag;
-    }
+  constructor(options: Required<SerializeOptions>) {
+    this.options = options;
+
+    this.anchorNameGenerator = this.options.anchorNames();
   }
 
-  function rec(node: RepresentationNode): SerializationNode {
-    const x = cache.get(node);
-    if (x !== undefined) {
-      if (x.anchor === null) {
-        const result = anchorNameGenerator.next();
+  serialize(node: RepresentationNode): SerializationNode {
+    const cachedNode = this.cache.get(node);
+    if (cachedNode !== undefined) {
+      if (cachedNode.anchor === null) {
+        const result = this.anchorNameGenerator.next();
         if (result.done) throw new Error(`Anchor name generator is exhausted`);
-        x.anchor = result.value;
+        cachedNode.anchor = result.value;
       }
-      return new Alias(x.anchor);
+      return new Alias(cachedNode.anchor);
     }
 
-    const tag = unresolveTag(node);
+    const tag = this.unresolveTag(node);
 
     if (node.kind === 'scalar') {
       const ret = new SerializationScalar(tag, node.content);
-      cache.set(node, ret);
+      this.cache.set(node, ret);
       return ret;
     } else if (node.kind === 'sequence') {
       const ret = new SerializationSequence(tag, []);
-      cache.set(node, ret);
+      this.cache.set(node, ret);
       for (const child of node) {
-        ret.content.push(rec(child));
+        ret.content.push(this.serialize(child));
       }
       return ret;
     } else if (node.kind === 'mapping') {
       const ret = new SerializationMapping(tag, []);
-      cache.set(node, ret);
+      this.cache.set(node, ret);
       for (const [key, value] of node) {
-        ret.content.push([rec(key), rec(value)]);
+        ret.content.push([this.serialize(key), this.serialize(value)]);
       }
       return ret;
     } else {
@@ -85,5 +83,17 @@ export function serialize(doc: RepresentationNode, options: SerializeOptions = {
     }
   }
 
-  return rec(doc);
+  unresolveTag(node: RepresentationNode) {
+    if (
+      // Don't resolve a scalar to ? if it can't be presented as a plain scalar
+      (node.kind !== 'scalar' || canBePlainScalar(node.content))
+      && this.options.schema.resolveNode({ ...node, tag: NonSpecificTag.question }) === node.tag
+    ) {
+      return NonSpecificTag.question;
+    } else if (this.options.schema.resolveNode({ ...node, tag: NonSpecificTag.exclamation }) === node.tag) {
+      return NonSpecificTag.exclamation;
+    } else {
+      return node.tag;
+    }
+  }
 }
