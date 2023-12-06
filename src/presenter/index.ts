@@ -13,20 +13,39 @@ import {
 
 import {
   assertNotUndefined, repeat, isAstral, isBmp, splitSurrogates,
-  applyStrategy,
+  applyStrategy, type Strategies, type StrategyOptions,
 } from '@/util';
 
-type DoubleQuoteEscapeStyle =
-| 'builtin'
-| 'x'
-| 'u'
-| 'U';
+const scalarStyleStrategies = {
+  [ScalarStyle.plain]: (node: SerializationScalar) => canBePlainScalar(node.content) ? ScalarStyle.plain : undefined,
+  [ScalarStyle.single]: () => undefined,
+  [ScalarStyle.double]: (node: SerializationScalar) => node.tag !== NonSpecificTag.question ? ScalarStyle.double : undefined,
+  [ScalarStyle.block]: () => undefined,
+  [ScalarStyle.folded]: () => undefined,
+} satisfies Strategies<ScalarStyle, [SerializationScalar]>;
+
+const doubleQuoteEscapeStrategies = {
+  builtin: (codepoint: number) => DOUBLE_QUOTE_ESCAPES.get(codepoint),
+  x: (codepoint: number) => codepoint <= 0xff ? 'x' + codepoint.toString(16).padStart(2, '0') : undefined,
+  u: (codepoint: number) => isBmp(codepoint) ? 'u' + codepoint.toString(16).padStart(4, '0') : undefined,
+  U: (codepoint: number) => 'U' + codepoint.toString(16).padStart(8, '0'),
+  surrogate: (codepoint: number) => {
+    if (isAstral(codepoint)) {
+      const [high, low] = splitSurrogates(codepoint);
+      return `u${high.toString(16).padStart(4, '0')}\\u${low.toString(16).padStart(4, '0')}`;
+    } else {
+      return undefined;
+    }
+  },
+} satisfies Strategies<string, [number]>;
+
+//////////
 
 export interface PresentOptions {
   indentation?: number;
   flow?: boolean;
-  scalarStyle?: readonly ScalarStyle[],
-  doubleQuoteEscapeStyle?: readonly DoubleQuoteEscapeStyle[],
+  scalarStyle?: StrategyOptions<typeof scalarStyleStrategies>,
+  doubleQuoteEscapeStyle?: StrategyOptions<typeof doubleQuoteEscapeStrategies>,
 }
 
 const DEFAULT_PRESENT_OPTIONS = {
@@ -70,25 +89,6 @@ function *wrapWithSpaces(itr: Tokens) {
       }
     }
   }
-}
-
-const SCALAR_STYLE_PREDICATES = {
-  [ScalarStyle.plain]: (node: SerializationScalar) => canBePlainScalar(node.content),
-  [ScalarStyle.single]: () => false,
-  [ScalarStyle.double]: (node: SerializationScalar) => node.tag !== NonSpecificTag.question,
-  [ScalarStyle.block]: () => false,
-  [ScalarStyle.folded]: () => false,
-};
-
-function filter<T extends PropertyKey, U extends SerializationNode>(
-  values: Iterable<T>,
-  node: U,
-  predicates: Record<T, (node: U) => boolean>,
-) {
-  for (const value of values) {
-    if (predicates[value](node)) return value;
-  }
-  return undefined;
 }
 
 interface PresentationContext {
@@ -153,16 +153,16 @@ class PresentOperation {
   }
 
   *presentScalar(node: SerializationScalar) {
-    const style = filter(this.options.scalarStyle, node, SCALAR_STYLE_PREDICATES);
+    const style = applyStrategy(scalarStyleStrategies, this.options.scalarStyle, [node]);
 
     if (style === undefined) throw new Error(`no valid scalar style for content ${JSON.stringify(node.content)}`);
 
     switch (style) {
       case ScalarStyle.plain : return yield* this.presentPlainScalar(node);
-      case ScalarStyle.single: throw new Error(`Style ${style} not yet implemented`);
+      // case ScalarStyle.single: throw new Error(`Style ${style} not yet implemented`);
       case ScalarStyle.double: return yield* this.presentDoubleQuotedScalar(node);
-      case ScalarStyle.block : throw new Error(`Style ${style} not yet implemented`);
-      case ScalarStyle.folded: throw new Error(`Style ${style} not yet implemented`);
+      // case ScalarStyle.block : throw new Error(`Style ${style} not yet implemented`);
+      // case ScalarStyle.folded: throw new Error(`Style ${style} not yet implemented`);
     }
   }
 
@@ -352,18 +352,3 @@ const DOUBLE_QUOTE_ESCAPES = new Map([
 function mustEscapeInDoubleString(codepoint: number) {
   return codepoint < 0x20 || codepoint === 0x09 || codepoint === 0x5c || codepoint === 0x22;
 }
-
-const doubleQuoteEscapeStrategies = {
-  builtin: (codepoint: number) => DOUBLE_QUOTE_ESCAPES.get(codepoint),
-  x: (codepoint: number) => codepoint <= 0xff ? 'x' + codepoint.toString(16).padStart(2, '0') : undefined,
-  u: (codepoint: number) => isBmp(codepoint) ? 'u' + codepoint.toString(16).padStart(4, '0') : undefined,
-  U: (codepoint: number) => 'U' + codepoint.toString(16).padStart(8, '0'),
-  surrogate: (codepoint: number) => {
-    if (isAstral(codepoint)) {
-      const [high, low] = splitSurrogates(codepoint);
-      return `u${high.toString(16).padStart(4, '0')}\\u${low.toString(16).padStart(4, '0')}`;
-    } else {
-      return undefined;
-    }
-  },
-};
