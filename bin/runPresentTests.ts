@@ -31,7 +31,7 @@ function constructTest(node: RepresentationNode) {
 
   return {
     name: x.name?.content,
-    options: x.options && (defaultConstructor(x.options) as DumpOptions),
+    options: x.options && (defaultConstructor(x.options) as Partial<DumpOptions>),
     input: x.input,
     expected: x.expected.content,
   };

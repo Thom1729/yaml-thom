@@ -15,7 +15,7 @@ import type { RepresentationNode } from './nodes';
  *
  * @description Load a YAML stream.
  */
-export function *loadStream(text: string, options: LoadOptions = {}): Generator<RepresentationNode> {
+export function *loadStream(text: string, options: Partial<LoadOptions> = {}): Generator<RepresentationNode> {
   for (const serialization of parseStream(text, options)) {
     yield compose(serialization, options);
   }
@@ -24,7 +24,7 @@ export function *loadStream(text: string, options: LoadOptions = {}): Generator<
 /**
  * @category Loading
  */
-export function loadSingleDocument(text: string, options: LoadOptions = {}): RepresentationNode {
+export function loadSingleDocument(text: string, options: Partial<LoadOptions> = {}): RepresentationNode {
   return compose(parseSingleDocument(text, options), options);
 }
 
@@ -36,14 +36,14 @@ export interface LoadOptions extends ParseOptions, ComposeOptions {}
 /**
  * @category Dumping
  */
-export function dumpDocument(document: RepresentationNode, options: DumpOptions = {}): string {
+export function dumpDocument(document: RepresentationNode, options: Partial<DumpOptions> = {}): string {
   return present(serialize(document, options), options);
 }
 
 /**
  * @category Dumping
  */
-export function dumpStream(documents: Iterable<RepresentationNode>, options: DumpOptions = {}): string {
+export function dumpStream(documents: Iterable<RepresentationNode>, options: Partial<DumpOptions> = {}): string {
   return Array.from(documents)
     .map(document => present(serialize(document, options), options))
     .join('');

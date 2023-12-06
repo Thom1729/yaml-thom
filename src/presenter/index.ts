@@ -50,10 +50,10 @@ const doubleQuoteEscapeStrategies = {
 //////////
 
 export interface PresentOptions {
-  indentation?: number;
-  flow?: boolean;
-  scalarStyle?: StrategyOptions<typeof scalarStyleStrategies>,
-  doubleQuoteEscapeStyle?: StrategyOptions<typeof doubleQuoteEscapeStrategies>,
+  indentation: number;
+  flow: boolean;
+  scalarStyle: StrategyOptions<typeof scalarStyleStrategies>,
+  doubleQuoteEscapeStyle: StrategyOptions<typeof doubleQuoteEscapeStrategies>,
 }
 
 const DEFAULT_PRESENT_OPTIONS = {
@@ -61,9 +61,9 @@ const DEFAULT_PRESENT_OPTIONS = {
   flow: false,
   scalarStyle: [ScalarStyle.double, ScalarStyle.plain],
   doubleQuoteEscapeStyle: ['builtin', 'x', 'u', 'U'],
-} satisfies Required<PresentOptions>;
+} satisfies PresentOptions;
 
-export function present(document: SerializationNode, options: PresentOptions = {}) {
+export function present(document: SerializationNode, options: Partial<PresentOptions> = {}) {
   const computedOptions = {
     ...DEFAULT_PRESENT_OPTIONS,
     ...options,
@@ -105,9 +105,9 @@ interface PresentationContext {
 }
 
 class PresentOperation {
-  readonly options: Required<PresentOptions>;
+  readonly options: PresentOptions;
 
-  constructor(options: Required<PresentOptions>) {
+  constructor(options: PresentOptions) {
     this.options = options;
   }
 

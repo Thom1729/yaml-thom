@@ -26,8 +26,8 @@ import {
 import { NodeComparator } from '@/nodes';
 
 export interface ComposeOptions {
-  schema?: Schema;
-  tags?: TagDefinitions,
+  schema: Schema;
+  tags: TagDefinitions,
 }
 
 const DEFAULT_COMPOSE_OPTIONS = {
@@ -35,7 +35,7 @@ const DEFAULT_COMPOSE_OPTIONS = {
   tags: CORE_TAGS,
 };
 
-export function compose(document: SerializationNode, options: ComposeOptions = {}): RepresentationNode {
+export function compose(document: SerializationNode, options: Partial<ComposeOptions> = {}): RepresentationNode {
   const { schema, tags } = {...DEFAULT_COMPOSE_OPTIONS, ...options };
 
   const unAliased = link(document);

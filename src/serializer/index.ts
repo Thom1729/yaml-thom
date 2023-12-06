@@ -21,7 +21,7 @@ import {
 
 //////////
 
-function unresolveQuestion(node: RepresentationNode, options: Required<SerializeOptions>): NonSpecificTag | undefined {
+function unresolveQuestion(node: RepresentationNode, options: SerializeOptions): NonSpecificTag | undefined {
   if (node.kind === 'scalar' && !canBePlainScalar(node.content)) {
     return undefined;
   } else if (options.schema.resolveNode({ ...node, tag: NonSpecificTag.question }) === node.tag) {
@@ -31,7 +31,7 @@ function unresolveQuestion(node: RepresentationNode, options: Required<Serialize
   }
 }
 
-function unresolveExclamation(node: RepresentationNode, options: Required<SerializeOptions>): NonSpecificTag | undefined {
+function unresolveExclamation(node: RepresentationNode, options: SerializeOptions): NonSpecificTag | undefined {
   if (options.schema.resolveNode({ ...node, tag: NonSpecificTag.exclamation }) === node.tag) {
     return NonSpecificTag.exclamation;
   } else {
@@ -42,16 +42,16 @@ function unresolveExclamation(node: RepresentationNode, options: Required<Serial
 const unresolveStrategies = {
   '?': unresolveQuestion,
   '!': unresolveExclamation,
-} satisfies Strategies<NonSpecificTag, [RepresentationNode, Required<SerializeOptions>]>;
+} satisfies Strategies<NonSpecificTag, [RepresentationNode, SerializeOptions]>;
 
 type UnresolveOptions = StrategyOptions<typeof unresolveStrategies>;
 
 //////////
 
 export interface SerializeOptions {
-  schema?: Schema;
-  anchorNames?: () => Generator<string>;
-  unresolve?: UnresolveOptions,
+  schema: Schema;
+  anchorNames: () => Generator<string>;
+  unresolve: UnresolveOptions,
 }
 
 const DEFAULT_OPTIONS = {
@@ -62,9 +62,9 @@ const DEFAULT_OPTIONS = {
     }
   },
   unresolve: ['?', '!'],
-} satisfies Required<SerializeOptions>;
+} satisfies SerializeOptions;
 
-export function serialize(doc: RepresentationNode, options: SerializeOptions = {}) {
+export function serialize(doc: RepresentationNode, options: Partial<SerializeOptions> = {}) {
   return new SerializeOperation({
     ...DEFAULT_OPTIONS,
     ...options,
@@ -72,11 +72,11 @@ export function serialize(doc: RepresentationNode, options: SerializeOptions = {
 }
 
 class SerializeOperation {
-  readonly options: Required<SerializeOptions>;
+  readonly options: SerializeOptions;
   readonly anchorNameGenerator: Generator<string>;
   readonly cache = new Map<RepresentationNode, SerializationValueNode>();
 
-  constructor(options: Required<SerializeOptions>) {
+  constructor(options: SerializeOptions) {
     this.options = options;
     this.anchorNameGenerator = this.options.anchorNames();
   }

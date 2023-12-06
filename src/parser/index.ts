@@ -12,12 +12,12 @@ import type { AstNode } from './core/ast';
 export type YamlVersion = keyof typeof versions;
 
 export interface ParseOptions {
-  version?: YamlVersion;
+  version: YamlVersion;
 }
 
 const DEFAULT_OPTIONS = {
   version: '1.3',
-} satisfies Required<ParseOptions>;
+} satisfies ParseOptions;
 
 export function parseAst(text: string, version: YamlVersion) {
   const { grammar, rootProduction } = versions[version];
@@ -26,7 +26,7 @@ export function parseAst(text: string, version: YamlVersion) {
   return parseAll(lines, { index: 0, row: 0, column: 0 }, lines.length, grammar, rootProduction);
 }
 
-export function *parseStream(text: string, options?: ParseOptions) {
+export function *parseStream(text: string, options?: Partial<ParseOptions>) {
   const combinedOptions = { ...DEFAULT_OPTIONS, ...options };
 
   const { grammar, rootProduction, nodeClasses } = versions[combinedOptions.version];
@@ -69,6 +69,6 @@ export function *parseStream(text: string, options?: ParseOptions) {
   // yield* new AstToSerializationTree(nodeText).handleStream(normalized);
 }
 
-export function parseSingleDocument(text: string, options?: ParseOptions) {
+export function parseSingleDocument(text: string, options?: Partial<ParseOptions>) {
   return single(parseStream(text, options), 'Expected single document');
 }
