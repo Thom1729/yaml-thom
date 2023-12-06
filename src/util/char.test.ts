@@ -4,9 +4,7 @@ import {
   charUtf16Width,
   combineSurrogates,
   splitSurrogates,
-  type CodePoint,
-  HighSurrogate,
-  LowSurrogate,
+  type CodePoint, type AstralCodePoint, type HighSurrogate, type LowSurrogate,
 } from './char';
 
 describe(assertCodePoint, () => {
@@ -59,7 +57,7 @@ describe(charUtf16Width, () => {
 
 describe(splitSurrogates, () => {
   test('𐐷', () => {
-    expect(splitSurrogates(0x1_0437 as CodePoint)).toStrictEqual([0xD801, 0xDC37]);
+    expect(splitSurrogates(0x1_0437 as AstralCodePoint)).toStrictEqual([0xD801, 0xDC37]);
   });
 });
 

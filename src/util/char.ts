@@ -7,7 +7,9 @@ const HIGH_SURROGATE_MAX = 0xDBFF;
 const LOW_SURROGATE_MIN = 0xDC00;
 const LOW_SURROGATE_MAX = 0xDFFF;
 
-export type CodePoint = number & { '_codePointBrand': unknown };
+export type BmpCodePoint = number & { '_bmpCodePointBrand': unknown };
+export type AstralCodePoint = number & { '_astralCodePointBrand': unknown };
+export type CodePoint = BmpCodePoint | AstralCodePoint;
 export type HighSurrogate = number & { '_highSurrogateBrand': unknown };
 export type LowSurrogate = number & { '_lowSurrogateBrand': unknown };
 
@@ -25,11 +27,11 @@ export function charForCodePoint(codePoint: CodePoint) {
   return String.fromCodePoint(codePoint);
 }
 
-export function isBmp(codePoint: CodePoint) {
+export function isBmp(codePoint: CodePoint): codePoint is BmpCodePoint {
   return codePoint <= BMP_MAX;
 }
 
-export function isAstral(codePoint: CodePoint) {
+export function isAstral(codePoint: CodePoint): codePoint is AstralCodePoint {
   return codePoint > BMP_MAX;
 }
 
@@ -45,8 +47,7 @@ export function assertLowSurrogate(n: number): asserts n is LowSurrogate {
   if (n < LOW_SURROGATE_MIN || n > LOW_SURROGATE_MAX) throw new TypeError(`${n} is not a low surrogate`);
 }
 
-export function splitSurrogates(codepoint: CodePoint): [HighSurrogate, LowSurrogate] {
-  if (!isAstral(codepoint)) throw new TypeError(`Code point ${codepoint} is not astral`);
+export function splitSurrogates(codepoint: AstralCodePoint): [HighSurrogate, LowSurrogate] {
   return [
     ((codepoint & 0xffff) >> 10) + HIGH_SURROGATE_MIN as HighSurrogate,
     (codepoint & 0x03ff) + LOW_SURROGATE_MIN as LowSurrogate,
@@ -54,5 +55,5 @@ export function splitSurrogates(codepoint: CodePoint): [HighSurrogate, LowSurrog
 }
 
 export function combineSurrogates(high: HighSurrogate, low: LowSurrogate) {
-  return (0x1_0000 | ((high - HIGH_SURROGATE_MIN) << 10) | (low - LOW_SURROGATE_MIN)) as CodePoint;
+  return (0x1_0000 | ((high - HIGH_SURROGATE_MIN) << 10) | (low - LOW_SURROGATE_MIN)) as AstralCodePoint;
 }
