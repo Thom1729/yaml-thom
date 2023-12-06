@@ -15,9 +15,43 @@ import {
   type Schema,
 } from '@/composer/schema';
 
+import {
+  applyStrategy, type Strategies, type StrategyOptions,
+} from '@/util';
+
+//////////
+
+function unresolveQuestion(node: RepresentationNode, options: Required<SerializeOptions>): NonSpecificTag | undefined {
+  if (node.kind === 'scalar' && !canBePlainScalar(node.content)) {
+    return undefined;
+  } else if (options.schema.resolveNode({ ...node, tag: NonSpecificTag.question }) === node.tag) {
+    return NonSpecificTag.question;
+  } else {
+    return undefined;
+  }
+}
+
+function unresolveExclamation(node: RepresentationNode, options: Required<SerializeOptions>): NonSpecificTag | undefined {
+  if (options.schema.resolveNode({ ...node, tag: NonSpecificTag.exclamation }) === node.tag) {
+    return NonSpecificTag.exclamation;
+  } else {
+    return undefined;
+  }
+}
+
+const unresolveStrategies = {
+  '?': unresolveQuestion,
+  '!': unresolveExclamation,
+} satisfies Strategies<NonSpecificTag, [RepresentationNode, Required<SerializeOptions>]>;
+
+type UnresolveOptions = StrategyOptions<typeof unresolveStrategies>;
+
+//////////
+
 export interface SerializeOptions {
   schema?: Schema;
   anchorNames?: () => Generator<string>;
+  unresolve?: UnresolveOptions,
 }
 
 const DEFAULT_OPTIONS = {
@@ -27,6 +61,7 @@ const DEFAULT_OPTIONS = {
       yield i.toString();
     }
   },
+  unresolve: ['?', '!'],
 } satisfies Required<SerializeOptions>;
 
 export function serialize(doc: RepresentationNode, options: SerializeOptions = {}) {
@@ -43,7 +78,6 @@ class SerializeOperation {
 
   constructor(options: Required<SerializeOptions>) {
     this.options = options;
-
     this.anchorNameGenerator = this.options.anchorNames();
   }
 
@@ -58,7 +92,7 @@ class SerializeOperation {
       return new Alias(cachedNode.anchor);
     }
 
-    const tag = this.unresolveTag(node);
+    const tag = applyStrategy(unresolveStrategies, this.options.unresolve, [node, this.options]) ?? node.tag;
 
     if (node.kind === 'scalar') {
       const ret = new SerializationScalar(tag, node.content);
@@ -80,20 +114,6 @@ class SerializeOperation {
       return ret;
     } else {
       throw new Error('unreachable');
-    }
-  }
-
-  unresolveTag(node: RepresentationNode) {
-    if (
-      // Don't resolve a scalar to ? if it can't be presented as a plain scalar
-      (node.kind !== 'scalar' || canBePlainScalar(node.content))
-      && this.options.schema.resolveNode({ ...node, tag: NonSpecificTag.question }) === node.tag
-    ) {
-      return NonSpecificTag.question;
-    } else if (this.options.schema.resolveNode({ ...node, tag: NonSpecificTag.exclamation }) === node.tag) {
-      return NonSpecificTag.exclamation;
-    } else {
-      return node.tag;
     }
   }
 }

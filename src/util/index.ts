@@ -1,3 +1,4 @@
+export * from './applyStrategy';
 export * from './char';
 export * from './collection';
 export * from './groupBy';
