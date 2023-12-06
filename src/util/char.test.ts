@@ -5,6 +5,8 @@ import {
   combineSurrogates,
   splitSurrogates,
   type CodePoint,
+  HighSurrogate,
+  LowSurrogate,
 } from './char';
 
 describe(assertCodePoint, () => {
@@ -63,6 +65,6 @@ describe(splitSurrogates, () => {
 
 describe(combineSurrogates, () => {
   test('𐐷', () => {
-    expect(combineSurrogates(0xD801, 0xDC37)).toBe(0x01_0437);
+    expect(combineSurrogates(0xD801 as HighSurrogate, 0xDC37 as LowSurrogate)).toBe(0x01_0437);
   });
 });

@@ -7,6 +7,8 @@ import {
   parseHex,
   regexp,
   type CodePoint,
+  assertHighSurrogate,
+  assertLowSurrogate,
 } from '@/util';
 
 function countEmptyLines(lines: string[]) {
@@ -200,6 +202,8 @@ export function handleDoubleEscapes(raw: string) {
     if (escape.length === 12) {
       const high = parseHex(escape.slice(2, 6));
       const low = parseHex(escape.slice(8, 12));
+      assertHighSurrogate(high);
+      assertLowSurrogate(low);
       const codePoint = combineSurrogates(high, low);
       return charForCodePoint(codePoint);
     }
