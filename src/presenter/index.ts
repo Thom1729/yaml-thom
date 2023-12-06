@@ -11,7 +11,10 @@ import {
   type SerializationTag,
 } from '@/nodes';
 
-import { assertNotUndefined, repeat, isAstral, isBmp, splitSurrogates } from '@/util';
+import {
+  assertNotUndefined, repeat, isAstral, isBmp, splitSurrogates,
+  applyStrategy,
+} from '@/util';
 
 type DoubleQuoteEscapeStyle =
 | 'builtin'
@@ -183,7 +186,7 @@ class PresentOperation {
       const codepoint = char.codePointAt(0);
       assertNotUndefined(codepoint);
       if (mustEscapeInDoubleString(codepoint)) {
-        const result = applyStyle(codepoint, doubleQuoteEscapeStyles, this.options.doubleQuoteEscapeStyle);
+        const result = applyStrategy(doubleQuoteEscapeStrategies, this.options.doubleQuoteEscapeStyle, [codepoint]);
         assertNotUndefined(result);
         yield '\\' + result;
       } else {
@@ -350,7 +353,7 @@ function mustEscapeInDoubleString(codepoint: number) {
   return codepoint < 0x20 || codepoint === 0x09 || codepoint === 0x5c || codepoint === 0x22;
 }
 
-const doubleQuoteEscapeStyles = {
+const doubleQuoteEscapeStrategies = {
   builtin: (codepoint: number) => DOUBLE_QUOTE_ESCAPES.get(codepoint),
   x: (codepoint: number) => codepoint <= 0xff ? 'x' + codepoint.toString(16).padStart(2, '0') : undefined,
   u: (codepoint: number) => isBmp(codepoint) ? 'u' + codepoint.toString(16).padStart(4, '0') : undefined,
@@ -364,14 +367,3 @@ const doubleQuoteEscapeStyles = {
     }
   },
 };
-
-function applyStyle<U, T extends PropertyKey, R>(
-  value: U,
-  strategyFunctions: Record<T, (value: U) => undefined | R>,
-  strategies: Iterable<T>,
-) {
-  for (const strategy of strategies) {
-    const result = strategyFunctions[strategy](value);
-    if (result !== undefined) return result;
-  }
-}
