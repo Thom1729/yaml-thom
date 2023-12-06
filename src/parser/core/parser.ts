@@ -5,7 +5,10 @@ import type {
 } from './grammarType';
 
 import type { AstNode, Parameters, Mark } from './ast';
-import { single, charUtf16Width, strictEntries, strictFromEntries, isArray, assertNotUndefined } from '@/util';
+import {
+  single, charUtf16Width, strictEntries, strictFromEntries, isArray, assertNotUndefined,
+  type CodePoint,
+} from '@/util';
 
 type ParseResult = readonly [readonly AstNode[], Mark] | null;
 
@@ -180,7 +183,7 @@ class ParseOperation {
   ) {
     if (startMark.row >= this.linesEnd) return null;
 
-    const codePoint = this.lines[startMark.row]?.codePointAt(startMark.column);
+    const codePoint = this.lines[startMark.row]?.codePointAt(startMark.column) as CodePoint | undefined;
 
     if (codePoint === undefined) return null; // EOF
 

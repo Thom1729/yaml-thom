@@ -12,7 +12,7 @@ import {
 } from '@/nodes';
 
 import {
-  assertNotUndefined, repeat, isAstral, isBmp, splitSurrogates,
+  assertNotUndefined, repeat, isAstral, isBmp, splitSurrogates, type CodePoint,
   applyStrategy, type Strategies, type StrategyOptions,
 } from '@/util';
 
@@ -33,11 +33,11 @@ function hex(codepoint: number, width: number) {
 }
 
 const doubleQuoteEscapeStrategies = {
-  builtin: (codepoint: number) => CODEPOINT_TO_ESCAPE.get(codepoint),
-  x: (codepoint: number) => codepoint <= 0xff ? 'x' + hex(codepoint, 2) : undefined,
-  u: (codepoint: number) => isBmp(codepoint) ? 'u' + hex(codepoint, 4) : undefined,
-  U: (codepoint: number) => 'U' + hex(codepoint, 8),
-  surrogate: (codepoint: number) => {
+  builtin: (codepoint: CodePoint) => CODEPOINT_TO_ESCAPE.get(codepoint),
+  x: (codepoint: CodePoint) => codepoint <= 0xff ? 'x' + hex(codepoint, 2) : undefined,
+  u: (codepoint: CodePoint) => isBmp(codepoint) ? 'u' + hex(codepoint, 4) : undefined,
+  U: (codepoint: CodePoint) => 'U' + hex(codepoint, 8),
+  surrogate: (codepoint: CodePoint) => {
     if (isAstral(codepoint)) {
       const [high, low] = splitSurrogates(codepoint);
       return `u${hex(high, 4)}\\u${hex(low, 4)}`;
@@ -45,7 +45,7 @@ const doubleQuoteEscapeStrategies = {
       return undefined;
     }
   },
-} satisfies Strategies<string, [number]>;
+} satisfies Strategies<string, [CodePoint]>;
 
 //////////
 
@@ -191,7 +191,7 @@ class PresentOperation {
     yield null;
     yield '"';
     for (const char of node.content) {
-      const codepoint = char.codePointAt(0);
+      const codepoint = char.codePointAt(0) as CodePoint | undefined;
       assertNotUndefined(codepoint);
       if (!isDoubleSafe(codepoint)) {
         const result = applyStrategy(doubleQuoteEscapeStrategies, this.options.doubleQuoteEscapeStyle, [codepoint]);

@@ -6,6 +6,7 @@ import {
   combineSurrogates,
   parseHex,
   regexp,
+  type CodePoint,
 } from '@/util';
 
 function countEmptyLines(lines: string[]) {
@@ -187,7 +188,7 @@ const DOUBLE_QUOTE_ESCAPES: { [k in string]?: string } = {
 
 function charForHexEscape(escape: string, length: number) {
   if (escape.length === length + 2) {
-    const codePoint = parseHex(escape.slice(2));
+    const codePoint = parseHex(escape.slice(2)) as CodePoint;
     return charForCodePoint(codePoint);
   } else {
     throw new Error(`Expected ${length} hex digits after \\${escape[0]}`);

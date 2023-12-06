@@ -7,7 +7,9 @@ const HIGH_SURROGATE_MIN = 0xD800;
 const LOW_SURROGATE_MIN = 0xDC00;
 const LOW_SURROGATE_MAX = 0xDFFF;
 
-export function assertCodePoint(codePoint: number) {
+export type CodePoint = number & { '_codePointBrand': unknown };
+
+export function assertCodePoint(codePoint: number): asserts codePoint is CodePoint {
   if (!Number.isInteger(codePoint)) {
     throw new TypeError(`Code point ${codePoint} is not an integer`);
   } if (codePoint < UNICODE_MIN || codePoint > UNICODE_MAX) {
@@ -17,25 +19,23 @@ export function assertCodePoint(codePoint: number) {
   }
 }
 
-export function charForCodePoint(codePoint: number) {
-  assertCodePoint(codePoint);
+export function charForCodePoint(codePoint: CodePoint) {
   return String.fromCodePoint(codePoint);
 }
 
-export function isBmp(codePoint: number) {
+export function isBmp(codePoint: CodePoint) {
   return codePoint <= BMP_MAX;
 }
 
-export function isAstral(codePoint: number) {
+export function isAstral(codePoint: CodePoint) {
   return codePoint > BMP_MAX;
 }
 
-export function charUtf16Width(codePoint: number) {
-  assertCodePoint(codePoint);
+export function charUtf16Width(codePoint: CodePoint) {
   return (codePoint > BMP_MAX ? 2 : 1);
 }
 
-export function splitSurrogates(codepoint: number): [number, number] {
+export function splitSurrogates(codepoint: CodePoint): [number, number] {
   if (!isAstral(codepoint)) throw new TypeError(`Code point ${codepoint} is not astral`);
   return [
     ((codepoint & 0xffff) >> 10) + HIGH_SURROGATE_MIN,
@@ -44,5 +44,5 @@ export function splitSurrogates(codepoint: number): [number, number] {
 }
 
 export function combineSurrogates(high: number, low: number) {
-  return 0x1_0000 | ((high - HIGH_SURROGATE_MIN) << 10) | (low - LOW_SURROGATE_MIN);
+  return (0x1_0000 | ((high - HIGH_SURROGATE_MIN) << 10) | (low - LOW_SURROGATE_MIN)) as CodePoint;
 }

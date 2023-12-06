@@ -1,5 +1,5 @@
 import { type Parameters } from './ast';
-import { isArray } from '@/util';
+import { isArray, type CodePoint } from '@/util';
 
 export type RefParameters = {
   [K in keyof Parameters]?:
@@ -14,7 +14,7 @@ type _GrammarNode =
 | { type: 'START_OF_LINE' }
 | { type: 'END_OF_INPUT' }
 | { type: 'STRING', string: string }
-| { type: 'CHAR_SET', ranges: readonly (readonly [number, number])[] }
+| { type: 'CHAR_SET', ranges: readonly (readonly [CodePoint, CodePoint])[] }
 | { type: 'REF', name: string, parameters: RefParameters }
 | { type: 'SEQUENCE', children: readonly GrammarNode[] }
 | { type: 'FIRST', children: readonly GrammarNode[] }
@@ -55,7 +55,7 @@ function normalizeChar(char: number | string) {
     assertCodePoint(char);
     return char;
   } else {
-    const codePoint = char.codePointAt(0);
+    const codePoint = char.codePointAt(0) as CodePoint;
     if (codePoint === undefined || char.length !== charUtf16Width(codePoint)) {
       throw new TypeError(`String was not a single character`);
     }
@@ -66,7 +66,7 @@ function normalizeChar(char: number | string) {
 export function charSet(...args: (number | string | readonly [number | string, number | string])[]) {
   const ranges = args
     .map(arg =>
-      (isArray(arg) ? arg : [arg, arg]).map(normalizeChar) as [number, number]
+      (isArray(arg) ? arg : [arg, arg]).map(normalizeChar) as [CodePoint, CodePoint]
     )
     .sort((a, b) => a[0] - b[0]);
 
