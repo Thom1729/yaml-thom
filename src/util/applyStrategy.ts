@@ -1,11 +1,19 @@
+import { isArray } from './typeAssertions';
+
 export type Strategy<TReturn, TArgs extends readonly unknown[]> = (...args: TArgs) => TReturn | undefined;
 export type Strategies<TReturn, TArgs extends readonly unknown[]> = Record<PropertyKey, Strategy<TReturn, TArgs>>;
 
 export type StrategyOptions<
   TAliases extends Strategies<unknown, never>
-> = TAliases extends Record<infer TAlias, infer TStrategy>
-  ? Iterable<TStrategy | TAlias>
-  : never;
+> = _StrategyOptions<TAliases[keyof TAliases], keyof TAliases>;
+
+type _StrategyOptions<
+  TStrategy extends Strategy<unknown, never>,
+  TAlias extends PropertyKey,
+> =
+| TAlias
+| TStrategy
+| readonly _StrategyOptions<TStrategy, TAlias>[];
 
 export function applyStrategy<
   TReturn,
@@ -13,7 +21,7 @@ export function applyStrategy<
   TAlias extends PropertyKey,
 >(
   aliases: Record<TAlias, Strategy<TReturn, TArgs>>,
-  values: StrategyOptions<Record<TAlias, Strategy<TReturn, TArgs>>>,
+  values: _StrategyOptions<Strategy<TReturn, TArgs>, TAlias>,
   value: TArgs,
 ): TReturn | undefined {
   for (const strategy of iterateStrategies(aliases, values)) {
@@ -30,13 +38,15 @@ function *iterateStrategies<
   TAlias extends PropertyKey,
 >(
   aliases: Record<TAlias, TStrategy>,
-  values: StrategyOptions<Record<TAlias, TStrategy>>,
+  value: _StrategyOptions<TStrategy, TAlias>,
 ): Generator<TStrategy> {
-  for (const value of values) {
-    if (typeof value === 'function') {
-      yield value as TStrategy;
-    } else {
-      yield aliases[value as TAlias] as TStrategy;
+  if (isArray(value)) {
+    for (const item of value) {
+      yield* iterateStrategies(aliases, item);
     }
+  } else if (typeof value === 'function') {
+    yield value;
+  } else {
+    yield aliases[value];
   }
 }

@@ -1,7 +1,7 @@
 ---
 name: Plain
 options:
-  scalarStyle: ['plain']
+  scalarStyle: 'plain'
 input: Hello, World!
 expected: |
   %YAML 1.2
@@ -10,7 +10,7 @@ expected: |
 ---
 name: Double
 options:
-  scalarStyle: ['double']
+  scalarStyle: 'double'
 input: "- Hello, World!"
 expected: |
   %YAML 1.2
@@ -19,7 +19,7 @@ expected: |
 ---
 name: Escape
 options:
-  scalarStyle: ['double']
+  scalarStyle: 'double'
 input: "- Hello\"World!"
 expected: |
   %YAML 1.2
@@ -28,7 +28,7 @@ expected: |
 ---
 name: Escape U
 options:
-  scalarStyle: ['double']
+  scalarStyle: 'double'
   doubleQuoteEscapeStyle: ['U']
 input: "- Hello\"World!"
 expected: |

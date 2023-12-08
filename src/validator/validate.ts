@@ -17,6 +17,16 @@ export function isValid<ValidatorType extends Validator>(
   return done ?? false;
 }
 
+export class ValidationError extends Error {
+  failure: ValidationFailure;
+
+  constructor(failure: ValidationFailure) {
+    super(failure.key);
+    Object.setPrototypeOf(this, ValidationError.prototype);
+    this.failure = failure;
+  }
+}
+
 export function assertValid<ValidatorType extends Validator>(
   validator: ValidatorType,
   node: RepresentationNode,
@@ -24,7 +34,7 @@ export function assertValid<ValidatorType extends Validator>(
   const itr = validate(validator, node);
   const result = itr.next();
   if (!result.done) {
-    throw new TypeError(JSON.stringify(result.value, null, 2));
+    throw new ValidationError(result.value);
   }
 }
 

@@ -9,16 +9,23 @@ import {
   type RepresentationNode,
   defaultConstructor,
   DumpOptions,
+  type Validator,
 } from '@/index';
 
 import * as V from '@/validator/validatorHelpers';
 
 import { str, extractTypedStringMap } from '@/helpers';
 
+function singleOrArray<V extends Validator>(validator: V) {
+  return {
+    anyOf: [validator, V.seqOf(validator)],
+  } satisfies Validator;
+}
+
 const presenterTestValidator = V.stringMapOf({
   'name?': V.str,
   'options?': V.stringMapOf({
-    'scalarStyle?': V.seqOf(V.enumOf(str('plain'), str('double'))),
+    'scalarStyle?': singleOrArray(V.enumOf(str('plain'), str('double'))),
     'doubleQuoteEscapeStyle?': V.seqOf(V.enumOf(str('builtin'), str('x'), str('u'), str('U'), str('surrogate'))),
   }),
   input: {},
