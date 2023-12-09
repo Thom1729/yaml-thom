@@ -25,6 +25,7 @@ function singleOrArray<V extends Validator>(validator: V) {
 const presenterTestValidator = V.stringMapOf({
   'name?': V.str,
   'options?': V.stringMapOf({
+    'unresolve?': singleOrArray(V.enumOf(str('!'), str('?'))),
     'scalarStyle?': singleOrArray(V.enumOf(str('plain'), str('double'))),
     'doubleQuoteEscapeStyle?': V.seqOf(V.enumOf(str('builtin'), str('x'), str('u'), str('U'), str('surrogate'))),
   }),
