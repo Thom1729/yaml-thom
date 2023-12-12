@@ -27,7 +27,8 @@ const presenterTestValidator = V.stringMapOf({
   'options?': V.stringMapOf({
     'unresolve?': singleOrArray(V.enumOf(str('!'), str('?'))),
     'scalarStyle?': singleOrArray(V.enumOf(str('plain'), str('double'))),
-    'doubleQuoteEscapeStyle?': V.seqOf(V.enumOf(str('builtin'), str('x'), str('u'), str('U'), str('surrogate'))),
+    'doubleQuoteEscapeCharacters?': singleOrArray(V.enumOf(str('all'))),
+    'doubleQuoteEscapeStyle?': singleOrArray(V.enumOf(str('builtin'), str('json'), str('x'), str('u'), str('U'), str('uu'))),
   }),
   input: {},
   expected: V.str,

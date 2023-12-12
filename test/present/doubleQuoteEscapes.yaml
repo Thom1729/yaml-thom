@@ -1,0 +1,21 @@
+---
+name: Default
+options:
+  scalarStyle: double
+  doubleQuoteEscapeCharacters: all
+input: "\vaĀ𐐷"
+expected: |
+  %YAML 1.2
+  --- "\v\x61\u0100\U00010437"
+  ...
+---
+name: JSON
+options:
+  scalarStyle: double
+  doubleQuoteEscapeCharacters: all
+  doubleQuoteEscapeStyle: [json, u, uu]
+input: "\vaĀ𐐷"
+expected: |
+  %YAML 1.2
+  --- "\u000b\u0061\u0100\ud801\udc37"
+  ...

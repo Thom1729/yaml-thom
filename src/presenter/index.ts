@@ -16,7 +16,7 @@ import {
   applyStrategy, type Strategies, type StrategyOptions,
 } from '@/util';
 
-import { CODEPOINT_TO_ESCAPE, isDoubleSafe } from '@/scalar';
+import { CODEPOINT_TO_ESCAPE, CODEPOINT_TO_JSON_ESCAPE, isDoubleSafe } from '@/scalar';
 
 //////////
 
@@ -28,16 +28,23 @@ const scalarStyleStrategies = {
   [ScalarStyle.folded]: () => undefined,
 } satisfies Strategies<ScalarStyle, [SerializationScalar]>;
 
+const doubleQuoteEscapeCharacters = {
+  builtin: (codepoint: CodePoint) => CODEPOINT_TO_ESCAPE.has(codepoint) || undefined,
+  'non-ascii': (codepoint: CodePoint) => codepoint <= 0x7f ? true : undefined,
+  all: () => true,
+} satisfies Strategies<boolean, [CodePoint]>;
+
 function hex(codepoint: number, width: number) {
   return codepoint.toString(16).padStart(width, '0');
 }
 
 const doubleQuoteEscapeStrategies = {
   builtin: (codepoint: CodePoint) => CODEPOINT_TO_ESCAPE.get(codepoint),
+  json: (codepoint: CodePoint) => CODEPOINT_TO_JSON_ESCAPE.get(codepoint),
   x: (codepoint: CodePoint) => codepoint <= 0xff ? 'x' + hex(codepoint, 2) : undefined,
   u: (codepoint: CodePoint) => isBmp(codepoint) ? 'u' + hex(codepoint, 4) : undefined,
   U: (codepoint: CodePoint) => 'U' + hex(codepoint, 8),
-  surrogate: (codepoint: CodePoint) => {
+  uu: (codepoint: CodePoint) => {
     if (isAstral(codepoint)) {
       const [high, low] = splitSurrogates(codepoint);
       return `u${hex(high, 4)}\\u${hex(low, 4)}`;
@@ -53,6 +60,7 @@ export interface PresentOptions {
   indentation: number;
   flow: boolean;
   scalarStyle: StrategyOptions<typeof scalarStyleStrategies>,
+  doubleQuoteEscapeCharacters: StrategyOptions<typeof doubleQuoteEscapeCharacters>,
   doubleQuoteEscapeStyle: StrategyOptions<typeof doubleQuoteEscapeStrategies>,
 }
 
@@ -60,6 +68,7 @@ const DEFAULT_PRESENT_OPTIONS = {
   indentation: 2,
   flow: false,
   scalarStyle: [ScalarStyle.double, ScalarStyle.plain],
+  doubleQuoteEscapeCharacters: [],
   doubleQuoteEscapeStyle: ['builtin', 'x', 'u', 'U'],
 } satisfies PresentOptions;
 
@@ -193,7 +202,13 @@ class PresentOperation {
     for (const char of node.content) {
       const codepoint = char.codePointAt(0) as CodePoint | undefined;
       assertNotUndefined(codepoint);
-      if (!isDoubleSafe(codepoint)) {
+
+      const shouldEscape = (
+        !isDoubleSafe(codepoint) ||
+        applyStrategy(doubleQuoteEscapeCharacters, this.options.doubleQuoteEscapeCharacters, [codepoint])
+      );
+
+      if (shouldEscape) {
         const result = applyStrategy(doubleQuoteEscapeStrategies, this.options.doubleQuoteEscapeStyle, [codepoint]);
         assertNotUndefined(result);
         yield '\\' + result;
