@@ -1,5 +1,4 @@
 import {
-  canBePlainScalar,
   NonSpecificTag,
   ScalarStyle,
 
@@ -16,7 +15,10 @@ import {
   applyStrategy, type Strategies, type StrategyOptions,
 } from '@/util';
 
-import { CODEPOINT_TO_ESCAPE, CODEPOINT_TO_JSON_ESCAPE, isDoubleSafe } from '@/scalar';
+import {
+  CODEPOINT_TO_ESCAPE, CODEPOINT_TO_JSON_ESCAPE,
+  isDoubleSafe, canBePlainScalar,
+} from '@/scalar';
 
 //////////
 

@@ -1,4 +1,5 @@
 import type { CodePoint } from '@/util';
+import { regexp } from '@/util';
 
 const JSON_DOUBLE_QUOTE_ESCAPES = [
   [0x08, 'b'],
@@ -36,4 +37,18 @@ export function isDoubleSafe(codepoint: CodePoint) {
     codepoint !== 0x5c /* backslash*/ &&
     codepoint !== 0x22 /* double quote */
   );
+}
+
+const NON_PLAIN_REGEXP = new RegExp(
+  regexp`
+    ^ [-?:] (?=$|\s|[,\[\]\{\}])
+    # | [,\[\]\{\}] # only banned in flow
+    | ^\s
+    | \s$
+  `.source,
+  'u',
+);
+
+export function canBePlainScalar(content: string) {
+  return !NON_PLAIN_REGEXP.test(content);
 }

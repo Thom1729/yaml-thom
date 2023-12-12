@@ -4,7 +4,6 @@ import {
   SerializationSequence,
   SerializationMapping,
   NonSpecificTag,
-  canBePlainScalar,
   type SerializationNode,
   type SerializationValueNode,
   type RepresentationNode,
@@ -14,6 +13,8 @@ import {
   coreSchema,
   type Schema,
 } from '@/composer/schema';
+
+import { canBePlainScalar } from '@/scalar';
 
 import {
   applyStrategy, type Strategies, type StrategyOptions,
