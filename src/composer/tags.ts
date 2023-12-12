@@ -28,7 +28,7 @@ export interface TagDefinition {
 }
 
 export type TagDefinitions = {
-  [T in string]: TagDefinition;
+  [T in string]?: TagDefinition;
 };
 
 export const CORE_TAGS = {

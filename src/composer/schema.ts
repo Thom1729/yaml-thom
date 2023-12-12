@@ -1,18 +1,17 @@
 import { NonSpecificTag, type UnresolvedNode } from '@/nodes';
 
-type Rule = RegExp | string;
-
 export interface Schema {
   resolveNode(node: Pick<UnresolvedNode, 'tag' | 'kind' | 'content'>): string | null;
 }
 
-export class PredicateSchema {
+class PredicateSchema implements Schema {
   strings = new Map<string, string>();
   regExps: [RegExp, string][] = [];
 
-  constructor(rules: readonly [Rule, string][]) {
+  constructor(rules: readonly [RegExp | string, string][]) {
     for (const [rule, tag] of rules) {
       if (typeof rule === 'string') {
+        // TODO: check to make sure the string isn't shadowed by a regexp
         this.strings.set(rule, tag);
       } else if (rule instanceof RegExp) {
         this.regExps.push([

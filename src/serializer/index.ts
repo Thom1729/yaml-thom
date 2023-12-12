@@ -12,7 +12,7 @@ import {
 import {
   coreSchema,
   type Schema,
-} from '@/composer/schema';
+} from '@/composer';
 
 import { canBePlainScalar } from '@/scalar';
 
