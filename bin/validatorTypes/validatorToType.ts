@@ -2,17 +2,9 @@ import { RepresentationNode } from '@/nodes';
 import type { Validator } from '@/validator';
 
 import {
-  type Type,
+  type Type, type TypeInfo,
   name, union, tuple, builtin, readonly,
 } from './typeAst';
-
-export interface TypeInfo {
-  name?: string;
-  refCount: number;
-  value?: Type;
-}
-
-//////////
 
 export function validatorToType(validator: Validator) {
   const operation = new ValidatorToTypeOperation();
@@ -23,19 +15,19 @@ export function validatorToType(validator: Validator) {
 class ValidatorToTypeOperation {
   readonly map = new Map<Validator, TypeInfo>();
 
-  recurse(validator: Validator) {
-    const done = this.map.get(validator);
-    if (done !== undefined) {
-      done.refCount++;
+  recurse(validator: Validator): Type {
+    let ref = this.map.get(validator);
+    if (ref !== undefined) {
+      ref.refCount++;
     } else {
-      const typeInfo: TypeInfo = {
+      ref = {
         refCount: 1,
         value: undefined,
       };
-      this.map.set(validator, typeInfo);
-      typeInfo.value = this.validatorToType(validator);
+      this.map.set(validator, ref);
+      ref.value = this.validatorToType(validator);
     }
-    return { kind: 'ref', ref: validator } as const;
+    return { kind: 'ref', ref };
   }
 
   validatorToType(validator: Validator): Type {

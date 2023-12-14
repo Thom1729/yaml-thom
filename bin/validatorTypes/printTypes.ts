@@ -1,8 +1,7 @@
 import { assertNotUndefined } from '@/util';
 import type { Validator } from '@/validator';
 
-import type { Type } from './typeAst';
-import type { TypeInfo } from './validatorToType';
+import type { Type, TypeInfo } from './typeAst';
 
 const PREAMBLE = `
 import type {
@@ -67,10 +66,10 @@ class PrintTypesOperation {
   *printTypeInfo(value: Type, level: number): Tokens {
     const compact = depth(value) <= 1;
     if (value.kind === 'ref') {
-      const ref = this.types.get(value.ref);
+      const ref = value.ref;
       assertNotUndefined(ref);
       this.enqueue(ref);
-      yield ref.name;
+      yield ref.name as string;
     } else if (value.kind === 'name') {
       yield value.name;
       if (value.children.length > 0) {

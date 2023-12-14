@@ -1,7 +1,11 @@
-import type { Validator } from '@/validator';
+export interface TypeInfo {
+  name?: string;
+  refCount: number;
+  value?: Type;
+}
 
 export type Type =
-| { kind: 'ref', ref: Validator }
+| { kind: 'ref', ref: TypeInfo }
 | { kind: 'string', value: string }
 | { kind: 'name', name: string, children: readonly Type[] }
 | { kind: 'union', children: readonly [Type, ...Type[]] }
