@@ -30,13 +30,24 @@ const validatorValidator = V.stringMapOf({
   'items?': {},
   'properties?': V.map,
   'requiredProperties?': V.seq,
+
+  'anyOf?': V.seq,
 });
 
-export function constructValidator(node: RepresentationNode): Validator {
+export function constructValidator(
+  node: RepresentationNode,
+  cache?: Map<RepresentationNode, Validator>,
+): Validator {
+  cache ??= new Map();
+
+  const cached = cache.get(node);
+  if (cached !== undefined) return cached;
+
   assertValid(validatorValidator, node);
   const x = extractTypedStringMap(node);
 
   const ret: Validator = {};
+  cache.set(node, ret);
 
   if (x.kind !== undefined) {
     if (x.kind.kind === 'scalar') {
@@ -78,13 +89,17 @@ export function constructValidator(node: RepresentationNode): Validator {
   }
 
   if (x.items !== undefined) {
-    ret.items = constructValidator(x.items);
+    ret.items = constructValidator(x.items, cache);
   }
 
   if (x.properties !== undefined) {
     ret.properties = new NodeMap(extractMapEntries(x.properties)
-      .map(([key, value]) => [key, constructValidator(value)] as const)
+      .map(([key, value]) => [key, constructValidator(value, cache)] as const)
     );
+  }
+
+  if (x.anyOf !== undefined) {
+    ret.anyOf = x.anyOf.content.map(v => constructValidator(v, cache));
   }
 
   return ret;
