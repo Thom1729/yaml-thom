@@ -57,7 +57,7 @@ class PrintTypesOperation {
       const t = this.queue.shift();
       if (t === undefined) break;
       yield '\n';
-      yield `type ${t.name} =`;
+      yield `type ${t.name} = `;
       yield* this.printTypeInfo(t.value, 0);
       yield `;\n`;
     }
@@ -65,6 +65,7 @@ class PrintTypesOperation {
   }
 
   *printTypeInfo(value: Type, level: number): Tokens {
+    const compact = depth(value) <= 1;
     if (value.kind === 'ref') {
       const ref = this.types.get(value.ref);
       assertNotUndefined(ref);
@@ -72,33 +73,55 @@ class PrintTypesOperation {
       yield ref.name;
     } else if (value.kind === 'name') {
       yield value.name;
-      if (value.args.length > 0) {
+      if (value.children.length > 0) {
         yield '<';
-        for (const item of value.args) {
-          yield* this.printTypeInfo(item, level + 1);
-          yield ', ';
-        }
+        yield* this.printList(value.children, level, compact);
         yield '>';
       }
     } else if (value.kind === 'string') {
       yield JSON.stringify(value.value);
     } else if (value.kind === 'union') {
-      if (value.members.length === 0) {
-        throw new Error();
-      // } else if (value.members.length === 1) {
-        // yield* this.printTypeInfo(value.members[0]);
-      } else {
-        for (const member of value.members) {
-          yield '\n';
-          yield level;
-          yield '| ';
-          yield* this.printTypeInfo(member, level + 1);
-        }
-      }
+      yield '(';
+      yield* this.printLattice('|', value.children, level, compact);
+      yield ')';
     } else if (value.kind === 'tuple') {
       yield '[';
+      yield* this.printList(value.children, level, compact);
+      yield ']';
+    } else {
+      throw new TypeError(`Unhandled kind ${(value as Type).kind}`);
+    }
+  }
+
+  *printLattice(operator: string, types: readonly Type[], level: number, compact: boolean): Tokens {
+    if (types.length === 0) throw new TypeError(`empty union or intersection`);
+
+    if (compact) {
       let first = true;
-      for (const item of value.items) {
+      for (const item of types) {
+        if (first) {
+          first = false;
+        } else {
+          yield ` ${operator} `;
+        }
+        yield* this.printTypeInfo(item, level + 1);
+      }
+    } else {
+      for (const member of types) {
+        yield '\n';
+        yield level;
+        yield `${operator} `;
+        yield* this.printTypeInfo(member, level + 1);
+      }
+      yield '\n';
+      yield level;
+    }
+  }
+
+  *printList(types: readonly Type[], level: number, compact: boolean): Tokens {
+    if (compact) {
+      let first = true;
+      for (const item of types) {
         if (first) {
           first = false;
         } else {
@@ -106,9 +129,25 @@ class PrintTypesOperation {
         }
         yield* this.printTypeInfo(item, level + 1);
       }
-      yield ']';
-    } else {
-      throw new TypeError(`Unhandled kind ${(value as Type).kind}`);
+    } else if (types.length > 0) {
+      for (const item of types) {
+        yield '\n';
+        yield level + 1;
+        yield* this.printTypeInfo(item, level + 1);
+        yield ',';
+      }
+      yield '\n';
+      yield level;
     }
+  }
+}
+
+function depth(type: Type): number {
+  switch (type.kind) {
+    case 'ref': case 'string': return 0;
+    case 'name': case 'union': case 'tuple': {
+      return Math.max(...type.children.map(depth)) + 1;
+    }
+    default: throw new Error(`unhandled kind ${(type as Type).kind}`);
   }
 }

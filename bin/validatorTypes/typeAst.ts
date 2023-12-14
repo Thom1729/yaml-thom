@@ -2,34 +2,38 @@ import type { Validator } from '@/validator';
 
 export type Type =
 | { kind: 'ref', ref: Validator }
-| { kind: 'name', name: string, args: readonly Type[] }
 | { kind: 'string', value: string }
-| { kind: 'union', members: readonly Type[] }
-| { kind: 'tuple', items: readonly Type[] }
+| { kind: 'name', name: string, children: readonly Type[] }
+| { kind: 'union', children: readonly [Type, ...Type[]] }
+| { kind: 'tuple', children: readonly Type[] }
 ;
 
 export function name(name: string, ...args: Type[]): Type {
-  return { kind: 'name', name, args } as const;
+  return { kind: 'name', name, children: args } as const;
 }
 
-export function union(...members: readonly (Type | undefined)[]) {
+export function string(value: string): Type {
+  return { kind: 'string', value };
+}
+
+export function union(...members: readonly (Type | undefined)[]): Type {
   const filtered = members.filter(m => m !== undefined) as Type[];
   if (filtered.length === 0) {
-    throw new Error();
-  } else if (filtered.length === 1) {
-    return filtered[0];
+    throw new TypeError('Empty union');
+  // } else if (filtered.length === 1) {
+    // return filtered[0];
   } else {
     return {
       kind: 'union',
-      members: filtered as Type[],
+      children: filtered as readonly Type[] as readonly [Type, ...Type[]],
     } as const;
   }
 }
 
-export function tuple(...items: readonly Type[]) {
+export function tuple(...items: readonly Type[]): Type {
   return {
     kind: 'tuple',
-    items,
+    children: items,
   } as const;
 }
 
