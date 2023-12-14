@@ -3,7 +3,7 @@ import type { Validator } from '@/validator';
 
 import {
   type Type,
-  name, union, tuple, builtin,
+  name, union, tuple, builtin, readonly,
 } from './typeAst';
 
 export interface TypeInfo {
@@ -83,10 +83,10 @@ class ValidatorToTypeOperation {
 
     if (validator.properties !== undefined) {
       for (const [key, value] of validator.properties) {
-        pairs.push(tuple(
+        pairs.push(readonly(tuple(
           this.nodeToType(key),
           this.recurse(value),
-        ));
+        )));
       }
     }
 

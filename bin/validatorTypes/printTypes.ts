@@ -88,6 +88,9 @@ class PrintTypesOperation {
       yield '[';
       yield* this.printList(value.children, level, compact);
       yield ']';
+    } else if (value.kind === 'readonly') {
+      yield 'readonly ';
+      yield* this.printTypeInfo(value.child, level);
     } else {
       throw new TypeError(`Unhandled kind ${(value as Type).kind}`);
     }
@@ -147,6 +150,9 @@ function depth(type: Type): number {
     case 'ref': case 'string': return 0;
     case 'name': case 'union': case 'tuple': {
       return Math.max(...type.children.map(depth)) + 1;
+    }
+    case 'readonly': case 'parenthesized': {
+      return depth(type.child);
     }
     default: throw new Error(`unhandled kind ${(type as Type).kind}`);
   }
