@@ -62,8 +62,6 @@ export class NodeMap<const PairType extends readonly [UnresolvedNode, unknown]> 
     const c = comparator ?? new NodeComparator();
 
     insertSortedExclusive(this.pairs, newPair, cmpFirst(c.compare.bind(c)));
-
-    this.pairs.push(newPair);
   }
 }
 
