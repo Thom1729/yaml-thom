@@ -35,3 +35,10 @@ export function *enumerate<T>(iterable: Iterable<T>, start: number = 0) {
     yield [i++, item] as const;
   }
 }
+
+export function command<T>(f: (args: T) => number | undefined | void) {
+  return (args: T) => {
+    const result = f(args) as number | undefined;
+    process.exit(result);
+  };
+}

@@ -5,9 +5,10 @@ import { streamToEvents } from './streamToEvents';
 import { streamToAst } from './streamToAst';
 import { runTestSuite } from './runTestSuite';
 import { evaluateStream } from './evaluate';
+import { roundtrip } from './roundtrip';
+import { validatorTypes } from './validatorTypes';
 import { runEvaluationTests } from './runEvaluationTests';
 import { runValidationTests } from './runValidationTests';
-import { roundtrip } from './roundtrip';
 import { runPresentTests } from './runPresentTests';
 
 yargs(hideBin(process.argv))
@@ -40,6 +41,20 @@ yargs(hideBin(process.argv))
     args => evaluateStream(args.filename),
   )
   .command(
+    'roundtrip <filename>',
+    '',
+    yargs => yargs
+      .positional('filename', { type: 'string', demandOption: true }),
+    args => roundtrip(args['filename']),
+  )
+  .command(
+    'validator-types <filename>',
+    '',
+    yargs => yargs
+      .positional('filename', { type: 'string', demandOption: true }),
+    args => validatorTypes(args),
+  )
+  .command(
     'run-test-suite <test-suite-path> [test-name..]',
     '',
     yargs => yargs
@@ -63,18 +78,10 @@ yargs(hideBin(process.argv))
     args => runValidationTests(args['test-name']),
   )
   .command(
-    'roundtrip <filename>',
-    '',
-    yargs => yargs
-      .positional('filename', { type: 'string', demandOption: true }),
-    args => roundtrip(args['filename']),
-  )
-  .command(
     'run-present-tests [test-name..]',
     '',
     yargs => yargs
       .positional('test-name', { type: 'string', array: true, demandOption: true }),
     args => runPresentTests(args['test-name']),
-
   )
   .parse();
