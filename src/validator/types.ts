@@ -18,6 +18,7 @@ export interface Validator {
 
   properties?: NodeMap<readonly [RepresentationNode, Validator]>;
   requiredProperties?: NodeSet<RepresentationNode>;
+  additionalProperties?: Validator;
 
   anyOf?: readonly Validator[];
 }

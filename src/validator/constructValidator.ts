@@ -29,6 +29,7 @@ const validatorValidator = V.stringMapOf({
 
   'items?': {},
   'properties?': V.map,
+  'additionalProperties?': {},
   'requiredProperties?': V.seq,
 
   'anyOf?': V.seq,
@@ -96,6 +97,10 @@ export function constructValidator(
     ret.properties = new NodeMap(extractMapEntries(x.properties)
       .map(([key, value]) => [key, constructValidator(value, cache)] as const)
     );
+  }
+
+  if (x.additionalProperties !== undefined) {
+    ret.additionalProperties = constructValidator(x.additionalProperties, cache);
   }
 
   if (x.anyOf !== undefined) {

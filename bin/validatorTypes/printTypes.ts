@@ -1,4 +1,3 @@
-import { assertNotUndefined } from '@/util';
 import type { Validator } from '@/validator';
 
 import type { Type, TypeInfo } from './typeAst';
@@ -67,9 +66,12 @@ class PrintTypesOperation {
     const compact = depth(value) <= 1;
     if (value.kind === 'ref') {
       const ref = value.ref;
-      assertNotUndefined(ref);
-      this.enqueue(ref);
-      yield ref.name as string;
+      if (ref.refCount > 1) {
+        this.enqueue(ref);
+        yield ref.name as string;
+      } else {
+        yield* this.printTypeInfo(ref.value as Type, level);
+      }
     } else if (value.kind === 'name') {
       yield value.name;
       if (value.children.length > 0) {
@@ -80,9 +82,7 @@ class PrintTypesOperation {
     } else if (value.kind === 'string') {
       yield JSON.stringify(value.value);
     } else if (value.kind === 'union') {
-      yield '(';
       yield* this.printLattice('|', value.children, level, compact);
-      yield ')';
     } else if (value.kind === 'tuple') {
       yield '[';
       yield* this.printList(value.children, level, compact);
@@ -115,8 +115,6 @@ class PrintTypesOperation {
         yield `${operator} `;
         yield* this.printTypeInfo(member, level + 1);
       }
-      yield '\n';
-      yield level;
     }
   }
 

@@ -82,6 +82,13 @@ class ValidatorToTypeOperation {
       }
     }
 
+    if (validator.additionalProperties !== undefined) {
+      pairs.push(readonly(tuple(
+        name('RepresentationNode'),
+        this.recurse(validator.additionalProperties),
+      )));
+    }
+
     const pairsType = pairs.length ? union(...pairs) : builtin.any;
 
     return name('RepresentationMapping', tag, pairsType);
