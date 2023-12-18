@@ -1,0 +1,21 @@
+---
+validator:
+  anyOf:
+    - kind: scalar
+    - kind: sequence
+input: foo
+valid: true
+---
+validator:
+  anyOf:
+    - kind: scalar
+    - kind: sequence
+input: []
+valid: true
+---
+validator:
+  anyOf:
+    - kind: scalar
+    - kind: sequence
+input: {}
+valid: false

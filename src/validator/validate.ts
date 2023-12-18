@@ -1,10 +1,13 @@
 import {
   NodeComparator,
   type RepresentationNode,
+  type RepresentationScalar,
+  type RepresentationSequence,
+  type RepresentationMapping,
   type PathEntry,
 } from '@/nodes';
 
-import { NestedMap, strictKeys, enumerate } from '@/util';
+import { NestedMap, enumerate } from '@/util';
 
 import type { Validator, Validated } from './types';
 
@@ -42,7 +45,7 @@ export function validate(
   validator: Validator,
   node: RepresentationNode,
 ) {
-  return new NodeValidator().validate(validator, node, []);
+  return new NodeValidator().validateNode(validator, node, []);
 }
 
 export interface ValidationFailure {
@@ -51,85 +54,6 @@ export interface ValidationFailure {
   children?: ValidationFailure[];
 }
 
-const VALIDATORS = {
-  kind: (node, kind) => kind.has(node.kind),
-  tag: (node, tag) => tag.has(node.tag),
-
-  enum: function (node, items) {
-    return items.has(node, this.comparator);
-  },
-
-  minLength: (node, minLength) => node.size >= minLength,
-
-  items: function *(node, validator, path) {
-    let valid = true;
-    if (node.kind === 'sequence') {
-      for (const [index, item] of enumerate(node)) {
-        // valid = yield* this.validate(validator, item, [...path, { type: 'index', index }]);
-        for (const failure of this.validate(validator, item, [...path, { type: 'index', index }])) {
-          valid = false;
-          yield failure;
-        }
-      }
-    }
-
-    return valid;
-  },
-
-  properties: function *(node, validators, path) {
-    let valid = true;
-    if (node.kind === 'mapping') {
-      for (const [key, value] of node) {
-        const validator = validators.get(key);
-        if (validator === undefined) {
-          valid = false;
-          yield {
-            path: [...path, { type: 'key', key }],
-            key: 'properties',
-          };
-        } else {
-          for (const failure of this.validate(validator, value, [...path, { type: 'value', key }])) {
-            valid = false;
-            yield failure;
-          }
-        }
-      }
-    }
-    return valid;
-  },
-
-  requiredProperties: function *(node, requiredProperties, path) {
-    let valid = true;
-    if (node.kind === 'mapping') {
-      for (const key of requiredProperties) {
-        if (!node.has(key)) {
-          valid = false;
-          yield { path, key: 'requiredProperties' };
-        }
-      }
-    }
-    return valid;
-  },
-
-  anyOf: function*(node, validators, path) {
-    for (const alternative of validators) {
-      const failures = Array.from(this.validate(alternative, node, path));
-      if (failures.length === 0) return true;
-    }
-    yield* [];
-    return false;
-  },
-} satisfies {
-  [K in keyof Validator]: (
-    this: NodeValidator,
-    node: RepresentationNode,
-    value: Exclude<Validator[K], undefined>,
-    path: PathEntry[],
-  ) => boolean | Generator<ValidationFailure, boolean>
-};
-
-const VALIDATOR_KEYS = strictKeys(VALIDATORS);
-
 class NodeValidator {
   readonly cache = new NestedMap<[Validator, RepresentationNode], ValidationFailure[]>(
     () => new WeakMap(),
@@ -137,61 +61,133 @@ class NodeValidator {
   );
   readonly comparator = new NodeComparator();
 
-  *validate(
+  *validateNode(
     validator: Validator,
     node: RepresentationNode,
     path: PathEntry[],
-  ): Generator<ValidationFailure, undefined, undefined> {
+  ): Generator<ValidationFailure> {
     const cached = this.cache.get(validator, node);
-    let failures: ValidationFailure[];
     if (cached !== undefined) {
       return;
-    } else {
-      failures = [];
-      this.cache.set(validator, node, failures);
     }
 
-    for (const key of VALIDATOR_KEYS) {
-      if (validator[key] !== undefined) {
-        const f = VALIDATORS[key] as (
-          this: NodeValidator,
-          node: RepresentationNode,
-          value: unknown,
-          path: PathEntry[],
-        ) => boolean | Generator<ValidationFailure, boolean>;
+    const failures: ValidationFailure[] = [];
+    this.cache.set(validator, node, failures);
 
-        const result = f.call(this, node, validator[key], path);
+    if (validator.kind !== undefined) {
+      if (!validator.kind.has(node.kind)) {
+        const failure: ValidationFailure = { path, key: 'kind' };
+        failures.push(failure);
+        yield failure;
+      }
+    }
 
-        let children: ValidationFailure[] | undefined = undefined;
-        let valid: boolean;
-        if (typeof result === 'boolean') {
-          valid = result;
-        } else {
-          [children, valid] = collect(result);
-          // children = Array.from(result);
-          // valid = (children.length === 0);
+    if (validator.tag !== undefined) {
+      if (!validator.tag.has(node.tag)) {
+        const failure: ValidationFailure = { path, key: 'tag' };
+        failures.push(failure);
+        yield failure;
+      }
+    }
+
+    if (validator.enum !== undefined) {
+      if (!validator.enum.has(node, this.comparator)) {
+        const failure: ValidationFailure = { path, key: 'enum' };
+        failures.push(failure);
+        yield failure;
+      }
+    }
+
+    if (node.kind === 'scalar') {
+      yield* this.validateScalar(validator, node, path);
+    } else if (node.kind === 'sequence') {
+      yield* this.validateSequence(validator, node, path);
+    } else if (node.kind === 'mapping') {
+      yield* this.validateMapping(validator, node, path);
+    }
+
+    if (validator.anyOf !== undefined) {
+      // TODO: child failures
+      let anySuccess = false;
+      for (const alternative of validator.anyOf) {
+        const failures = Array.from(this.validateNode(alternative, node, path));
+        if (failures.length === 0) {
+          anySuccess = true;
+          break;
         }
+      }
+      if (!anySuccess) {
+        const failure: ValidationFailure = { path, key: 'anyOf' };
+        failures.push(failure);
+        yield failure;
+      }
+    }
+  }
 
-        if (!valid) {
-          const failure: ValidationFailure = { path, key };
-          if (children?.length) failure.children = children;
-          failures.push(failure);
+  *validateScalar(
+    validator: Validator,
+    node: RepresentationScalar,
+    path: PathEntry[],
+  ): Generator<ValidationFailure> {
+    if (validator.minLength !== undefined) {
+      if (node.size < validator.minLength) {
+        yield { path, key: 'minLength' };
+      }
+    }
+  }
+
+  *validateSequence(
+    validator: Validator,
+    node: RepresentationSequence,
+    path: PathEntry[],
+  ): Generator<ValidationFailure> {
+    if (validator.items !== undefined) {
+      for (const [index, item] of enumerate(node)) {
+        for (const failure of this.validateNode(validator.items, item, [...path, { type: 'index', index }])) {
           yield failure;
-          return;
         }
       }
     }
   }
-}
 
-function collect<T, R>(
-  generator: Generator<T, R>
-): [T[], R] {
-  const yielded: T[] = [];
-  let result = generator.next();
-  while (!result.done) {
-    yielded.push(result.value);
-    result = generator.next();
+  *validateMapping(
+    validator: Validator,
+    node: RepresentationMapping,
+    path: PathEntry[],
+  ): Generator<ValidationFailure> {
+    if (validator.properties !== undefined) {
+      let valid = true;
+      if (node.kind === 'mapping') {
+        for (const [key, value] of node) {
+          const propertyValidator = validator.properties.get(key);
+          if (propertyValidator === undefined) {
+            valid = false;
+            yield {
+              path: [...path, { type: 'key', key }],
+              key: 'properties',
+            };
+          } else {
+            for (const failure of this.validateNode(propertyValidator, value, [...path, { type: 'value', key }])) {
+              valid = false;
+              yield failure;
+            }
+          }
+        }
+      }
+      return valid;
+    }
+
+    if (validator.requiredProperties !== undefined) {
+      let valid = true;
+      if (node.kind === 'mapping') {
+        for (const key of validator.requiredProperties) {
+          if (!node.has(key)) {
+            valid = false;
+            yield { path, key: 'requiredProperties' };
+          }
+        }
+      }
+      return valid;
+    }
   }
-  return [yielded, result.value];
 }
