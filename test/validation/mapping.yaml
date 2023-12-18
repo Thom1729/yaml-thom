@@ -28,3 +28,47 @@ validator:
 input:
   bar: '42'
 valid: false
+---
+validator:
+  additionalProperties:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+input:
+  foo: '1'
+  bar: '2'
+valid: true
+---
+validator:
+  additionalProperties:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+input:
+  foo: 1
+  bar: 2
+valid: false
+---
+validator:
+  properties:
+    foo:
+      kind: scalar
+      tag: tag:yaml.org,2002:int
+  additionalProperties:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+input:
+  foo: 1
+  bar: '2'
+valid: true
+---
+validator:
+  properties:
+    foo:
+      kind: scalar
+      tag: tag:yaml.org,2002:int
+  additionalProperties:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+input:
+  foo: '1'
+  bar: '2'
+valid: false

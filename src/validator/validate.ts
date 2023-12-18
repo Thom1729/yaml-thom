@@ -15,9 +15,7 @@ export function isValid<ValidatorType extends Validator>(
   validator: ValidatorType,
   node: RepresentationNode,
 ): node is Validated<ValidatorType> {
-  const itr = validate(validator, node);
-  const { done } = itr.next();
-  return done ?? false;
+  return validate(validator, node).length === 0;
 }
 
 export class ValidationError extends Error {
@@ -34,10 +32,9 @@ export function assertValid<ValidatorType extends Validator>(
   validator: ValidatorType,
   node: RepresentationNode,
 ): asserts node is Validated<ValidatorType> {
-  const itr = validate(validator, node);
-  const result = itr.next();
-  if (!result.done) {
-    throw new ValidationError(result.value);
+  const failures = validate(validator, node);
+  if (failures.length !== 0) {
+    throw new ValidationError(failures[0]);
   }
 }
 
@@ -61,40 +58,42 @@ class NodeValidator {
   );
   readonly comparator = new NodeComparator();
 
-  *validateNode(
+  validateNode(
+    validator: Validator,
+    node: RepresentationNode,
+    path: PathEntry[],
+  ) {
+    let failures = this.cache.get(validator, node);
+    if (failures === undefined) {
+      failures = [];
+      this.cache.set(validator, node, failures);
+      for (const item of this._validateNode(validator, node, path)) {
+        failures.push(item);
+      }
+    }
+    return failures;
+  }
+
+  *_validateNode(
     validator: Validator,
     node: RepresentationNode,
     path: PathEntry[],
   ): Generator<ValidationFailure> {
-    const cached = this.cache.get(validator, node);
-    if (cached !== undefined) {
-      return;
-    }
-
-    const failures: ValidationFailure[] = [];
-    this.cache.set(validator, node, failures);
-
     if (validator.kind !== undefined) {
       if (!validator.kind.has(node.kind)) {
-        const failure: ValidationFailure = { path, key: 'kind' };
-        failures.push(failure);
-        yield failure;
+        yield { path, key: 'kind' };
       }
     }
 
     if (validator.tag !== undefined) {
       if (!validator.tag.has(node.tag)) {
-        const failure: ValidationFailure = { path, key: 'tag' };
-        failures.push(failure);
-        yield failure;
+        yield { path, key: 'tag' };
       }
     }
 
     if (validator.enum !== undefined) {
       if (!validator.enum.has(node, this.comparator)) {
-        const failure: ValidationFailure = { path, key: 'enum' };
-        failures.push(failure);
-        yield failure;
+        yield { path, key: 'enum' };
       }
     }
 
@@ -110,16 +109,14 @@ class NodeValidator {
       // TODO: child failures
       let anySuccess = false;
       for (const alternative of validator.anyOf) {
-        const failures = Array.from(this.validateNode(alternative, node, path));
+        const failures = this.validateNode(alternative, node, path);
         if (failures.length === 0) {
           anySuccess = true;
           break;
         }
       }
       if (!anySuccess) {
-        const failure: ValidationFailure = { path, key: 'anyOf' };
-        failures.push(failure);
-        yield failure;
+        yield { path, key: 'anyOf' };
       }
     }
   }
@@ -155,39 +152,28 @@ class NodeValidator {
     node: RepresentationMapping,
     path: PathEntry[],
   ): Generator<ValidationFailure> {
-    if (validator.properties !== undefined) {
-      let valid = true;
-      if (node.kind === 'mapping') {
-        for (const [key, value] of node) {
-          const propertyValidator = validator.properties.get(key);
-          if (propertyValidator === undefined) {
-            valid = false;
-            yield {
-              path: [...path, { type: 'key', key }],
-              key: 'properties',
-            };
-          } else {
-            for (const failure of this.validateNode(propertyValidator, value, [...path, { type: 'value', key }])) {
-              valid = false;
-              yield failure;
-            }
+    if (validator.properties !== undefined || validator.additionalProperties !== undefined) {
+      for (const [key, value] of node) {
+        const propertyValidator = validator.properties?.get(key) ?? validator.additionalProperties;
+        if (propertyValidator === undefined) {
+          yield {
+            path: [...path, { type: 'key', key }],
+            key: 'properties',
+          };
+        } else {
+          for (const failure of this.validateNode(propertyValidator, value, [...path, { type: 'value', key }])) {
+            yield failure;
           }
         }
       }
-      return valid;
     }
 
     if (validator.requiredProperties !== undefined) {
-      let valid = true;
-      if (node.kind === 'mapping') {
-        for (const key of validator.requiredProperties) {
-          if (!node.has(key)) {
-            valid = false;
-            yield { path, key: 'requiredProperties' };
-          }
+      for (const key of validator.requiredProperties) {
+        if (!node.has(key)) {
+          yield { path, key: 'requiredProperties' };
         }
       }
-      return valid;
     }
   }
 }
