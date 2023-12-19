@@ -1,4 +1,6 @@
 import {
+  command,
+  enumerate,
   loadTestFiles,
   logger,
 } from '../helpers';
@@ -27,6 +29,7 @@ interface ValidationTestResult {
 
 import * as V from '@/validator/validatorHelpers';
 import { assertNotUndefined } from '@/util';
+import chalk from 'chalk';
 
 const testValidator = V.stringMapOf({
   validator: {},
@@ -131,35 +134,42 @@ function runValidationTest(test: ValidationTest): ValidationTestResult {
   const failures = Array.from(validate(test.validator, test.input));
   const valid = failures.length === 0;
 
-  let success = true;
+  const result: ValidationTestResult = {
+    success: true,
+  };
 
   if (test.valid !== undefined) {
-    if (test.valid !== valid) success = false;
+    if (test.valid !== valid) result.success = false;
   }
 
   if (test.failures !== undefined) {
-    success = success && deepEquals(failures, test.failures);
+    result.success = result.success && deepEquals(failures, test.failures);
   }
-
-  if (!success) {
-    logger.dir(test);
-    logger.dir(failures);
-  }
-  return { success };
+  return result;
 }
 
-export function runValidationTests(testNames: string[]) {
-  for (const { name, text } of loadTestFiles('test/validation', testNames)) {
+export const runValidationTests = command<{
+  testName: string[],
+}>(({ testName }) => {
+  let status = 1;
+  for (const { name, text } of loadTestFiles('test/validation', testName)) {
     logger.log(name);
     logger.indented(() => {
-      for (const document of loadStream(text)) {
-        const validationTest = constructValidationTest(document);
+      for (const [index, doc] of enumerate(loadStream(text), 1)) {
+        const validationTest = constructValidationTest(doc);
 
         const result = runValidationTest(validationTest);
 
-        logger.log(result);
+        logger.write(index.toString() + ' ');
+        if (result.success) {
+          logger.log(chalk.green('success'));
+        } else {
+          status = 1;
+          logger.log(chalk.red('failure'));
+        }
       }
     });
     logger.log();
   }
-}
+  return status ;
+});

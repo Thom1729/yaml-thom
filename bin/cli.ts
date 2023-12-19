@@ -75,7 +75,7 @@ yargs(hideBin(process.argv))
     '',
     yargs => yargs
       .positional('test-name', { type: 'string', array: true, demandOption: true }),
-    args => runValidationTests(args['test-name']),
+    args => runValidationTests(args),
   )
   .command(
     'run-present-tests [test-name..]',
