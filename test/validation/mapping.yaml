@@ -17,8 +17,11 @@ input:
   foo: '42'
 valid: false
 failures:
-  - path: [{ type: value, key: foo }]
-    key: tag
+  - path: []
+    key: properties
+    children:
+      - path: [{ type: value, key: foo }]
+        key: tag
 ---
 validator:
   properties:

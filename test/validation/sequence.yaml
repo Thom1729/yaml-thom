@@ -12,3 +12,9 @@ validator:
 input:
   - []
 valid: false
+failures:
+  - key: items
+    path: []
+    children:
+      - key: kind
+        path: [{ type: index, index: 0 }]

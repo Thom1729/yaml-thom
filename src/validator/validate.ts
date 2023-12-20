@@ -140,8 +140,9 @@ class NodeValidator {
   ): Generator<ValidationFailure> {
     if (validator.items !== undefined) {
       for (const [index, item] of enumerate(node)) {
-        for (const failure of this.validateNode(validator.items, item, [...path, { type: 'index', index }])) {
-          yield failure;
+        const itemFailures = this.validateNode(validator.items, item, [...path, { type: 'index', index }]);
+        if (itemFailures.length > 0) {
+          yield { path, key: 'items', children: itemFailures };
         }
       }
     }
@@ -161,8 +162,9 @@ class NodeValidator {
             key: 'properties',
           };
         } else {
-          for (const failure of this.validateNode(propertyValidator, value, [...path, { type: 'value', key }])) {
-            yield failure;
+          const childFailures = this.validateNode(propertyValidator, value, [...path, { type: 'value', key }]);
+          if (childFailures.length > 0) {
+            yield { path, key: 'properties', children: childFailures };
           }
         }
       }

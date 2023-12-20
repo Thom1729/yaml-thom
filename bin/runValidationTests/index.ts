@@ -23,9 +23,10 @@ interface ValidationTest {
   failures?: ValidationFailure[];
 }
 
-interface ValidationTestResult {
-  success: boolean;
-}
+type ValidationTestResult =
+| { status: 'success' }
+| { status: 'failure', expected: readonly ValidationFailure[], actual: readonly ValidationFailure[] }
+;
 
 import * as V from '@/validator/validatorHelpers';
 import { assertNotUndefined } from '@/util';
@@ -131,27 +132,26 @@ function deepEquals(a: unknown, b: unknown) {
 }
 
 function runValidationTest(test: ValidationTest): ValidationTestResult {
-  const failures = Array.from(validate(test.validator, test.input));
-  const valid = failures.length === 0;
+  const expected = test.failures ?? [];
+  const actual = Array.from(validate(test.validator, test.input));
+  const valid = actual.length === 0;
 
-  const result: ValidationTestResult = {
-    success: true,
-  };
+  const status = (
+    (test.valid === undefined || valid === test.valid) &&
+    (test.failures === undefined || deepEquals(actual, expected))
+  ) ? 'success' : 'failure';
 
-  if (test.valid !== undefined) {
-    if (test.valid !== valid) result.success = false;
+  if (status === 'success') {
+    return { status };
+  } else {
+    return { status, expected, actual };
   }
-
-  if (test.failures !== undefined) {
-    result.success = result.success && deepEquals(failures, test.failures);
-  }
-  return result;
 }
 
 export const runValidationTests = command<{
   testName: string[],
 }>(({ testName }) => {
-  let status = 1;
+  let status = 0;
   for (const { name, text } of loadTestFiles('test/validation', testName)) {
     logger.log(name);
     logger.indented(() => {
@@ -161,15 +161,39 @@ export const runValidationTests = command<{
         const result = runValidationTest(validationTest);
 
         logger.write(index.toString() + ' ');
-        if (result.success) {
+        if (result.status === 'success') {
           logger.log(chalk.green('success'));
         } else {
           status = 1;
           logger.log(chalk.red('failure'));
+          logger.log('expected');
+          logFailures(result.expected);
+          logger.log('actual');
+          logFailures(result.actual);
         }
       }
     });
     logger.log();
   }
-  return status ;
+  return status;
 });
+
+function logFailures(failures: readonly ValidationFailure[]) {
+  logger.indented(() => {
+    for (const failure of failures) {
+      logger.write(`- ${failure.key} `);
+      logger.log(['#', failure.path.map(formatPathEntry)].join(' → '));
+      if (failure.children) logFailures(failure.children);
+    }
+  });
+}
+
+import { dumpDocument } from '@/index';
+
+function formatPathEntry(entry: PathEntry) {
+  switch (entry.type) {
+    case 'index': return entry.index.toString();
+    case 'value': return dumpDocument(entry.key, { flow: true });
+    case 'key': throw new Error('nimpl');
+  }
+}
