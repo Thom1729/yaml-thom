@@ -15,6 +15,8 @@ import {
   canBePlainScalar,
 } from '@/scalar';
 
+//////////
+
 export const scalarStyleStrategies = {
   [ScalarStyle.plain]: (node: SerializationScalar) => canBePlainScalar(node.content) ? ScalarStyle.plain : undefined,
   [ScalarStyle.single]: () => undefined,
@@ -23,11 +25,15 @@ export const scalarStyleStrategies = {
   [ScalarStyle.folded]: () => undefined,
 } satisfies Strategies<ScalarStyle, [SerializationScalar]>;
 
+//////////
+
 export const doubleQuoteEscapeCharacters = {
   builtin: (codepoint: CodePoint) => CODEPOINT_TO_ESCAPE.has(codepoint) || undefined,
   'non-ascii': (codepoint: CodePoint) => codepoint <= 0x7f ? true : undefined,
   all: () => true,
 } satisfies Strategies<boolean, [CodePoint]>;
+
+//////////
 
 function hex(codepoint: number, width: number) {
   return codepoint.toString(16).padStart(width, '0');
@@ -49,9 +55,17 @@ export const doubleQuoteEscapeStrategies = {
   },
 } satisfies Strategies<string, [CodePoint]>;
 
+//////////
+
 export interface PresentOptions {
   indentation: number;
   flow: boolean;
+
+  versionDirective: boolean;
+  startMarker: boolean;
+  endMarker: boolean;
+  trailingNewline: boolean,
+
   scalarStyle: StrategyOptions<typeof scalarStyleStrategies>,
   doubleQuoteEscapeCharacters: StrategyOptions<typeof doubleQuoteEscapeCharacters>,
   doubleQuoteEscapeStyle: StrategyOptions<typeof doubleQuoteEscapeStrategies>,
@@ -60,6 +74,12 @@ export interface PresentOptions {
 export const DEFAULT_PRESENT_OPTIONS = {
   indentation: 2,
   flow: false,
+
+  versionDirective: true,
+  startMarker: true,
+  endMarker: true,
+  trailingNewline: true,
+
   scalarStyle: [ScalarStyle.double, ScalarStyle.plain],
   doubleQuoteEscapeCharacters: [],
   doubleQuoteEscapeStyle: ['builtin', 'x', 'u', 'U'],

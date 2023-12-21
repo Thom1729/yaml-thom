@@ -182,7 +182,7 @@ function logFailures(failures: readonly ValidationFailure[]) {
   logger.indented(() => {
     for (const failure of failures) {
       logger.write(`- ${failure.key} `);
-      logger.log(['#', failure.path.map(formatPathEntry)].join(' → '));
+      logger.log(['#', ...failure.path.map(formatPathEntry)].join(' → '));
       if (failure.children) logFailures(failure.children);
     }
   });
@@ -190,10 +190,18 @@ function logFailures(failures: readonly ValidationFailure[]) {
 
 import { dumpDocument } from '@/index';
 
+const options = {
+  flow: true,
+  versionDirective: false,
+  startMarker: false,
+  endMarker: false,
+  trailingNewline: false,
+};
+
 function formatPathEntry(entry: PathEntry) {
   switch (entry.type) {
     case 'index': return entry.index.toString();
-    case 'value': return dumpDocument(entry.key, { flow: true });
+    case 'value': return dumpDocument(entry.key, options);
     case 'key': throw new Error('nimpl');
   }
 }

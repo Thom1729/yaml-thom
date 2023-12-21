@@ -75,10 +75,26 @@ class PresentOperation {
   }
 
   *presentDocument(node: SerializationNode) {
-    yield '%YAML 1.2\n';
-    yield '---';
+    const atLeastOneDirective = yield* this.presentDirectives();
+    if (atLeastOneDirective || this.options.startMarker) {
+      yield '---';
+    }
     yield* this.presentNode(node, { level: 0, flow: this.options.flow });
-    yield '\n...\n';
+    if (this.options.endMarker) {
+      yield '\n...';
+    }
+    if (this.options.trailingNewline) {
+      yield '\n';
+    }
+  }
+
+  *presentDirectives() {
+    let atLeastOne = false;
+    if (this.options.versionDirective) {
+      atLeastOne = true;
+      yield '%YAML 1.2\n';
+    }
+    return atLeastOne;
   }
 
   *presentNode(node: SerializationNode, context: PresentationContext) {
