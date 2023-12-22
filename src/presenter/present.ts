@@ -130,8 +130,22 @@ class PresentOperation {
         yield '!';
       }
     } else {
-      yield null;
-      yield '!<' + tag + '>';
+      const shorthand = this.findTagShorthand(tag);
+      if (shorthand !== undefined) {
+        yield null;
+        yield shorthand;
+      } else {
+        yield null;
+        yield '!<' + tag + '>';
+      }
+    }
+  }
+
+  findTagShorthand(tag: string) {
+    if (this.options.useDefaultTagShorthands) {
+      for (const [handle, prefix] of DEFAULT_TAG_HANDLES) {
+        if (tag.startsWith(prefix)) return handle + tag.slice(prefix.length);
+      }
     }
   }
 
@@ -317,3 +331,8 @@ class PresentOperation {
     }
   }
 }
+
+const DEFAULT_TAG_HANDLES = new Map([
+  ['!', '!'],
+  ['!!', 'tag:yaml.org,2002:'],
+]);

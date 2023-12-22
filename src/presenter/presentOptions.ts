@@ -66,6 +66,8 @@ export interface PresentOptions {
   endMarker: boolean;
   trailingNewline: boolean,
 
+  useDefaultTagShorthands: boolean,
+
   scalarStyle: StrategyOptions<typeof scalarStyleStrategies>,
   doubleQuoteEscapeCharacters: StrategyOptions<typeof doubleQuoteEscapeCharacters>,
   doubleQuoteEscapeStyle: StrategyOptions<typeof doubleQuoteEscapeStrategies>,
@@ -80,7 +82,9 @@ export const DEFAULT_PRESENT_OPTIONS = {
   endMarker: true,
   trailingNewline: true,
 
-  scalarStyle: [ScalarStyle.double, ScalarStyle.plain],
+  useDefaultTagShorthands: true,
+
+  scalarStyle: [ScalarStyle.plain, ScalarStyle.double],
   doubleQuoteEscapeCharacters: [],
   doubleQuoteEscapeStyle: ['builtin', 'x', 'u', 'U'],
 } satisfies PresentOptions;

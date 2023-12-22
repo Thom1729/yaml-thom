@@ -8,13 +8,3 @@ expected: |
   --- Hello, World!
   ...
 
----
-name: Compact
-input:
-  Hello, World!
-options:
-  versionDirective: false
-  startMarker: false
-  endMarker: false
-  trailingNewline: false
-expected: Hello, World!

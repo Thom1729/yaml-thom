@@ -29,10 +29,13 @@ const presenterTestValidator = V.stringMapOf({
     'scalarStyle?': singleOrArray(V.enumOf(str('plain'), str('double'))),
     'doubleQuoteEscapeCharacters?': singleOrArray(V.enumOf(str('all'))),
     'doubleQuoteEscapeStyle?': singleOrArray(V.enumOf(str('builtin'), str('json'), str('x'), str('u'), str('U'), str('uu'))),
+
     'versionDirective?': V.bool,
     'startMarker?': V.bool,
     'endMarker?': V.bool,
     'trailingNewline?': V.bool,
+
+    'useDefaultTagShorthands?': V.bool,
   }),
   input: {},
   expected: V.str,
