@@ -66,6 +66,7 @@ export interface PresentOptions {
   endMarker: boolean;
   trailingNewline: boolean,
 
+  tagShorthands: readonly (readonly [string, string])[],
   useDefaultTagShorthands: boolean,
 
   scalarStyle: StrategyOptions<typeof scalarStyleStrategies>,
@@ -82,6 +83,7 @@ export const DEFAULT_PRESENT_OPTIONS = {
   endMarker: true,
   trailingNewline: true,
 
+  tagShorthands: [],
   useDefaultTagShorthands: true,
 
   scalarStyle: [ScalarStyle.plain, ScalarStyle.double],

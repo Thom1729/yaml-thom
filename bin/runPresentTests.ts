@@ -35,6 +35,7 @@ const presenterTestValidator = V.stringMapOf({
     'endMarker?': V.bool,
     'trailingNewline?': V.bool,
 
+    'tagShorthands?': V.seqOf(V.seqOf(V.str)),
     'useDefaultTagShorthands?': V.bool,
   }),
   input: {},

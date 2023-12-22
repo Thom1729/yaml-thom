@@ -94,6 +94,10 @@ class PresentOperation {
       atLeastOne = true;
       yield '%YAML 1.2\n';
     }
+    for (const [handle, prefix] of this.options.tagShorthands) {
+      // TODO check that handle is valid
+      yield `%TAG ${handle} ${prefix}\n`;
+    }
     return atLeastOne;
   }
 
@@ -142,6 +146,10 @@ class PresentOperation {
   }
 
   findTagShorthand(tag: string) {
+    for (const [handle, prefix] of this.options.tagShorthands) {
+      if (tag.startsWith(prefix)) return handle + tag.slice(prefix.length);
+    }
+
     if (this.options.useDefaultTagShorthands) {
       for (const [handle, prefix] of DEFAULT_TAG_HANDLES) {
         if (tag.startsWith(prefix)) return handle + tag.slice(prefix.length);

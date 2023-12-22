@@ -1,0 +1,35 @@
+---
+name: Default
+input:
+  Hello, World!
+options:
+  unresolve: []
+expected: |
+  %YAML 1.2
+  --- !!str Hello, World!
+  ...
+
+---
+name: No default shorthand
+input:
+  Hello, World!
+options:
+  unresolve: []
+  useDefaultTagShorthands: false
+expected: |
+  %YAML 1.2
+  --- !<tag:yaml.org,2002:str> Hello, World!
+  ...
+
+---
+name: Specified shorthand
+input:
+  Hello, World!
+options:
+  unresolve: []
+  tagShorthands: [['!default!', 'tag:yaml.org,2002:']]
+expected: |
+  %YAML 1.2
+  %TAG !default! tag:yaml.org,2002:
+  --- !default!str Hello, World!
+  ...
