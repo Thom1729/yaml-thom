@@ -95,6 +95,7 @@ class PresentOperation {
       yield '%YAML 1.2\n';
     }
     for (const [handle, prefix] of this.options.tagShorthands) {
+      atLeastOne = true;
       // TODO check that handle is valid
       yield `%TAG ${handle} ${prefix}\n`;
     }

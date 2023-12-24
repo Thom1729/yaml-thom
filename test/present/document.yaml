@@ -8,3 +8,26 @@ expected: |
   --- Hello, World!
   ...
 
+---
+name: Don't show start marker
+input:
+  Hello, World!
+options:
+  versionDirective: false
+  startMarker: false
+expected: |
+  Hello, World!
+  ...
+
+---
+name: Show start marker when required
+input:
+  Hello, World!
+options:
+  versionDirective: true
+  startMarker: false
+expected: |
+  %YAML 1.2
+  --- Hello, World!
+  ...
+
