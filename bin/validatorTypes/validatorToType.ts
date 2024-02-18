@@ -24,6 +24,9 @@ class ValidatorToTypeOperation {
         refCount: 1,
         value: undefined,
       };
+      if (validator.name !== undefined) {
+        ref.name = validator.name;
+      }
       this.map.set(validator, ref);
       ref.value = this.validatorToType(validator);
     }
@@ -63,7 +66,7 @@ class ValidatorToTypeOperation {
 
     const itemType = validator.items !== undefined
       ? this.recurse(validator.items)
-      : builtin.any;
+      : undefined;
 
     return name('RepresentationSequence', tag, itemType);
   }
@@ -89,7 +92,7 @@ class ValidatorToTypeOperation {
       )));
     }
 
-    const pairsType = pairs.length ? union(...pairs) : builtin.any;
+    const pairsType = pairs.length ? union(...pairs) : undefined;
 
     return name('RepresentationMapping', tag, pairsType);
   }

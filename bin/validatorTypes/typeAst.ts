@@ -14,8 +14,17 @@ export type Type =
 | { kind: 'parenthesized', child: Type }
 ;
 
-export function name(name: string, ...args: Type[]): Type {
-  return { kind: 'name', name, children: args } as const;
+export function name(name: string, ...args: (Type | undefined)[]): Type {
+  let lastDefined = 0;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === undefined) break;
+    lastDefined = i;
+  }
+  for (let i = lastDefined+1; i < args.length; i++) {
+    if (args[i] !== undefined) throw new TypeError();
+  }
+  const children = args.slice(0, lastDefined+1) as Type[];
+  return { kind: 'name', name, children } as const;
 }
 
 export function string(value: string): Type {
@@ -53,5 +62,5 @@ export function parenthesized(child: Type): Type {
 
 export const builtin = {
   string: name('string'),
-  any: name('any'),
+  // any: name('any'),
 } as const;

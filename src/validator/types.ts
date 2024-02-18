@@ -6,6 +6,9 @@ import type {
 type NodeKind = 'scalar' | 'sequence' | 'mapping';
 
 export interface Validator {
+  id?: string;
+  name?: string;
+
   kind?: Set<NodeKind>;
   tag?: Set<string>;
 

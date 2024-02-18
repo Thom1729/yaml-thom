@@ -80,7 +80,7 @@ class PrintTypesOperation {
         yield '>';
       }
     } else if (value.kind === 'string') {
-      yield JSON.stringify(value.value);
+      yield '\'' + JSON.stringify(value.value).slice(1, -1) + '\'';
     } else if (value.kind === 'union') {
       yield* this.printLattice('|', value.children, level, compact);
     } else if (value.kind === 'tuple') {
@@ -119,8 +119,10 @@ class PrintTypesOperation {
   }
 
   *printList(types: readonly Type[], level: number, compact: boolean): Tokens {
+    if (types.length === 0) return;
+
+    let first = true;
     if (compact) {
-      let first = true;
       for (const item of types) {
         if (first) {
           first = false;
@@ -129,12 +131,16 @@ class PrintTypesOperation {
         }
         yield* this.printTypeInfo(item, level + 1);
       }
-    } else if (types.length > 0) {
+    } else {
       for (const item of types) {
+        if (first) {
+          first = false;
+        } else {
+          yield ',';
+        }
         yield '\n';
         yield level + 1;
         yield* this.printTypeInfo(item, level + 1);
-        yield ',';
       }
       yield '\n';
       yield level;

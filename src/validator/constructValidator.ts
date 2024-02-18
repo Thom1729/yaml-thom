@@ -19,6 +19,9 @@ const nodeKindValidator = {
 } satisfies Validator;
 
 const validatorValidator = V.stringMapOf({
+  'id?': V.str,
+  'name?': V.str,
+
   'kind?': { anyOf: [ nodeKindValidator, V.seqOf(nodeKindValidator) ] },
   'tag?': { anyOf: [ V.str, V.seqOf(V.str) ] },
   'const?': {},
@@ -49,6 +52,14 @@ export function constructValidator(
 
   const ret: Validator = {};
   cache.set(node, ret);
+
+  if (x.id !== undefined) {
+    ret.id = x.id.content;
+  }
+
+  if (x.name !== undefined) {
+    ret.name = x.name.content;
+  }
 
   if (x.kind !== undefined) {
     if (x.kind.kind === 'scalar') {

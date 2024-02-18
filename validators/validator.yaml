@@ -1,0 +1,49 @@
+%YAML 1.2
+--- &validator
+id: '#validator'
+name: Validator
+kind: mapping
+tag: tag:yaml.org,2002:map
+properties:
+  id:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+  name:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+
+  kind:
+    anyOf:
+      - &nodeKind
+        name: NodeKind
+        enum: [scalar, sequence, mapping]
+      - kind: sequence
+        tag: tag:yaml.org,2002:seq
+        items: *nodeKind
+  tag:
+    anyOf:
+      - &tag
+        name: Tag
+        kind: scalar
+        tag: tag:yaml.org,2002:str
+      - kind: sequence
+        tag: tag:yaml.org,2002:seq
+        items: *tag
+
+  items: *validator
+
+  properties:
+    kind: mapping
+    tag: tag:yaml.org,2002:map
+    additionalProperties: *validator
+
+  additionalProperties: *validator
+
+  requiredProperties:
+    kind: sequence
+    tag: tag:yaml.org,2002:seq
+
+  anyOf:
+    kind: sequence
+    tag: tag:yaml.org,2002:seq
+    items: *validator
