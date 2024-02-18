@@ -18,7 +18,7 @@ type Validator = RepresentationMapping<
     ]
   | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'id'>,
-      RepresentationScalar<'tag:yaml.org,2002:str', string>
+      RepresentationScalar<'tag:yaml.org,2002:str'>
     ]
   | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'items'>,
@@ -30,7 +30,7 @@ type Validator = RepresentationMapping<
     ]
   | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'name'>,
-      RepresentationScalar<'tag:yaml.org,2002:str', string>
+      RepresentationScalar<'tag:yaml.org,2002:str'>
     ]
   | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'properties'>,
@@ -54,5 +54,5 @@ type NodeKind =
 | RepresentationScalar<'tag:yaml.org,2002:str', 'scalar'>
 | RepresentationScalar<'tag:yaml.org,2002:str', 'sequence'>;
 
-type Tag = RepresentationScalar<'tag:yaml.org,2002:str', string>;
+type Tag = RepresentationScalar<'tag:yaml.org,2002:str'>;
 

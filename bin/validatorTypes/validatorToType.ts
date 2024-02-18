@@ -3,7 +3,7 @@ import type { Validator } from '@/validator';
 
 import {
   type Type, type TypeInfo,
-  name, union, tuple, builtin, readonly,
+  name, union, tuple, builtin, readonly, string,
 } from './typeAst';
 
 export function validatorToType(validator: Validator) {
@@ -43,37 +43,39 @@ class ValidatorToTypeOperation {
     }
 
     const tag: Type = validator.tag
-      ? union(...Array.from(validator.tag)
-        .map(t => ({ kind: 'string' as const, value: t }))
-      )
+      ? union(...Array.from(validator.tag).map(string))
       : builtin.string;
 
-    return union(
-      this.validatorToScalar(validator, tag),
-      this.validatorToSequence(validator, tag),
-      this.validatorToMapping(validator, tag),
-    );
+    const byKind: Type[] = [];
+
+    if (validator.kind?.has('scalar') ?? true) {
+      byKind.push(name('RepresentationScalar', tag, this.scalarContent(validator)));
+    }
+
+    if (validator.kind?.has('sequence') ?? true) {
+      byKind.push(name('RepresentationSequence', tag, this.sequenceContent(validator)));
+    }
+
+    if (validator.kind?.has('mapping') ?? true) {
+      byKind.push(name('RepresentationMapping', tag, this.mappingContent(validator)));
+    }
+
+    return union(...byKind);
   }
 
-  validatorToScalar(validator: Validator, tag: Type): Type | undefined {
-    if (validator.kind !== undefined && !validator.kind?.has('scalar')) return undefined;
-
-    return name('RepresentationScalar', tag, builtin.string);
+  scalarContent(validator: Validator): Type | undefined {
+    return undefined;
   }
 
-  validatorToSequence(validator: Validator, tag: Type): Type | undefined {
-    if (validator.kind !== undefined && !validator.kind?.has('sequence')) return undefined;
-
+  sequenceContent(validator: Validator): Type | undefined {
     const itemType = validator.items !== undefined
       ? this.recurse(validator.items)
       : undefined;
 
-    return name('RepresentationSequence', tag, itemType);
+    return itemType;
   }
 
-  validatorToMapping(validator: Validator, tag: Type): Type | undefined {
-    if (validator.kind !== undefined && !validator.kind?.has('mapping')) return undefined;
-
+  mappingContent(validator: Validator): Type {
     const pairs: Type[] = [];
 
     if (validator.properties !== undefined) {
@@ -92,14 +94,12 @@ class ValidatorToTypeOperation {
       )));
     }
 
-    const pairsType = pairs.length ? union(...pairs) : undefined;
-
-    return name('RepresentationMapping', tag, pairsType);
+    return union(...pairs);
   }
 
   nodeToType(node: RepresentationNode): Type {
     if (node.kind === 'scalar') {
-      return name('RepresentationScalar', { kind: 'string', value: node.tag }, { kind: 'string', value: node.content });
+      return name('RepresentationScalar', string(node.tag), string(node.content));
     } else {
       throw new Error('not implemented');
     }
