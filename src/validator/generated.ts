@@ -18,7 +18,7 @@ export type Validator = RepresentationMapping<
     ]
   | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'const'>,
-      RepresentationScalar<string> | RepresentationSequence<string> | RepresentationMapping<string>
+      RepresentationNode
     ]
   | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'enum'>,

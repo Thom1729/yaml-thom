@@ -6,6 +6,8 @@ import {
   name, union, tuple, builtin, readonly, string,
 } from './typeAst';
 
+import { capitalize } from '@/util';
+
 export function validatorToType(validator: Validator) {
   const operation = new ValidatorToTypeOperation();
   operation.recurse(validator);
@@ -14,6 +16,7 @@ export function validatorToType(validator: Validator) {
 
 class ValidatorToTypeOperation {
   readonly map = new Map<Validator, TypeInfo>();
+  readonly imports = new Set<string>;
 
   recurse(validator: Validator): Type {
     let ref = this.map.get(validator);
@@ -42,25 +45,33 @@ class ValidatorToTypeOperation {
       return union(...validator.anyOf.map(v => this.recurse(v)));
     }
 
-    const tag: Type = validator.tag
+    const tag = validator.tag
       ? union(...Array.from(validator.tag).map(string))
-      : builtin.string;
+      : undefined;
 
-    const byKind: Type[] = [];
+    const byKind = (['scalar', 'sequence', 'mapping'] as const)
+      .filter(kind => validator.kind?.has(kind) ?? true)
+      .map(kind => [kind, this[`${kind}Content`](validator)] as const);
 
-    if (validator.kind?.has('scalar') ?? true) {
-      byKind.push(name('RepresentationScalar', tag, this.scalarContent(validator)));
+    if (byKind.length === 3 && byKind.every(([, content]) => content === undefined)) {
+      return this.nodeClass('node', tag);
     }
 
-    if (validator.kind?.has('sequence') ?? true) {
-      byKind.push(name('RepresentationSequence', tag, this.sequenceContent(validator)));
-    }
+    return union(...byKind.map(([kind, content]) => {
+      return this.nodeClass(kind, tag, content);
+    }));
+  }
 
-    if (validator.kind?.has('mapping') ?? true) {
-      byKind.push(name('RepresentationMapping', tag, this.mappingContent(validator)));
+  nodeClass(kind: string, tag: Type | undefined, content: Type | undefined = undefined) {
+    const className = `Representation${capitalize(kind)}`;
+    this.imports.add(className);
+    if (content !== undefined) {
+      return name(className, tag ?? builtin.string, content);
+    } else if (tag !== undefined) {
+      return name(className, tag);
+    } else {
+      return name(className);
     }
-
-    return union(...byKind);
   }
 
   scalarContent(validator: Validator): Type | undefined {

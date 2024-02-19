@@ -3,6 +3,7 @@ import { stringifyTokens, type Tokens } from '@/util';
 
 import type { Type, TypeInfo } from './typeAst';
 
+// TODO make dynamic
 const PREAMBLE = `
 import type {
   RepresentationNode,
