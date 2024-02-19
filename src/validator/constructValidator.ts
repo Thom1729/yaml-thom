@@ -8,7 +8,7 @@ import {
 
 import {
   extractInt,
-  extractMapEntries, extractSeqItems, extractTypedStringMap, str,
+  extractTypedStringMap, str,
 } from '@/helpers';
 
 import * as V from './validatorHelpers';
@@ -46,7 +46,7 @@ export function validateValidator(
 }
 
 export function constructValidator(
-  node: RepresentationNode,
+  node: ValidatedValidator,
   cache?: Map<RepresentationNode, Validator>,
 ): Validator {
   cache ??= new Map();
@@ -54,7 +54,6 @@ export function constructValidator(
   const cached = cache.get(node);
   if (cached !== undefined) return cached;
 
-  validateValidator(node);
   const x = extractTypedStringMap(node);
 
   const ret: Validator = {};
@@ -94,7 +93,7 @@ export function constructValidator(
   }
 
   if (x.enum !== undefined) {
-    const items = extractSeqItems(x.enum);
+    const items = Array.from(x.enum);
     assertNotEmpty(items);
     ret.enum = new NodeSet(items);
   }
@@ -112,7 +111,7 @@ export function constructValidator(
   }
 
   if (x.properties !== undefined) {
-    ret.properties = new NodeMap(extractMapEntries(x.properties)
+    ret.properties = new NodeMap(Array.from(x.properties)
       .map(([key, value]) => [key, constructValidator(value, cache)] as const)
     );
   }

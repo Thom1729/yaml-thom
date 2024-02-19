@@ -8,7 +8,7 @@ import {
 import {
   loadStream,
   defaultConstructor,
-  validate, constructValidator, type Validator, type ValidationFailure,
+  validate, constructValidator, validateValidator, type Validator, type ValidationFailure,
   type RepresentationNode,
   assertValid,
   type PathEntry,
@@ -42,6 +42,8 @@ const testValidator = V.stringMapOf({
 function constructValidationTest(document: RepresentationNode): ValidationTest {
   assertValid(testValidator, document);
   const x = extractTypedStringMap(document);
+
+  validateValidator(x.validator);
 
   const ret: ValidationTest = {
     validator: constructValidator(x.validator),
