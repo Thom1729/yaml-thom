@@ -7,7 +7,7 @@ import {
   type PathEntry,
 } from '@/nodes';
 
-import { NestedMap, enumerate } from '@/util';
+import { NestedMap, assertNotUndefined, enumerate } from '@/util';
 
 import type { Validator, Validated } from './types';
 
@@ -42,7 +42,7 @@ export function validate(
   validator: Validator,
   node: RepresentationNode,
 ) {
-  return new NodeValidator().validateNode(validator, node, []);
+  return new ValidationProvider().validateNode(validator, node, []);
 }
 
 export interface ValidationFailure {
@@ -51,12 +51,23 @@ export interface ValidationFailure {
   children?: ValidationFailure[];
 }
 
-class NodeValidator {
+export class ValidationProvider {
+  readonly validatorsById = new Map<string, Validator>();
   readonly cache = new NestedMap<[Validator, RepresentationNode], ValidationFailure[]>(
     () => new WeakMap(),
     () => new WeakMap(),
   );
   readonly comparator = new NodeComparator();
+
+  validateNodeById(
+    id: string,
+    node: RepresentationNode,
+    path: PathEntry[],
+  ) {
+    const validator = this.validatorsById.get(id);
+    assertNotUndefined(validator);
+    return this.validateNode(validator, node, path);
+  }
 
   validateNode(
     validator: Validator,
@@ -78,7 +89,7 @@ class NodeValidator {
     validator: Validator,
     node: RepresentationNode,
     path: PathEntry[],
-  ): Generator<ValidationFailure> {
+  ): Iterable<ValidationFailure> {
     if (validator.kind !== undefined) {
       if (!validator.kind.has(node.kind)) {
         yield { path, key: 'kind' };
@@ -105,6 +116,10 @@ class NodeValidator {
       yield* this.validateMapping(validator, node, path);
     }
 
+    if (validator.ref) {
+      yield* this.validateNodeById(validator.ref, node, path);
+    }
+
     if (validator.anyOf !== undefined) {
       // TODO: child failures
       let anySuccess = false;
@@ -125,7 +140,7 @@ class NodeValidator {
     validator: Validator,
     node: RepresentationScalar,
     path: PathEntry[],
-  ): Generator<ValidationFailure> {
+  ): Iterable<ValidationFailure> {
     if (validator.minLength !== undefined) {
       if (node.size < validator.minLength) {
         yield { path, key: 'minLength' };
@@ -137,7 +152,7 @@ class NodeValidator {
     validator: Validator,
     node: RepresentationSequence,
     path: PathEntry[],
-  ): Generator<ValidationFailure> {
+  ): Iterable<ValidationFailure> {
     if (validator.items !== undefined) {
       for (const [index, item] of enumerate(node)) {
         const itemFailures = this.validateNode(validator.items, item, [...path, { type: 'index', index }]);
@@ -152,7 +167,7 @@ class NodeValidator {
     validator: Validator,
     node: RepresentationMapping,
     path: PathEntry[],
-  ): Generator<ValidationFailure> {
+  ): Iterable<ValidationFailure> {
     if (validator.properties !== undefined || validator.additionalProperties !== undefined) {
       for (const [key, value] of node) {
         const propertyValidator = validator.properties?.get(key) ?? validator.additionalProperties;

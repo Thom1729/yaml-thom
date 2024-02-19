@@ -14,6 +14,9 @@ properties:
     tag: tag:yaml.org,2002:str
 
   # Combiners
+  ref:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
   anyOf:
     kind: sequence
     tag: tag:yaml.org,2002:seq

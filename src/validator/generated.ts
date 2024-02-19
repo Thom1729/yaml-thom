@@ -56,6 +56,10 @@ export type Validator = RepresentationMapping<
       >
     ]
   | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'ref'>,
+      RepresentationScalar<'tag:yaml.org,2002:str'>
+    ]
+  | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'requiredProperties'>,
       RepresentationSequence<'tag:yaml.org,2002:seq'>
     ]

@@ -12,6 +12,7 @@ export interface Validator {
   kind?: Set<NodeKind>;
   tag?: Set<string>;
 
+  ref?: string;
   enum?: NodeSet<RepresentationNode>;
 
   minLength?: bigint;

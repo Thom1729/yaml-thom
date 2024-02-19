@@ -88,6 +88,10 @@ export function constructValidator(
     ret.additionalProperties = constructValidator(x.additionalProperties, cache);
   }
 
+  if (x.id !== undefined) {
+    ret.id = x.id.content;
+  }
+
   if (x.anyOf !== undefined) {
     ret.anyOf = x.anyOf.content.map(v => constructValidator(v, cache));
   }

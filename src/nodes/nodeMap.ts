@@ -32,6 +32,14 @@ export class NodeMap<const PairType extends readonly [UnresolvedNode, unknown]> 
 
   get size() { return this.pairs.length; }
 
+  *keys(): Iterable<PairType[0]> {
+    for (const [key] of this.pairs) yield key;
+  }
+
+  *values(): Iterable<PairType[1]> {
+    for (const [, value] of this.pairs) yield value;
+  }
+
   private _findPair(key: PairType[0], comparator?: NodeComparator) {
     const c = comparator ?? new NodeComparator();
     for (const pair of this.pairs) {
