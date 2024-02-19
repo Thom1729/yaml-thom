@@ -37,6 +37,14 @@ export type Validator = RepresentationMapping<
       NodeKind | RepresentationSequence<'tag:yaml.org,2002:seq', NodeKind>
     ]
   | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'maxLength'>,
+      RepresentationScalar<'tag:yaml.org,2002:int'>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'minLength'>,
+      RepresentationScalar<'tag:yaml.org,2002:int'>
+    ]
+  | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'name'>,
       RepresentationScalar<'tag:yaml.org,2002:str'>
     ]

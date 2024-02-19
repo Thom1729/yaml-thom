@@ -42,10 +42,18 @@ properties:
     kind: sequence
     tag: tag:yaml.org,2002:seq
 
-  # Sequences
+  # Scalar validators
+  minLength:
+    kind: scalar
+    tag: tag:yaml.org,2002:int
+  maxLength:
+    kind: scalar
+    tag: tag:yaml.org,2002:int
+
+  # Sequence validators
   items: *validator
 
-  # Mappings
+  # Mapping validators
   properties:
     kind: mapping
     tag: tag:yaml.org,2002:map

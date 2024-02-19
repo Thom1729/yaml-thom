@@ -1,5 +1,6 @@
 import type { Validator } from './types';
 import { assertValid } from './validate';
+import type { Validator as ValidatedValidator } from './generated';
 
 import {
   NodeMap, NodeSet, type RepresentationNode,
@@ -38,6 +39,12 @@ const validatorValidator = V.stringMapOf({
   'anyOf?': V.seq,
 });
 
+export function validateValidator(
+  validator: RepresentationNode,
+): asserts validator is ValidatedValidator {
+  assertValid(validatorValidator, validator);
+}
+
 export function constructValidator(
   node: RepresentationNode,
   cache?: Map<RepresentationNode, Validator>,
@@ -47,7 +54,7 @@ export function constructValidator(
   const cached = cache.get(node);
   if (cached !== undefined) return cached;
 
-  assertValid(validatorValidator, node);
+  validateValidator(node);
   const x = extractTypedStringMap(node);
 
   const ret: Validator = {};
