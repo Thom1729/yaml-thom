@@ -1,7 +1,5 @@
 import type { Validator } from './types';
-import { assertValid } from './validate';
 
-import { validatorValidator as raw } from './validatorValidator';
 import type { Validator as ValidatedValidator } from './generated';
 
 import {
@@ -14,14 +12,6 @@ import {
 } from '@/helpers';
 
 import { assertNotEmpty } from '@/util';
-
-const validatorValidator = constructValidator(raw);
-
-export function validateValidator(
-  validator: RepresentationNode,
-): asserts validator is ValidatedValidator {
-  assertValid(validatorValidator, validator);
-}
 
 export function constructValidator(
   node: ValidatedValidator,
