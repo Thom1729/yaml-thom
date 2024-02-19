@@ -1,5 +1,7 @@
 import type { Validator } from './types';
 import { assertValid } from './validate';
+
+import { validatorValidator as raw } from './validatorValidator';
 import type { Validator as ValidatedValidator } from './generated';
 
 import {
@@ -8,36 +10,12 @@ import {
 
 import {
   extractInt,
-  extractTypedStringMap, str,
+  extractTypedStringMap,
 } from '@/helpers';
-
-import * as V from './validatorHelpers';
 
 import { assertNotEmpty } from '@/util';
 
-const nodeKindValidator = {
-  enum: new NodeSet([str('scalar'), str('sequence'), str('mapping')]),
-} satisfies Validator;
-
-const validatorValidator = V.stringMapOf({
-  'id?': V.str,
-  'name?': V.str,
-
-  'kind?': { anyOf: [ nodeKindValidator, V.seqOf(nodeKindValidator) ] },
-  'tag?': { anyOf: [ V.str, V.seqOf(V.str) ] },
-  'const?': {},
-  'enum?': V.seq,
-
-  'minLength?': V.int,
-  'maxLength?': V.int,
-
-  'items?': {},
-  'properties?': V.map,
-  'additionalProperties?': {},
-  'requiredProperties?': V.seq,
-
-  'anyOf?': V.seq,
-});
+const validatorValidator = constructValidator(raw);
 
 export function validateValidator(
   validator: RepresentationNode,

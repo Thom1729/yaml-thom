@@ -1,6 +1,7 @@
 import ts from 'rollup-plugin-ts';
 import shebang from 'rollup-plugin-add-shebang';
 import executable from 'rollup-plugin-executable-output';
+import { string } from 'rollup-plugin-string';
 
 const manualChunks = {
   nodes: ['src/nodes/index.ts'],
@@ -23,6 +24,9 @@ export default [
       },
     ],
     plugins: [
+      string({
+        include: '**/*.yaml',
+      }),
       ts({}),
     ],
   },
@@ -45,6 +49,9 @@ export default [
       },
     ],
     plugins: [
+      string({
+        include: '**/*.yaml',
+      }),
       ts({
         tsconfig: config => ({
           ...config,
