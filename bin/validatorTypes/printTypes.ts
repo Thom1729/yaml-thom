@@ -1,4 +1,5 @@
 import type { Validator } from '@/validator';
+import { stringifyTokens, type Tokens } from '@/util';
 
 import type { Type, TypeInfo } from './typeAst';
 
@@ -11,20 +12,12 @@ import type {
 } from '@/index';
 `.trimStart();
 
-export function *printTypes(types: Map<Validator, TypeInfo>): Generator<string> {
-  for (const token of new PrintTypesOperation(types).printAll()) {
-    if (typeof token === 'string') {
-      yield token;
-    } else if (typeof token === 'number') {
-      yield ''.padStart(2 * token, ' ');
-    } else {
-      console.log(token);
-      throw new Error();
-    }
-  }
+export function printTypes(types: Map<Validator, TypeInfo>): Generator<string> {
+  return stringifyTokens(
+    new PrintTypesOperation(types).printAll(),
+    '  ',
+  );
 }
-
-type Tokens = Generator<string | number>;
 
 class PrintTypesOperation {
   private readonly types: Map<Validator, TypeInfo>;
@@ -55,7 +48,8 @@ class PrintTypesOperation {
       const t = this.queue.shift();
       if (t === undefined) break;
       yield '\n';
-      yield `type ${t.name} = `;
+      yield `export type ${t.name} =`;
+      yield null;
       yield* this.printTypeInfo(t.value, 0);
       yield `;\n`;
     }
@@ -68,7 +62,7 @@ class PrintTypesOperation {
       const ref = value.ref;
       if (ref.refCount > 1) {
         this.enqueue(ref);
-        yield ref.name as string;
+        yield ref.name;
       } else {
         yield* this.printTypeInfo(ref.value as Type, level);
       }

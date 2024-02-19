@@ -75,7 +75,7 @@ class ValidatorToTypeOperation {
     return itemType;
   }
 
-  mappingContent(validator: Validator): Type {
+  mappingContent(validator: Validator): Type | undefined {
     const pairs: Type[] = [];
 
     if (validator.properties !== undefined) {
@@ -94,7 +94,7 @@ class ValidatorToTypeOperation {
       )));
     }
 
-    return union(...pairs);
+    return pairs.length > 0 ? union(...pairs) : undefined;
   }
 
   nodeToType(node: RepresentationNode): Type {

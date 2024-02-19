@@ -11,8 +11,9 @@ import {
 } from '@/nodes';
 
 import {
-  assertNotUndefined, repeat, type CodePoint,
+  assertNotUndefined, type CodePoint,
   applyStrategy,
+  stringifyTokens, type Tokens,
 } from '@/util';
 
 import { isDoubleSafe, canBePlainScalar } from '@/scalar';
@@ -29,33 +30,8 @@ export function present(document: SerializationNode, options: Partial<PresentOpt
   };
   const operation = new PresentOperation(computedOptions);
   return Array.from(
-    wrapWithSpaces(operation.presentDocument(document))
+    stringifyTokens(operation.presentDocument(document))
   ).join('');
-}
-
-type Tokens = Iterable<string | number | null>;
-
-function *wrapWithSpaces(itr: Tokens) {
-  let needSpace = false;
-  for (const token of itr) {
-    if (token === null) {
-      if (needSpace) {
-        yield ' ';
-        needSpace = false;
-      }
-    } else if (typeof token === 'number') {
-      if (token > 0) {
-        yield repeat(token, ' ');
-        needSpace = false;
-      }
-    } else {
-      if (token.length > 0) {
-        yield token;
-        const lastChar = token[token.length - 1];
-        needSpace = (lastChar !== ' ' && lastChar !== '\n');
-      }
-    }
-  }
 }
 
 interface PresentationContext {

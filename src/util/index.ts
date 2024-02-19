@@ -10,6 +10,7 @@ export * from './regexp';
 export * from './strict';
 export * from './string';
 export * from './stringCodepoints';
+export * from './tokens';
 export * from './typeAssertions';
 export * from './yCombinator';
 export * from './zip';

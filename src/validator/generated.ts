@@ -5,7 +5,7 @@ import type {
   RepresentationMapping,
 } from '@/index';
 
-type Validator = RepresentationMapping<
+export type Validator = RepresentationMapping<
   'tag:yaml.org,2002:map',
   
   | readonly [
@@ -15,6 +15,14 @@ type Validator = RepresentationMapping<
   | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'anyOf'>,
       RepresentationSequence<'tag:yaml.org,2002:seq', Validator>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'const'>,
+      RepresentationScalar<string> | RepresentationSequence<string> | RepresentationMapping<string>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'enum'>,
+      RepresentationSequence<'tag:yaml.org,2002:seq'>
     ]
   | readonly [
       RepresentationScalar<'tag:yaml.org,2002:str', 'id'>,
@@ -49,10 +57,10 @@ type Validator = RepresentationMapping<
     ]
 >;
 
-type NodeKind = 
+export type NodeKind =
 | RepresentationScalar<'tag:yaml.org,2002:str', 'mapping'>
 | RepresentationScalar<'tag:yaml.org,2002:str', 'scalar'>
 | RepresentationScalar<'tag:yaml.org,2002:str', 'sequence'>;
 
-type Tag = RepresentationScalar<'tag:yaml.org,2002:str'>;
+export type Tag = RepresentationScalar<'tag:yaml.org,2002:str'>;
 

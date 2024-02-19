@@ -5,6 +5,7 @@ name: Validator
 kind: mapping
 tag: tag:yaml.org,2002:map
 properties:
+  # Metadata
   id:
     kind: scalar
     tag: tag:yaml.org,2002:str
@@ -12,6 +13,13 @@ properties:
     kind: scalar
     tag: tag:yaml.org,2002:str
 
+  # Combiners
+  anyOf:
+    kind: sequence
+    tag: tag:yaml.org,2002:seq
+    items: *validator
+
+  # Universal validators
   kind:
     anyOf:
       - &nodeKind
@@ -29,9 +37,15 @@ properties:
       - kind: sequence
         tag: tag:yaml.org,2002:seq
         items: *tag
+  const: {}
+  enum:
+    kind: sequence
+    tag: tag:yaml.org,2002:seq
 
+  # Sequences
   items: *validator
 
+  # Mappings
   properties:
     kind: mapping
     tag: tag:yaml.org,2002:map
@@ -42,8 +56,3 @@ properties:
   requiredProperties:
     kind: sequence
     tag: tag:yaml.org,2002:seq
-
-  anyOf:
-    kind: sequence
-    tag: tag:yaml.org,2002:seq
-    items: *validator
