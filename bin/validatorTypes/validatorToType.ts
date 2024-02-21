@@ -56,19 +56,26 @@ export class ValidatorToTypeOperation {
       .filter(kind => validator.kind?.has(kind) ?? true)
       .map(kind => [kind, this[`${kind}Content`](validator)] as const);
 
-    if (byKind.length === 3 && byKind.every(([, content]) => content === undefined)) {
+    if (byKind.length === 3 && byKind.every(([, content]) => content.every(t => t === undefined))) {
       return this.nodeClass('node', tag);
     }
 
     return union(...byKind.map(([kind, content]) => {
-      return this.nodeClass(kind, tag, content);
+      return this.nodeClass(kind, tag, ...content);
     }));
   }
 
-  nodeClass(kind: string, tag: Type | undefined, content: Type | undefined = undefined) {
+  nodeClass(
+    kind: string,
+    tag: Type | undefined,
+    content: Type | undefined = undefined,
+    requiredProperties: Type | undefined = undefined,
+  ) {
     const className = `Representation${capitalize(kind)}`;
     this.imports.add(className);
-    if (content !== undefined) {
+    if (requiredProperties !== undefined) {
+      return name(className, tag ?? builtin.string, content ?? readonly(tuple(name('RepresentationNode'), name('RepresentationNode'))), requiredProperties);
+    } else if (content !== undefined) {
       return name(className, tag ?? builtin.string, content);
     } else if (tag !== undefined) {
       return name(className, tag);
@@ -77,19 +84,19 @@ export class ValidatorToTypeOperation {
     }
   }
 
-  scalarContent(validator: Validator): Type | undefined {
-    return undefined;
+  scalarContent(validator: Validator): (Type | undefined)[] {
+    return [undefined];
   }
 
-  sequenceContent(validator: Validator): Type | undefined {
+  sequenceContent(validator: Validator): (Type | undefined)[] {
     const itemType = validator.items !== undefined
       ? this.recurse(validator.items)
       : undefined;
 
-    return itemType;
+    return [itemType];
   }
 
-  mappingContent(validator: Validator): Type | undefined {
+  mappingContent(validator: Validator): (Type | undefined)[] {
     const pairs: Type[] = [];
 
     if (validator.properties !== undefined) {
@@ -108,7 +115,14 @@ export class ValidatorToTypeOperation {
       )));
     }
 
-    return pairs.length > 0 ? union(...pairs) : undefined;
+    let required = undefined;
+    if (validator.requiredProperties !== undefined) {
+      required = union(
+        ...Array.from(validator.requiredProperties).map(key => this.nodeToType(key))
+      );
+    }
+
+    return [pairs.length > 0 ? union(...pairs) : undefined, required];
   }
 
   nodeToType(node: RepresentationNode): Type {

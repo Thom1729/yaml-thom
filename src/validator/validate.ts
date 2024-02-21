@@ -75,6 +75,21 @@ export class ValidationProvider {
     return validator;
   }
 
+  validate(validator: Validator, node: RepresentationNode) {
+    return this.validateNode(validator, node, []);
+  }
+
+  isValid(validator: Validator, node: RepresentationNode) {
+    return this.validate(validator, node).length === 0;
+  }
+
+  assertValid(validator: Validator, node: RepresentationNode) {
+    const failures = this.validate(validator, node);
+    if (failures.length !== 0) {
+      throw new ValidationError(failures[0]);
+    }
+  }
+
   validateNode(
     validator: Validator,
     node: RepresentationNode,

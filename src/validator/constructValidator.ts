@@ -92,6 +92,10 @@ export function constructValidator(
     ret.additionalProperties = constructValidator(x.additionalProperties, cache);
   }
 
+  if (x.requiredProperties !== undefined) {
+    ret.requiredProperties = new NodeSet(x.requiredProperties);
+  }
+
   if (x.id !== undefined) {
     ret.id = x.id.content;
   }

@@ -5,12 +5,20 @@ import {
   logger,
 } from '../helpers';
 
+import { validationProvider } from '../validators';
+validationProvider;
+
+import type {
+  ValidationTest as RawValidationTest,
+  ValidationFailures,
+  PathEntry as RawPathEntry,
+} from '@validators';
+
 import {
   loadStream,
   defaultConstructor,
-  validate, constructValidator, validateValidator, type Validator, type ValidationFailure,
+  validate, constructValidator, type Validator, type ValidationFailure,
   type RepresentationNode,
-  assertValid,
   type PathEntry,
 } from '@/index';
 
@@ -28,22 +36,11 @@ type ValidationTestResult =
 | { status: 'failure', expected: readonly ValidationFailure[], actual: readonly ValidationFailure[] }
 ;
 
-import * as V from '@/validator/validatorHelpers';
 import { assertNotUndefined } from '@/util';
 import chalk from 'chalk';
 
-const testValidator = V.stringMapOf({
-  validator: {},
-  input: {},
-  'valid?': V.bool,
-  'failures?': {},
-});
-
-function constructValidationTest(document: RepresentationNode): ValidationTest {
-  assertValid(testValidator, document);
+function constructValidationTest(document: RawValidationTest): ValidationTest {
   const x = extractTypedStringMap(document);
-
-  validateValidator(x.validator);
 
   const ret: ValidationTest = {
     validator: constructValidator(x.validator),
@@ -58,14 +55,7 @@ function constructValidationTest(document: RepresentationNode): ValidationTest {
   return ret;
 }
 
-const failuresValidator = V.seqOf(V.stringMapOf({
-  path: V.seq,
-  key: V.str,
-  'children?': {},
-}));
-
-function constructTestFailures(failures: RepresentationNode): ValidationFailure[] {
-  assertValid(failuresValidator, failures);
+function constructTestFailures(failures: ValidationFailures): ValidationFailure[] {
   return Array.from(failures).map(failure => {
     const y = extractTypedStringMap(failure);
 
@@ -82,15 +72,7 @@ function constructTestFailures(failures: RepresentationNode): ValidationFailure[
   });
 }
 
-const pathEntryValidator = V.stringMapOf({
-  type: V.str,
-  'index?': V.int,
-  'key?': {},
-  'value?': {},
-});
-
-function constructPathEntry(entry: RepresentationNode): PathEntry {
-  assertValid(pathEntryValidator, entry);
+function constructPathEntry(entry: RawPathEntry): PathEntry {
   const z = extractTypedStringMap(entry);
   const type = z.type.content;
   if (type === 'index') {
@@ -158,7 +140,11 @@ export const runValidationTests = command<{
     logger.log(name);
     logger.indented(() => {
       for (const [index, doc] of enumerate(loadStream(text), 1)) {
-        const validationTest = constructValidationTest(doc);
+        validationProvider.assertValid(
+          validationProvider.getValidatorById('#validationTest'),
+          doc,
+        );
+        const validationTest = constructValidationTest(doc as RawValidationTest);
 
         const result = runValidationTest(validationTest);
 

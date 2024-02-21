@@ -32,8 +32,6 @@ export const validatorTypes = command<{
     op.recurse(validator);
   }
 
-  // console.error(op.map);
-
   for (const token of printTypes(op.map)) {
     process.stdout.write(token);
   }

@@ -105,9 +105,14 @@ class PrintTypesOperation {
         yield* this.printTypeInfo(item, level + 1);
       }
     } else {
+      let first = true;
       for (const member of types) {
-        yield '\n';
-        yield level;
+        if (first) {
+          first = false;
+        } else {
+          yield '\n';
+          yield level;
+        }
         yield `${operator} `;
         yield* this.printTypeInfo(member, level + 1);
       }
