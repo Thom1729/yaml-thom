@@ -1,31 +1,33 @@
 import {
   command,
-  readTextSync,
+  readText,
 } from '../helpers';
 
 import { loadStream } from '@/loadDump';
 import {
   validateValidator, constructValidator,
-  ValidationProvider,
-} from '@/validator';
+  ValidationProvider, type Validator
+} from '@';
 
 import { ValidatorToTypeOperation } from './validatorToType';
 import { printTypes } from './printTypes';
 
 export const validatorTypes = command<{
   filename: readonly string[],
-}>(({ filename: filenames }) => {
+}>(async ({ filename: filenames }) => {
   const provider = new ValidationProvider();
 
-  const validators = filenames.flatMap(filename => {
-    const text = readTextSync(filename);
-    return Array.from(loadStream(text)).map(doc => {
+  const validators: Validator[] = [];
+
+  for (const filename of filenames) {
+    const text = await readText(filename);
+    for (const doc of loadStream(text)) {
       validateValidator(doc);
       const validator = constructValidator(doc);
       provider.add(validator);
-      return validator;
-    });
-  });
+      validators.push(validator);
+    }
+  }
 
   const op = new ValidatorToTypeOperation(provider.getValidatorById.bind(provider));
 

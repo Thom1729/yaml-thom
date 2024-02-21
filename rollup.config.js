@@ -37,6 +37,7 @@ export default [
       'chalk',
 
       'fs',
+      'fs/promises',
       'path',
       'url',
       'util',

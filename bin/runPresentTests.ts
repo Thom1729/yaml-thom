@@ -69,9 +69,9 @@ function runTest(test: ReturnType<typeof constructTest>) {
   }
 }
 
-export function runPresentTests(suiteNames: string[]) {
+export async function runPresentTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
-  for (const { name, text } of loadTestFiles('test/present', suiteNames)) {
+  for await (const { name, text } of loadTestFiles('test/present', suiteNames)) {
     logger.log(name);
 
     logger.indented(() => {

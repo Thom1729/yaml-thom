@@ -134,9 +134,9 @@ function runValidationTest(test: ValidationTest): ValidationTestResult {
 
 export const runValidationTests = command<{
   testName: string[],
-}>(({ testName }) => {
+}>(async ({ testName }) => {
   let status = 0;
-  for (const { name, text } of loadTestFiles('test/validation', testName)) {
+  for await (const { name, text } of loadTestFiles('test/validation', testName)) {
     logger.log(name);
     logger.indented(() => {
       for (const [index, doc] of enumerate(loadStream(text), 1)) {

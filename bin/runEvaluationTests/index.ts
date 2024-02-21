@@ -77,10 +77,10 @@ const STATUS_COLORS = {
   failure: 'red',
 } as const;
 
-export function runEvaluationTests(suiteNames: string[]) {
+export async function runEvaluationTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
 
-  for (const { name, text } of loadTestFiles('test/annotations', suiteNames)) {
+  for await (const { name, text } of loadTestFiles('test/annotations', suiteNames)) {
     logger.log(name);
     logger.indented(() => {
       for (const [i, test] of enumerate(loadAnnotationTest(text), 1)) {
