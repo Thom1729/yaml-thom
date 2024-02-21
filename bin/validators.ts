@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 
 import {
@@ -12,10 +12,10 @@ const VALIDATORS_PATH = path.join(BASE_PATH, 'validators');
 
 export const validationProvider = new ValidationProvider();
 
-const validatorNames = fs.readdirSync(VALIDATORS_PATH).filter(name => name.endsWith('.yaml'));
+const validatorNames = (await fs.readdir(VALIDATORS_PATH)).filter(name => name.endsWith('.yaml'));
 
 for (const validatorName of validatorNames) {
-  const text = fs.readFileSync(path.join(VALIDATORS_PATH, validatorName), { encoding: 'utf-8' });
+  const text = await fs.readFile(path.join(VALIDATORS_PATH, validatorName), { encoding: 'utf-8' });
   for (const doc of loadStream(text)) {
     validateValidator(doc);
     const validator = constructValidator(doc);
