@@ -59,14 +59,16 @@ export class ValidationProvider {
   );
   readonly comparator = new NodeComparator();
 
-  validateNodeById(
-    id: string,
-    node: RepresentationNode,
-    path: PathEntry[],
-  ) {
+  add(validator: Validator) {
+    if (validator.id !== undefined) {
+      this.validatorsById.set(validator.id, validator);
+    }
+  }
+
+  getValidatorById(id: string) {
     const validator = this.validatorsById.get(id);
     assertNotUndefined(validator);
-    return this.validateNode(validator, node, path);
+    return validator;
   }
 
   validateNode(
@@ -117,7 +119,8 @@ export class ValidationProvider {
     }
 
     if (validator.ref) {
-      yield* this.validateNodeById(validator.ref, node, path);
+      const child = this.getValidatorById(validator.ref);
+      yield* this.validateNode(child, node, path);
     }
 
     if (validator.anyOf !== undefined) {

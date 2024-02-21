@@ -8,15 +8,14 @@ import {
 
 import { capitalize } from '@/util';
 
-export function validatorToType(validator: Validator) {
-  const operation = new ValidatorToTypeOperation();
-  operation.recurse(validator);
-  return operation.map;
-}
-
-class ValidatorToTypeOperation {
+export class ValidatorToTypeOperation {
+  readonly getValidatorById: (id: string) => Validator;
   readonly map = new Map<Validator, TypeInfo>();
   readonly imports = new Set<string>;
+
+  constructor(getValidatorById: (id: string) => Validator) {
+    this.getValidatorById = getValidatorById;
+  }
 
   recurse(validator: Validator): Type {
     let ref = this.map.get(validator);
@@ -37,6 +36,10 @@ class ValidatorToTypeOperation {
   }
 
   validatorToType(validator: Validator): Type {
+    if (validator.ref !== undefined) {
+      return this.recurse(this.getValidatorById(validator.ref));
+    }
+
     if (validator.enum !== undefined) {
       return union(...Array.from(validator.enum).map(value => this.nodeToType(value)));
     }

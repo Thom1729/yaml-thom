@@ -4,22 +4,37 @@ import {
 } from '../helpers';
 
 import { loadSingleDocument } from '@/loadDump';
-import { validateValidator, constructValidator } from '@/validator';
+import {
+  validateValidator, constructValidator,
+  ValidationProvider,
+} from '@/validator';
 
-import { validatorToType } from './validatorToType';
+import { ValidatorToTypeOperation } from './validatorToType';
 import { printTypes } from './printTypes';
 
 export const validatorTypes = command<{
-  filename: string,
-}>(({ filename }) => {
-  const text = readTextSync(filename);
-  const doc = loadSingleDocument(text);
-  validateValidator(doc);
-  const validator = constructValidator(doc);
+  filename: readonly string[],
+}>(({ filename: filenames }) => {
+  const provider = new ValidationProvider();
 
-  const types = validatorToType(validator);
+  const validators = filenames.map(filename => {
+    const text = readTextSync(filename);
+    const doc = loadSingleDocument(text);
+    validateValidator(doc);
+    const validator = constructValidator(doc);
+    provider.add(validator);
+    return validator;
+  });
 
-  for (const token of printTypes(types)) {
+  const op = new ValidatorToTypeOperation(provider.getValidatorById.bind(provider));
+
+  for (const validator of validators) {
+    op.recurse(validator);
+  }
+
+  // console.error(op.map);
+
+  for (const token of printTypes(op.map)) {
     process.stdout.write(token);
   }
 });

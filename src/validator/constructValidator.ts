@@ -35,6 +35,10 @@ export function constructValidator(
     ret.name = x.name.content;
   }
 
+  if (x.ref !== undefined) {
+    ret.ref = x.ref.content;
+  }
+
   if (x.kind !== undefined) {
     if (x.kind.kind === 'scalar') {
       ret.kind = new Set([x.kind.content]);

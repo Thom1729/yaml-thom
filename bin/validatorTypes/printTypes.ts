@@ -43,7 +43,9 @@ class PrintTypesOperation {
   *printAll(): Tokens {
     yield PREAMBLE;
 
-    this.enqueue(Array.from(this.types.values())[0]);
+    for (const type of this.types.values()) {
+      if (type.name !== undefined) this.enqueue(type);
+    }
 
     while (true) {
       const t = this.queue.shift();
@@ -54,7 +56,6 @@ class PrintTypesOperation {
       yield* this.printTypeInfo(t.value, 0);
       yield `;\n`;
     }
-    yield '\n';
   }
 
   *printTypeInfo(value: Type, level: number): Tokens {

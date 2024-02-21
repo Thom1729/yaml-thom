@@ -48,10 +48,10 @@ yargs(hideBin(process.argv))
     args => roundtrip(args['filename']),
   )
   .command(
-    'validator-types <filename>',
+    'validator-types [filename..]',
     '',
     yargs => yargs
-      .positional('filename', { type: 'string', demandOption: true }),
+      .positional('filename', { type: 'string', array: true, demandOption: true }),
     args => validatorTypes(args),
   )
   .command(
