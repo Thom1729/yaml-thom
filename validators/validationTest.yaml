@@ -1,0 +1,7 @@
+%YAML 1.2
+---
+name: ValidationTest
+kind: mapping
+tag: tag:yaml.org,2002:map
+properties:
+  validator: { ref: '#validator' }

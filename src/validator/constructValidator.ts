@@ -1,6 +1,6 @@
 import type { Validator } from './types';
 
-import type { Validator as ValidatedValidator } from './generated';
+import type { Validator as ValidatedValidator } from '@validators';
 
 import {
   NodeMap, NodeSet, type RepresentationNode,

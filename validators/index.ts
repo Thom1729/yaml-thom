@@ -76,3 +76,10 @@ export type NodeKind =
 
 export type Tag = RepresentationScalar<'tag:yaml.org,2002:str'>;
 
+export type ValidationTest = RepresentationMapping<
+  'tag:yaml.org,2002:map',
+  readonly [
+    RepresentationScalar<'tag:yaml.org,2002:str', 'validator'>,
+    Validator
+  ]
+>;

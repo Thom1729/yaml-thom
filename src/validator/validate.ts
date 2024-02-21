@@ -7,7 +7,9 @@ import {
   type PathEntry,
 } from '@/nodes';
 
-import { NestedMap, assertNotUndefined, enumerate } from '@/util';
+import {
+  NestedMap, assertNotUndefined, isNotUndefined, enumerate,
+} from '@/util';
 
 import type { Validator, Validated } from './types';
 
@@ -60,8 +62,10 @@ export class ValidationProvider {
   readonly comparator = new NodeComparator();
 
   add(validator: Validator) {
-    if (validator.id !== undefined) {
-      this.validatorsById.set(validator.id, validator);
+    for (const child of iterateValidators(validator)) {
+      if (child.id !== undefined) {
+        this.validatorsById.set(child.id, child);
+      }
     }
   }
 
@@ -196,4 +200,28 @@ export class ValidationProvider {
       }
     }
   }
+}
+
+function* iterateValidators(root: Validator) {
+  const seen = new Set<Validator>();
+
+  function* recurse(validator: Validator): Iterable<Validator> {
+    if (seen.has(validator)) return;
+
+    seen.add(validator);
+    yield validator;
+
+    const children = [
+      ...(validator.anyOf ?? []),
+      validator.items,
+      ...(validator.properties?.values() ?? []),
+      validator.additionalProperties,
+    ].filter(isNotUndefined);
+
+    for (const child of children) {
+      if (child !== undefined) yield* recurse(child);
+    }
+  }
+
+  yield* recurse(root);
 }

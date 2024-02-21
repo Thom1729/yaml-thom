@@ -1,7 +1,7 @@
 import type { RepresentationNode } from '@/nodes';
 import { loadSingleDocument } from '@/loadDump';
 
-import type { Validator as ValidatedValidator } from './generated';
+import type { Validator as ValidatedValidator } from '@validators';
 import { constructValidator } from './constructValidator';
 import { assertValid } from './validate';
 
