@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import {
-  loadSingleDocument,
+  loadStream,
   ValidationProvider, validateValidator, constructValidator,
 } from '@';
 
@@ -16,8 +16,9 @@ const validatorNames = fs.readdirSync(VALIDATORS_PATH).filter(name => name.endsW
 
 for (const validatorName of validatorNames) {
   const text = fs.readFileSync(path.join(VALIDATORS_PATH, validatorName), { encoding: 'utf-8' });
-  const doc = loadSingleDocument(text);
-  validateValidator(doc);
-  const validator = constructValidator(doc);
-  validationProvider.add(validator);
+  for (const doc of loadStream(text)) {
+    validateValidator(doc);
+    const validator = constructValidator(doc);
+    validationProvider.add(validator);
+  }
 }

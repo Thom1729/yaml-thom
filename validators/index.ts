@@ -5,28 +5,6 @@ import type {
   RepresentationMapping,
 } from '@/index';
 
-export type ValidationTest = RepresentationMapping<
-  'tag:yaml.org,2002:map',
-  | readonly [
-      RepresentationScalar<'tag:yaml.org,2002:str', 'failures'>,
-      ValidationFailures
-    ]
-  | readonly [
-      RepresentationScalar<'tag:yaml.org,2002:str', 'input'>,
-      RepresentationNode
-    ]
-  | readonly [
-      RepresentationScalar<'tag:yaml.org,2002:str', 'valid'>,
-      RepresentationScalar<'tag:yaml.org,2002:bool'>
-    ]
-  | readonly [
-      RepresentationScalar<'tag:yaml.org,2002:str', 'validator'>,
-      Validator
-    ],
-  | RepresentationScalar<'tag:yaml.org,2002:str', 'input'>
-  | RepresentationScalar<'tag:yaml.org,2002:str', 'validator'>
->;
-
 export type ValidationFailures = RepresentationSequence<'tag:yaml.org,2002:seq', RepresentationMapping<
     'tag:yaml.org,2002:map',
     | readonly [
@@ -83,6 +61,28 @@ export type PathEntry = RepresentationMapping<
       RepresentationNode
     ],
   RepresentationScalar<'tag:yaml.org,2002:str', 'type'>
+>;
+
+export type ValidationTest = RepresentationMapping<
+  'tag:yaml.org,2002:map',
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'failures'>,
+      ValidationFailures
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'input'>,
+      RepresentationNode
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'valid'>,
+      RepresentationScalar<'tag:yaml.org,2002:bool'>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'validator'>,
+      Validator
+    ],
+  | RepresentationScalar<'tag:yaml.org,2002:str', 'input'>
+  | RepresentationScalar<'tag:yaml.org,2002:str', 'validator'>
 >;
 
 export type Validator = RepresentationMapping<

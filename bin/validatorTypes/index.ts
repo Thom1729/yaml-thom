@@ -3,7 +3,7 @@ import {
   readTextSync,
 } from '../helpers';
 
-import { loadSingleDocument } from '@/loadDump';
+import { loadStream } from '@/loadDump';
 import {
   validateValidator, constructValidator,
   ValidationProvider,
@@ -17,13 +17,14 @@ export const validatorTypes = command<{
 }>(({ filename: filenames }) => {
   const provider = new ValidationProvider();
 
-  const validators = filenames.map(filename => {
+  const validators = filenames.flatMap(filename => {
     const text = readTextSync(filename);
-    const doc = loadSingleDocument(text);
-    validateValidator(doc);
-    const validator = constructValidator(doc);
-    provider.add(validator);
-    return validator;
+    return Array.from(loadStream(text)).map(doc => {
+      validateValidator(doc);
+      const validator = constructValidator(doc);
+      provider.add(validator);
+      return validator;
+    });
   });
 
   const op = new ValidatorToTypeOperation(provider.getValidatorById.bind(provider));

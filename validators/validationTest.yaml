@@ -1,4 +1,42 @@
 %YAML 1.2
+--- &failures
+id: '#validationFailures'
+name: ValidationFailures
+kind: sequence
+tag: tag:yaml.org,2002:seq
+items:
+  kind: mapping
+  tag: tag:yaml.org,2002:map
+
+  properties:
+    path:
+      kind: sequence
+      tag: tag:yaml.org,2002:seq
+      items:
+        name: PathEntry
+        kind: mapping
+        tag: tag:yaml.org,2002:map
+        properties:
+          type:
+            kind: scalar
+            tag: tag:yaml.org,2002:str
+          index:
+            kind: scalar
+            tag: tag:yaml.org,2002:int
+          key: {}
+          value: {}
+        requiredProperties: [type]
+    key:
+      kind: scalar
+      tag: tag:yaml.org,2002:str
+    children: *failures
+
+  requiredProperties:
+    - path
+    - key
+...
+
+%YAML 1.2
 ---
 id: '#validationTest'
 name: ValidationTest
@@ -11,40 +49,7 @@ properties:
   valid:
     kind: scalar
     tag: tag:yaml.org,2002:bool
-  failures: &failures
-    name: ValidationFailures
-    kind: sequence
-    tag: tag:yaml.org,2002:seq
-    items:
-      kind: mapping
-      tag: tag:yaml.org,2002:map
-
-      properties:
-        path:
-          kind: sequence
-          tag: tag:yaml.org,2002:seq
-          items:
-            name: PathEntry
-            kind: mapping
-            tag: tag:yaml.org,2002:map
-            properties:
-              type:
-                kind: scalar
-                tag: tag:yaml.org,2002:str
-              index:
-                kind: scalar
-                tag: tag:yaml.org,2002:int
-              key: {}
-              value: {}
-            requiredProperties: [type]
-        key:
-          kind: scalar
-          tag: tag:yaml.org,2002:str
-        children: *failures
-
-      requiredProperties:
-        - path
-        - key
+  failures: { ref: '#validationFailures' }
 
 requiredProperties:
   - validator
