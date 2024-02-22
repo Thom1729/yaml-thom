@@ -110,36 +110,6 @@ type GetFromPairsByKey<
     : never
 ;
 
-type AllKeys<T extends RepresentationMapping> = Parameters<T['get']>[0];
-
-type ExtractTypedStringMap<
-  T extends RepresentationMapping<
-    string,
-    readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
-    never
-  >
-> =
-  // Extract union of all keys before distributing over union
-  AllKeys<T> extends (infer TKeys extends AllKeys<T>)
-    ? (
-      T extends RepresentationMapping<
-        string,
-        infer PairType extends readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
-        infer RequiredKeys
-      >
-        ? {
-        [K in TKeys as K['content']]:
-          K extends PairType[0]
-            ? (
-              | GetFromPairsByKey<PairType, K>
-              | (K extends RequiredKeys ? never : undefined)
-            )
-            : undefined
-        }
-        : never
-    )
-    : never;
-
 type StringMap<
   TPairs extends readonly [string, RepresentationNode] = readonly [string, RepresentationNode],
   TRequiredKeys extends TPairs[0] = never,
@@ -156,16 +126,33 @@ type StringMap<
   never
 >;
 
-export function extractTypedStringMap<
+type ExtractTypedStringMap<
+  T extends StringMap,
+  // Pass as separate parameter to avoid distribution over union
+  TAllKeys extends RepresentationScalar,
+> =
   T extends RepresentationMapping<
     string,
-    readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
-    never
+    infer PairType extends readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
+    infer RequiredKeys
   >
+    ? {
+      [K in TAllKeys['content']]:
+        K extends PairType[0]['content']
+          ? (
+            | GetFromPairsByKey<PairType, RepresentationScalar<'tag:yaml.org,2002:str', K>>
+            | (K extends RequiredKeys['content'] ? never : undefined)
+          )
+          : undefined
+    }
+    : never;
+
+export function extractTypedStringMap<
+  T extends StringMap
 >(node: T) {
   return Object.fromEntries(
     Array.from(node).map(([key, value]) => [key.content, value])
-  ) as ExtractTypedStringMap<T>;
+  ) as ExtractTypedStringMap<T, Parameters<T['get']>[0]>;
 }
 
 export function extractAnnotationInfo(annotation: RepresentationMapping<'tag:yaml.org,2002:annotation'>) {
