@@ -14,6 +14,11 @@ export function readText(...path: string[]) {
   return fs.readFile(path.join(...path), { encoding: 'utf-8' });
 }
 
+export function writeText(filename: string, text: string) {
+  return fs.writeFile(filename, text, { encoding: 'utf-8' });
+}
+
+
 export async function *readStream(filename: string | readonly string[]) {
   const computedFilename = Array.isArray(filename)
     ? path.join(...filename)

@@ -51,7 +51,8 @@ yargs(hideBin(process.argv))
     'validator-types [filename..]',
     '',
     yargs => yargs
-      .positional('filename', { type: 'string', array: true, demandOption: true }),
+      .positional('filename', { type: 'string', array: true, demandOption: true })
+      .option('out', { type: 'string' }),
     args => validatorTypes(args),
   )
   .command(

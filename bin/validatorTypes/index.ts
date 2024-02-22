@@ -1,6 +1,6 @@
 import {
   command,
-  readText,
+  readText, writeText,
 } from '../helpers';
 
 import {
@@ -14,7 +14,8 @@ import { printTypes } from './printTypes';
 
 export const validatorTypes = command<{
   filename: readonly string[],
-}>(async ({ filename: filenames }) => {
+  out?: string,
+}>(async ({ filename: filenames, out: outputFile }) => {
   const provider = new ValidationProvider();
   const validators: Validator[] = [];
 
@@ -38,7 +39,11 @@ export const validatorTypes = command<{
     op.recurse(validator);
   }
 
-  for (const token of printTypes(op.map)) {
-    process.stdout.write(token);
+  const output = Array.from(printTypes(op.map)).join('');
+
+  if (outputFile !== undefined) {
+    await writeText(outputFile, output);
+  } else {
+    process.stdout.write(output);
   }
 });
