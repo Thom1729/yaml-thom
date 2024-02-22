@@ -3,7 +3,6 @@ import {
   RepresentationSequence,
   RepresentationMapping,
   RepresentationNode,
-  type Get,
 } from '@/nodes';
 
 export function isStr(node: RepresentationNode): node is RepresentationScalar<'tag:yaml.org,2002:str'> {
@@ -79,11 +78,6 @@ export function extractMapEntries(node: RepresentationNode): (readonly [Represen
   return Array.from(node);
 }
 
-export function extractStringMap<T extends string>(node: RepresentationNode, keys: readonly T[]) {
-  assertMap(node);
-  return _extractStringMap(Array.from(node), keys);
-}
-
 export function _extractStringMap<T extends string>(
   pairs: readonly (readonly [RepresentationNode, RepresentationNode])[],
   keys: readonly T[],
@@ -107,27 +101,71 @@ export function _extractStringMap<T extends string>(
   };
 }
 
+type GetFromPairsByKey<
+  PairType extends readonly [unknown, unknown],
+  KeyType extends PairType[0],
+> =
+  PairType extends readonly [infer PairKey, infer PairValue]
+    ? (KeyType extends PairKey ? PairValue : never)
+    : never
+;
+
+type AllKeys<T extends RepresentationMapping> = Parameters<T['get']>[0];
+
+type ExtractTypedStringMap<
+  T extends RepresentationMapping<
+    string,
+    readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
+    never
+  >
+> =
+  // Extract union of all keys before distributing over union
+  AllKeys<T> extends (infer TKeys extends AllKeys<T>)
+    ? (
+      T extends RepresentationMapping<
+        string,
+        infer PairType extends readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
+        infer RequiredKeys
+      >
+        ? {
+        [K in TKeys as K['content']]:
+          K extends PairType[0]
+            ? (
+              | GetFromPairsByKey<PairType, K>
+              | (K extends RequiredKeys ? never : undefined)
+            )
+            : undefined
+        }
+        : never
+    )
+    : never;
+
+type StringMap<
+  TPairs extends readonly [string, RepresentationNode] = readonly [string, RepresentationNode],
+  TRequiredKeys extends TPairs[0] = never,
+> = RepresentationMapping<
+  string,
+  TPairs extends readonly [infer TKey extends string, infer TValue extends RepresentationNode]
+    ? readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', TKey>,
+      TValue,
+    ]
+    : TRequiredKeys extends (infer K extends TPairs[0])
+      ? RepresentationScalar<'tag:yaml.org,2002:str', K>
+      : never,
+  never
+>;
+
 export function extractTypedStringMap<
   T extends RepresentationMapping<
-    'tag:yaml.org,2002:map',
+    string,
     readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
     never
   >
 >(node: T) {
-  return Object.fromEntries(Array.from(node).map(([key, value]) => [key.content, value])) as (
-    T extends RepresentationMapping<
-      'tag:yaml.org,2002:map',
-      infer PairType extends readonly [RepresentationScalar<'tag:yaml.org,2002:str'>, RepresentationNode],
-      infer RequiredKeys
-    >
-      ? {
-      [K in PairType[0] as K['content']]: (
-        | Get<PairType, K>
-        | (K extends RequiredKeys ? never : undefined)
-      )
-    }
-      : never
-  );
+  return Object.fromEntries(
+    Array.from(node).map(([key, value]) => [key.content, value])
+  ) as ExtractTypedStringMap<T>;
 }
 
 export function extractAnnotationInfo(annotation: RepresentationMapping<'tag:yaml.org,2002:annotation'>) {

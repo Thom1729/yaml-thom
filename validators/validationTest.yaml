@@ -1,4 +1,31 @@
 %YAML 1.2
+---
+id: '#pathEntry'
+name: PathEntry
+anyOf:
+  - kind: mapping
+    tag: tag:yaml.org,2002:map
+    properties:
+      type:
+        const: index
+      index:
+        kind: scalar
+        tag: tag:yaml.org,2002:int
+    requiredProperties: [type, index]
+  - kind: mapping
+    tag: tag:yaml.org,2002:map
+    properties:
+      type:
+        const: key
+      key: {}
+    requiredProperties: [type, key]
+  - kind: mapping
+    tag: tag:yaml.org,2002:map
+    properties:
+      type:
+        const: value
+      value: {}
+    requiredProperties: [type, value]
 --- &failures
 id: '#validationFailures'
 name: ValidationFailures
@@ -12,20 +39,7 @@ items:
     path:
       kind: sequence
       tag: tag:yaml.org,2002:seq
-      items:
-        name: PathEntry
-        kind: mapping
-        tag: tag:yaml.org,2002:map
-        properties:
-          type:
-            kind: scalar
-            tag: tag:yaml.org,2002:str
-          index:
-            kind: scalar
-            tag: tag:yaml.org,2002:int
-          key: {}
-          value: {}
-        requiredProperties: [type]
+      items: { ref: '#pathEntry' }
     key:
       kind: scalar
       tag: tag:yaml.org,2002:str
