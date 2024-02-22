@@ -5,6 +5,25 @@ import type {
   RepresentationMapping,
 } from '@/index';
 
+export type Annotation = RepresentationMapping<
+  'tag:yaml.org,2002:annotation',
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'arguments'>,
+      RepresentationSequence<'tag:yaml.org,2002:seq'>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'name'>,
+      RepresentationScalar<'tag:yaml.org,2002:str'>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'value'>,
+      RepresentationNode
+    ],
+  | RepresentationScalar<'tag:yaml.org,2002:str', 'arguments'>
+  | RepresentationScalar<'tag:yaml.org,2002:str', 'name'>
+  | RepresentationScalar<'tag:yaml.org,2002:str', 'value'>
+>;
+
 export type PathEntry = RepresentationMapping<
     'tag:yaml.org,2002:map',
     | readonly [

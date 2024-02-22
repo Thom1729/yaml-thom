@@ -4,12 +4,29 @@ import fs from 'fs/promises';
 
 import { Logger } from './logger';
 
+import { loadStream } from '@';
+
 export const logger = new Logger(process.stdout);
 
 export const BASE_PATH = path.join(fileURLToPath(import.meta.url), '..', '..');
 
 export function readText(...path: string[]) {
   return fs.readFile(path.join(...path), { encoding: 'utf-8' });
+}
+
+export async function *readStream(filename: string | readonly string[]) {
+  const computedFilename = Array.isArray(filename)
+    ? path.join(...filename)
+    : filename as string;
+
+  try {
+    const text = await fs.readFile(computedFilename, { encoding: 'utf-8' });
+    for (const doc of loadStream(text)) {
+      yield doc;
+    }
+  } catch (e) {
+    throw new Error(`Failed to load ${computedFilename}`, { cause: e });
+  }
 }
 
 export async function *loadTestFiles(p: string, testNames: string[]) {

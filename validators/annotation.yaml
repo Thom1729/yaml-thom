@@ -1,0 +1,15 @@
+%YAML 1.2
+---
+id: '#annotation'
+name: Annotation
+kind: mapping
+tag: tag:yaml.org,2002:annotation
+properties:
+  name:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+  arguments:
+    kind: sequence
+    tag: tag:yaml.org,2002:seq
+  value: {}
+requiredProperties: [name, arguments, value]

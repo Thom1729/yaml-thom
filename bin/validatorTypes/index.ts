@@ -3,8 +3,8 @@ import {
   readText,
 } from '../helpers';
 
-import { loadStream } from '@/loadDump';
 import {
+  loadStream,
   validateValidator, constructValidator,
   ValidationProvider, type Validator
 } from '@';
@@ -16,16 +16,19 @@ export const validatorTypes = command<{
   filename: readonly string[],
 }>(async ({ filename: filenames }) => {
   const provider = new ValidationProvider();
-
   const validators: Validator[] = [];
 
   for (const filename of filenames) {
-    const text = await readText(filename);
-    for (const doc of loadStream(text)) {
-      validateValidator(doc);
-      const validator = constructValidator(doc);
-      provider.add(validator);
-      validators.push(validator);
+    try {
+      const text = await readText(filename);
+      for (const doc of loadStream(text)) {
+        validateValidator(doc);
+        const validator = constructValidator(doc);
+        provider.add(validator);
+        validators.push(validator);
+      }
+    } catch (e) {
+      throw new Error(`Failed to load validator ${filename}`, { cause: e });
     }
   }
 
