@@ -24,8 +24,8 @@ anyOf:
     properties:
       type:
         const: value
-      value: {}
-    requiredProperties: [type, value]
+      key: {}
+    requiredProperties: [type, key]
 --- &failures
 id: '#validationFailures'
 name: ValidationFailures

@@ -32,15 +32,15 @@ export type PathEntry = RepresentationMapping<
   > | RepresentationMapping<
     'tag:yaml.org,2002:map',
     | readonly [
-        RepresentationScalar<'tag:yaml.org,2002:str', 'type'>,
-        RepresentationScalar<'tag:yaml.org,2002:str', 'value'>
+        RepresentationScalar<'tag:yaml.org,2002:str', 'key'>,
+        RepresentationNode
       ]
     | readonly [
-        RepresentationScalar<'tag:yaml.org,2002:str', 'value'>,
-        RepresentationNode
+        RepresentationScalar<'tag:yaml.org,2002:str', 'type'>,
+        RepresentationScalar<'tag:yaml.org,2002:str', 'value'>
       ],
+    | RepresentationScalar<'tag:yaml.org,2002:str', 'key'>
     | RepresentationScalar<'tag:yaml.org,2002:str', 'type'>
-    | RepresentationScalar<'tag:yaml.org,2002:str', 'value'>
   >;
 
 export type ValidationFailures = RepresentationSequence<'tag:yaml.org,2002:seq', RepresentationMapping<
