@@ -78,29 +78,6 @@ export function extractMapEntries(node: RepresentationNode): (readonly [Represen
   return Array.from(node);
 }
 
-export function _extractStringMap<T extends string>(
-  pairs: readonly (readonly [RepresentationNode, RepresentationNode])[],
-  keys: readonly T[],
-) {
-  const keySet = new Set(keys.map(k => k.endsWith('?') ? k.slice(0, -1) : k));
-  const ret = Object.fromEntries(
-    pairs.map(([keyNode, value]) => {
-      const key = extractStrContent(keyNode);
-      if (!keySet.has(key)) throw new TypeError(`Unexpected key ${key}`);
-
-      return [key, value];
-    })
-  );
-
-  const missing = keys.filter(k => !k.endsWith('?') && !Object.hasOwn(ret, k));
-  if (missing.length > 0) throw new TypeError(`Missing keys ${missing.join(', ')}`);
-
-  return ret as {
-    [K in T as (K extends `${infer L}?` ? L : K)]:
-      RepresentationNode | (K extends `${string}?` ? undefined : never)
-  };
-}
-
 type GetFromPairsByKey<
   PairType extends readonly [unknown, unknown],
   KeyType extends PairType[0],
@@ -153,16 +130,6 @@ export function extractTypedStringMap<
   return Object.fromEntries(
     Array.from(node).map(([key, value]) => [key.content, value])
   ) as ExtractTypedStringMap<T, Parameters<T['get']>[0]>;
-}
-
-export function extractAnnotationInfo(annotation: RepresentationMapping<'tag:yaml.org,2002:annotation'>) {
-  const { name, value, arguments: args } = _extractStringMap(Array.from(annotation), ['name', 'value', 'arguments']);
-
-  return {
-    name: extractStrContent(name),
-    value: value,
-    arguments: extractSeqItems(args),
-  };
 }
 
 export function extractBool(node: RepresentationScalar<'tag:yaml.org,2002:bool'>) {

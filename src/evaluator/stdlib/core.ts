@@ -1,7 +1,8 @@
 import type { AnnotationFunction } from '..';
+import { validateAnnotation, constructAnnotation } from '../annotation';
 
 import type { RepresentationNode } from '@/nodes';
-import { assertMap, isAnnotation, extractAnnotationInfo} from '@/helpers';
+import { assertMap, isAnnotation } from '@/helpers';
 import { Y, assertNotUndefined } from '@/util';
 
 import { simpleAnnotation, assertArgumentTypes } from '../signature';
@@ -33,7 +34,8 @@ export const quasiquote: AnnotationFunction = function (value, args, context) {
   // TODO handle cycles
   return Y<RepresentationNode, [RepresentationNode]>((rec, node): RepresentationNode => {
     if (isAnnotation(node)) {
-      const childAnnotation = extractAnnotationInfo(node);
+      validateAnnotation(node);
+      const childAnnotation = constructAnnotation(node);
       if (childAnnotation.name === 'unquote') {
         return this.evaluate(childAnnotation.value, context);
       }

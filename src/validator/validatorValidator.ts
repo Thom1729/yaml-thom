@@ -1,19 +1,29 @@
 import type { RepresentationNode } from '@/nodes';
-import { loadSingleDocument } from '@/loadDump';
-
-import type { Validator as ValidatedValidator } from '@validators';
 import { constructValidator } from './constructValidator';
-import { assertValid } from './validate';
+import { ValidationProvider } from './validate';
+import { loadStream } from '@/loadDump';
 
-import validatorText from '../../validators/validator.yaml';
+import type { Validator as RawValidator } from '@validators';
 
-// We can't validate the validator validator against itself until it's constructed
-const rawValidatorValidator = loadSingleDocument(validatorText) as ValidatedValidator;
-const validatorValidator = constructValidator(rawValidatorValidator);
-validateValidator(rawValidatorValidator);
+import validator from '../../validators/validator.yaml';
+import annotation from '../../validators/annotation.yaml';
+
+const VALIDATOR_TEXTS = [
+  validator,
+  annotation,
+];
+
+export const builtinValidationProvider = new ValidationProvider();
+
+for (const text of VALIDATOR_TEXTS) {
+  for (const doc of loadStream(text)) {
+    const validator = constructValidator(doc as RawValidator);
+    builtinValidationProvider.add(validator);
+  }
+}
 
 export function validateValidator(
-  validator: RepresentationNode,
-): asserts validator is ValidatedValidator {
-  assertValid(validatorValidator, validator);
+  node: RepresentationNode,
+): asserts node is RawValidator {
+  builtinValidationProvider.validate(builtinValidationProvider.getValidatorById('#validator'), node);
 }

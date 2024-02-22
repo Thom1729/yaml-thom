@@ -6,9 +6,9 @@ import {
   NodeMap,
 } from '@/nodes';
 
-import {
-  isAnnotation, extractAnnotationInfo,
-} from '@/helpers';
+import { validateAnnotation, constructAnnotation } from './annotation';
+
+import { isAnnotation } from '@/helpers';
 
 import { NestedMap } from '@/util';
 
@@ -84,12 +84,12 @@ export class Evaluator {
     }
 
     if (isAnnotation(node)) {
-      let annotation: Annotation;
       try {
-        annotation = extractAnnotationInfo(node);
+        validateAnnotation(node);
       } catch (e) {
         throw new EvaluationError(node, null, 'Invalid annotation node', e);
       }
+      const annotation = constructAnnotation(node);
 
       const annotationFunction = this.options.annotationFunctions[annotation.name];
       if (annotationFunction === undefined) {
