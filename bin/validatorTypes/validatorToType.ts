@@ -3,7 +3,7 @@ import type { Validator } from '@/validator';
 
 import {
   type Type, type TypeInfo,
-  name, union, tuple, builtin, readonly, string,
+  name, union, intersection, tuple, builtin, readonly, string,
 } from './typeAst';
 
 import { capitalize } from '@/util';
@@ -36,33 +36,46 @@ export class ValidatorToTypeOperation {
   }
 
   validatorToType(validator: Validator): Type {
+    const children = Array.from(this._validatorToType(validator));
+    if (children.length > 0) {
+      return intersection(...children);
+    } else {
+      return name('RepresentationNode');
+    }
+  }
+
+  *_validatorToType(validator: Validator): Iterable<Type> {
     if (validator.ref !== undefined) {
-      return this.recurse(this.getValidatorById(validator.ref));
+      yield this.recurse(this.getValidatorById(validator.ref));
     }
 
     if (validator.enum !== undefined) {
-      return union(...Array.from(validator.enum).map(value => this.nodeToType(value)));
+      yield union(...Array.from(validator.enum).map(value => this.nodeToType(value)));
     }
 
     if (validator.anyOf !== undefined) {
-      return union(...validator.anyOf.map(v => this.recurse(v)));
+      yield union(...validator.anyOf.map(v => this.recurse(v)));
     }
 
     const tag = validator.tag
       ? union(...Array.from(validator.tag).map(string))
       : undefined;
 
-    const byKind = (['scalar', 'sequence', 'mapping'] as const)
-      .filter(kind => validator.kind?.has(kind) ?? true)
-      .map(kind => [kind, this[`${kind}Content`](validator)] as const);
+    const byKind = ([
+      ['scalar', this.scalarContent(validator)],
+      ['sequence', this.sequenceContent(validator)],
+      ['mapping', this.mappingContent(validator)],
+    ] as const).filter(([kind]) => validator.kind?.has(kind) ?? true);
 
     if (byKind.length === 3 && byKind.every(([, content]) => content.every(t => t === undefined))) {
-      return this.nodeClass('node', tag);
+      if (tag !== undefined) {
+        yield this.nodeClass('node', tag);
+      }
+    } else {
+      yield union(...byKind.map(([kind, content]) => {
+        return this.nodeClass(kind, tag, ...content);
+      }));
     }
-
-    return union(...byKind.map(([kind, content]) => {
-      return this.nodeClass(kind, tag, ...content);
-    }));
   }
 
   nodeClass(

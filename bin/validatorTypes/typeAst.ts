@@ -9,6 +9,7 @@ export type Type =
 | { kind: 'string', value: string }
 | { kind: 'name', name: string, children: readonly Type[] }
 | { kind: 'union', children: readonly [Type, ...Type[]] }
+| { kind: 'intersection', children: readonly [Type, ...Type[]] }
 | { kind: 'tuple', children: readonly Type[] }
 | { kind: 'readonly', child: Type }
 | { kind: 'parenthesized', child: Type }
@@ -32,14 +33,22 @@ export function string(value: string): Type {
 }
 
 export function union(...members: readonly (Type | undefined)[]): Type {
+  return lattice('union', members);
+}
+
+export function intersection(...members: readonly (Type | undefined)[]): Type {
+  return lattice('intersection', members);
+}
+
+function lattice(kind: 'union' | 'intersection', members: readonly (Type | undefined)[]): Type {
   const filtered = members.filter(m => m !== undefined) as Type[];
   if (filtered.length === 0) {
-    throw new TypeError('Empty union');
+    throw new TypeError(`Empty ${kind}`);
   } else if (filtered.length === 1) {
     return filtered[0];
   } else {
     return {
-      kind: 'union',
+      kind,
       children: filtered as readonly Type[] as readonly [Type, ...Type[]],
     } as const;
   }

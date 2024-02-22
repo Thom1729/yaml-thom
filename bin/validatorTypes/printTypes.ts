@@ -79,6 +79,8 @@ class PrintTypesOperation {
       yield '\'' + JSON.stringify(value.value).slice(1, -1) + '\'';
     } else if (value.kind === 'union') {
       yield* this.printLattice('|', value.children, level, compact);
+    } else if (value.kind === 'intersection') {
+      yield* this.printLattice('&', value.children, level, compact);
     } else if (value.kind === 'tuple') {
       yield '[';
       yield* this.printList(value.children, level, compact);
@@ -114,7 +116,17 @@ class PrintTypesOperation {
           yield level;
         }
         yield `${operator} `;
-        yield* this.printTypeInfo(member, level + 1);
+        if (member.kind === 'union' || member.kind === 'intersection') {
+          yield '(';
+          yield '\n';
+          yield level + 1;
+          yield* this.printTypeInfo(member, level + 2);
+          yield '\n';
+          yield level;
+          yield ')';
+        } else {
+          yield* this.printTypeInfo(member, level + 1);
+        }
       }
     }
   }
@@ -152,7 +164,7 @@ class PrintTypesOperation {
 function depth(type: Type): number {
   switch (type.kind) {
     case 'ref': case 'string': return 0;
-    case 'name': case 'union': case 'tuple': {
+    case 'name': case 'union': case 'intersection': case 'tuple': {
       return Math.max(...type.children.map(depth)) + 1;
     }
     case 'readonly': case 'parenthesized': {
