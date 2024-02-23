@@ -1,0 +1,85 @@
+%YAML 1.2
+---
+id: '#presentationTest'
+name: PresentationTest
+kind: mapping
+tag: tag:yaml.org,2002:map
+properties:
+  name:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+  input: {}
+  expected:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+  options:
+    kind: mapping
+    tag: tag:yaml.org,2002:map
+    properties:
+      unresolve:
+        anyOf:
+          - &nonSpecificTag
+            name: NonSpecificTag
+            enum: ['!', '?']
+          - kind: sequence
+            tag: tag:yaml.org,2002:seq
+            items: *nonSpecificTag
+
+      scalarStyle:
+        anyOf:
+          - &scalarStyle
+            name: ScalarStyle
+            enum: [plain, single, double]
+          - kind: sequence
+            tag: tag:yaml.org,2002:seq
+            items: *scalarStyle
+
+      doubleQuoteEscapeCharacters:
+        anyOf:
+          - &doubleQuoteEscapeCharacters
+            name: DoubleQuoteEscapeCharacters
+            enum: [all]
+          - kind: sequence
+            tag: tag:yaml.org,2002:seq
+            items: *doubleQuoteEscapeCharacters
+
+      doubleQuoteEscapeStyle:
+        anyOf:
+          - &doubleQuoteEscapeStyle
+            name: DoubleQuoteEscapeStyle
+            enum: [builtin, json, x, u, U, uu]
+          - kind: sequence
+            tag: tag:yaml.org,2002:seq
+            items: *doubleQuoteEscapeStyle
+
+      versionDirective:
+        kind: scalar
+        tag: tag:yaml.org,2002:bool
+
+      startMarker:
+        kind: scalar
+        tag: tag:yaml.org,2002:bool
+
+      endMarker:
+        kind: scalar
+        tag: tag:yaml.org,2002:bool
+
+      trailingNewline:
+        kind: scalar
+        tag: tag:yaml.org,2002:bool
+
+      tagShorthands:
+        kind: sequence
+        tag: tag:yaml.org,2002:seq
+        items:
+          kind: sequence
+          tag: tag:yaml.org,2002:seq
+          items:
+            kind: scalar
+            tag: tag:yaml.org,2002:str
+
+      useDefaultTagShorthands:
+        kind: scalar
+        tag: tag:yaml.org,2002:bool
+
+requiredProperties: [input, expected]

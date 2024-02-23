@@ -52,6 +52,86 @@ export type EvaluationTest = RepresentationMapping<
   RepresentationScalar<'tag:yaml.org,2002:str', 'input'>
 >;
 
+export type PresentationTest = RepresentationMapping<
+  'tag:yaml.org,2002:map',
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'expected'>,
+      RepresentationScalar<'tag:yaml.org,2002:str'>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'input'>,
+      RepresentationNode
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'name'>,
+      RepresentationScalar<'tag:yaml.org,2002:str'>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'options'>,
+      RepresentationMapping<
+        'tag:yaml.org,2002:map',
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'doubleQuoteEscapeCharacters'>,
+            DoubleQuoteEscapeCharacters | RepresentationSequence<'tag:yaml.org,2002:seq', DoubleQuoteEscapeCharacters>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'doubleQuoteEscapeStyle'>,
+            DoubleQuoteEscapeStyle | RepresentationSequence<'tag:yaml.org,2002:seq', DoubleQuoteEscapeStyle>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'endMarker'>,
+            RepresentationScalar<'tag:yaml.org,2002:bool'>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'scalarStyle'>,
+            ScalarStyle | RepresentationSequence<'tag:yaml.org,2002:seq', ScalarStyle>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'startMarker'>,
+            RepresentationScalar<'tag:yaml.org,2002:bool'>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'tagShorthands'>,
+            RepresentationSequence<'tag:yaml.org,2002:seq', RepresentationSequence<'tag:yaml.org,2002:seq', RepresentationScalar<'tag:yaml.org,2002:str'>>>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'trailingNewline'>,
+            RepresentationScalar<'tag:yaml.org,2002:bool'>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'unresolve'>,
+            NonSpecificTag | RepresentationSequence<'tag:yaml.org,2002:seq', NonSpecificTag>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'useDefaultTagShorthands'>,
+            RepresentationScalar<'tag:yaml.org,2002:bool'>
+          ]
+        | readonly [
+            RepresentationScalar<'tag:yaml.org,2002:str', 'versionDirective'>,
+            RepresentationScalar<'tag:yaml.org,2002:bool'>
+          ]
+      >
+    ],
+  | RepresentationScalar<'tag:yaml.org,2002:str', 'expected'>
+  | RepresentationScalar<'tag:yaml.org,2002:str', 'input'>
+>;
+
+export type DoubleQuoteEscapeCharacters = RepresentationScalar<'tag:yaml.org,2002:str', 'all'>;
+
+export type DoubleQuoteEscapeStyle = | RepresentationScalar<'tag:yaml.org,2002:str', 'U'>
+| RepresentationScalar<'tag:yaml.org,2002:str', 'builtin'>
+| RepresentationScalar<'tag:yaml.org,2002:str', 'json'>
+| RepresentationScalar<'tag:yaml.org,2002:str', 'u'>
+| RepresentationScalar<'tag:yaml.org,2002:str', 'uu'>
+| RepresentationScalar<'tag:yaml.org,2002:str', 'x'>;
+
+export type ScalarStyle = | RepresentationScalar<'tag:yaml.org,2002:str', 'double'>
+| RepresentationScalar<'tag:yaml.org,2002:str', 'plain'>
+| RepresentationScalar<'tag:yaml.org,2002:str', 'single'>;
+
+export type NonSpecificTag = | RepresentationScalar<'tag:yaml.org,2002:str', '!'>
+| RepresentationScalar<'tag:yaml.org,2002:str', '?'>;
+
 export type PathEntry = RepresentationMapping<
     'tag:yaml.org,2002:map',
     | readonly [
