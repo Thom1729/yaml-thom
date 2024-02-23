@@ -1,0 +1,21 @@
+%YAML 1.2
+---
+id: '#evaluationTest'
+name: EvaluationTest
+kind: mapping
+tag: tag:yaml.org,2002:map
+properties:
+  name:
+    kind: scalar
+    tag: tag:yaml.org,2002:str
+  context:
+    kind: mapping
+    tag: tag:yaml.org,2002:map
+    additionalProperties: {}
+  input: {}
+  expected: {}
+  error:
+    kind: scalar
+    tag: tag:yaml.org,2002:bool
+requiredProperties:
+  - input

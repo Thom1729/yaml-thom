@@ -24,6 +24,34 @@ export type Annotation = RepresentationMapping<
   | RepresentationScalar<'tag:yaml.org,2002:str', 'value'>
 >;
 
+export type EvaluationTest = RepresentationMapping<
+  'tag:yaml.org,2002:map',
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'context'>,
+      RepresentationMapping<
+        'tag:yaml.org,2002:map',
+        readonly [RepresentationNode, RepresentationNode]
+      >
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'error'>,
+      RepresentationScalar<'tag:yaml.org,2002:bool'>
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'expected'>,
+      RepresentationNode
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'input'>,
+      RepresentationNode
+    ]
+  | readonly [
+      RepresentationScalar<'tag:yaml.org,2002:str', 'name'>,
+      RepresentationScalar<'tag:yaml.org,2002:str'>
+    ],
+  RepresentationScalar<'tag:yaml.org,2002:str', 'input'>
+>;
+
 export type PathEntry = RepresentationMapping<
     'tag:yaml.org,2002:map',
     | readonly [

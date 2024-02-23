@@ -7,15 +7,16 @@ import {
   RepresentationMapping, type RepresentationNode,
   evaluate,
   diff,
-  assertValid,
 } from '@/index';
 
 import { extractTypedStringMap } from '@/helpers';
-import * as V from '@/validator/validatorHelpers';
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';
 import { loadTestFiles, enumerate } from '../helpers';
+
+import { validationProvider } from '../validators';
+import type { EvaluationTest as RawEvaluationTest } from '@validators';
 
 interface AnnotationTest {
   name?: string;
@@ -25,18 +26,10 @@ interface AnnotationTest {
   error: boolean | undefined;
 }
 
-const validator = V.stringMapOf({
-  'name?': V.str,
-  'context?': V.map,
-  input: {},
-  'expected?': {},
-  'error?': V.bool,
-});
-
 function *loadAnnotationTest(text: string): Generator<AnnotationTest> {
   for (const test of loadStream(text, { version: '1.3' })) {
-    assertValid(validator, test);
-    const x = extractTypedStringMap(test);
+    validationProvider.assertValid(validationProvider.getValidatorById('#evaluationTest'), test);
+    const x = extractTypedStringMap(test as RawEvaluationTest);
 
     yield {
       name: x.name?.content,
