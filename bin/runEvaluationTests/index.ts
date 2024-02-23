@@ -13,7 +13,7 @@ import { extractTypedStringMap } from '@/helpers';
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';
-import { loadTestFiles, enumerate } from '../helpers';
+import { findTestFiles, readText, enumerate } from '../helpers';
 
 import { validationProvider } from '../validators';
 import type { EvaluationTest as RawEvaluationTest } from '@validators';
@@ -73,7 +73,8 @@ const STATUS_COLORS = {
 export async function runEvaluationTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
 
-  for await (const { name, text } of loadTestFiles('test/annotations', suiteNames)) {
+  for (const name of await findTestFiles('test/annotations', suiteNames)) {
+    const text = await readText(name);
     logger.log(name);
     logger.indented(() => {
       for (const [i, test] of enumerate(loadAnnotationTest(text), 1)) {

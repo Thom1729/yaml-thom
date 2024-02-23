@@ -1,7 +1,7 @@
 import {
   command,
   enumerate,
-  loadTestFiles,
+  findTestFiles, readText,
   logger,
 } from '../helpers';
 
@@ -136,7 +136,8 @@ export const runValidationTests = command<{
   testName: string[],
 }>(async ({ testName }) => {
   let status = 0;
-  for await (const { name, text } of loadTestFiles('test/validation', testName)) {
+  for (const name of await findTestFiles('test/validation', testName)) {
+    const text = await readText(name);
     logger.log(name);
     logger.indented(() => {
       for (const [index, doc] of enumerate(loadStream(text), 1)) {

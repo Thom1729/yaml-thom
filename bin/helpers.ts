@@ -54,16 +54,6 @@ export async function findTestFiles(
   }
 }
 
-export async function *loadTestFiles(p: string, testNames: string[]) {
-  for (const name of await findTestFiles(p, testNames)) {
-    const text = await readText(name);
-    yield {
-      name,
-      text,
-    };
-  }
-}
-
 export function *enumerate<T>(iterable: Iterable<T>, start: number = 0) {
   let i = start;
   for (const item of iterable) {
