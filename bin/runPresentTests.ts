@@ -12,7 +12,6 @@ import {
   DumpOptions,
 } from '@/index';
 
-
 import { extractTypedStringMap } from '@/helpers';
 
 function constructTest(node: RepresentationNode) {

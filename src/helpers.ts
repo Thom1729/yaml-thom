@@ -97,10 +97,10 @@ type StringMap<
       RepresentationScalar<'tag:yaml.org,2002:str', TKey>,
       TValue,
     ]
-    : TRequiredKeys extends (infer K extends TPairs[0])
-      ? RepresentationScalar<'tag:yaml.org,2002:str', K>
-      : never,
-  never
+    : never,
+  {
+    [K in TRequiredKeys]: RepresentationScalar<'tag:yaml.org,2002:str', K>
+  }[TRequiredKeys]
 >;
 
 type ExtractTypedStringMap<
