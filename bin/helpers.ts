@@ -10,19 +10,24 @@ export const logger = new Logger(process.stdout);
 
 export const BASE_PATH = path.join(fileURLToPath(import.meta.url), '..', '..');
 
-export function readText(...path: string[]) {
-  return fs.readFile(path.join(...path), { encoding: 'utf-8' });
+function normalizeFilename(filename: string | readonly string[]) {
+  if (typeof filename === 'string') {
+    return filename;
+  } else {
+    return path.join(...filename);
+  }
 }
 
-export function writeText(filename: string, text: string) {
-  return fs.writeFile(filename, text, { encoding: 'utf-8' });
+export function readText(filename: string | readonly string[]) {
+  return fs.readFile(normalizeFilename(filename), { encoding: 'utf-8' });
 }
 
+export function writeText(filename: string | readonly string[], text: string) {
+  return fs.writeFile(normalizeFilename(filename), text, { encoding: 'utf-8' });
+}
 
 export async function *readStream(filename: string | readonly string[]) {
-  const computedFilename = Array.isArray(filename)
-    ? path.join(...filename)
-    : filename as string;
+  const computedFilename = normalizeFilename(filename);
 
   try {
     const text = await fs.readFile(computedFilename, { encoding: 'utf-8' });
@@ -34,18 +39,26 @@ export async function *readStream(filename: string | readonly string[]) {
   }
 }
 
-export async function *loadTestFiles(p: string, testNames: string[]) {
-  const baseDir = path.join(BASE_PATH, p);
+export async function findTestFiles(
+  directory: string | readonly string[],
+  testNames: string[],
+) {
+  const baseDir = path.join(BASE_PATH, normalizeFilename(directory));
 
   if (testNames.length === 0) {
-    testNames = await fs.readdir(baseDir);
+    return (await fs.readdir(baseDir))
+      .filter(filename => filename.endsWith('.yaml'))
+      .map(name => path.join(baseDir, name));
+  } else {
+    return testNames.map(name => path.join(baseDir, `${name}.yaml`));
   }
+}
 
-  for (const name of testNames) {
-    const fullName = name.endsWith('.yaml') ? name : name + '.yaml';
-    const text = await readText(path.join(baseDir, fullName));
+export async function *loadTestFiles(p: string, testNames: string[]) {
+  for (const name of await findTestFiles(p, testNames)) {
+    const text = await readText(name);
     yield {
-      name: fullName,
+      name,
       text,
     };
   }

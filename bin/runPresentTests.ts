@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-import { loadTestFiles, enumerate } from './helpers';
+import { findTestFiles, enumerate, readText } from './helpers';
 import { Logger } from './logger';
 import { validationProvider } from './validators';
 import type { PresentationTest as RawPresentationTest } from '@validators';
@@ -43,7 +43,8 @@ function runTest(test: ReturnType<typeof constructTest>) {
 
 export async function runPresentTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
-  for await (const { name, text } of loadTestFiles('test/present', suiteNames)) {
+  for (const name of await findTestFiles('test/present', suiteNames)) {
+    const text = await readText(name);
     logger.log(name);
 
     logger.indented(() => {
