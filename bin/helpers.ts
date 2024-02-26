@@ -1,14 +1,14 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
+
 import fs from 'fs/promises';
 
 import { Logger } from './logger';
+import { validationProvider } from './validators';
+import { BASE_PATH } from './basePath';
 
-import { loadStream, type LoadOptions } from '@';
+import { loadStream, type LoadOptions, type Validator } from '@';
 
 export const logger = new Logger(process.stdout);
-
-export const BASE_PATH = path.join(fileURLToPath(import.meta.url), '..', '..');
 
 function normalizeFilename(filename: string | readonly string[]) {
   if (typeof filename === 'string') {
@@ -28,19 +28,29 @@ export function writeText(filename: string | readonly string[], text: string) {
 
 export async function *readStream(
   filename: string | readonly string[],
-  options?: {
+  options: {
     load?: LoadOptions,
-  },
+    validator?: Validator,
+  } = {},
 ) {
   const computedFilename = normalizeFilename(filename);
+  const name = path.parse(computedFilename).name;
 
   try {
     const text = await fs.readFile(computedFilename, { encoding: 'utf-8' });
-    for (const doc of loadStream(text, options?.load)) {
-      yield doc;
+    for (const [index, document] of enumerate(loadStream(text, options.load))) {
+      if (options.validator !== undefined) {
+        validationProvider.validate(options.validator, document);
+      }
+      yield {
+        path: computedFilename,
+        name,
+        index,
+        document,
+      };
     }
   } catch (e) {
-    throw new Error(`Failed to load ${computedFilename}`, { cause: e });
+    throw new Error(`Failed to load ${name}`, { cause: e });
   }
 }
 
