@@ -26,19 +26,16 @@ interface AnnotationTest {
   error: boolean | undefined;
 }
 
-function *loadAnnotationTest(text: string): Generator<AnnotationTest> {
-  for (const test of loadStream(text, { version: '1.3' })) {
-    validationProvider.assertValid(validationProvider.getValidatorById('#evaluationTest'), test);
-    const x = extractTypedStringMap(test as RawEvaluationTest);
+function constructAnnotationTest(test: RawEvaluationTest): AnnotationTest {
+  const x = extractTypedStringMap(test);
 
-    yield {
-      name: x.name?.content,
-      input: x.input,
-      expected: x.expected,
-      context: x.context,
-      error: Boolean(x.error),
-    };
-  }
+  return {
+    name: x.name?.content,
+    input: x.input,
+    expected: x.expected,
+    context: x.context,
+    error: Boolean(x.error),
+  };
 }
 
 function runAnnotationTest(test: AnnotationTest) {
@@ -73,11 +70,15 @@ const STATUS_COLORS = {
 export async function runEvaluationTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
 
-  for (const name of await findTestFiles('test/annotations', suiteNames)) {
-    const text = await readText(name);
+  for (const name of await findTestFiles(['test', 'annotations'], suiteNames)) {
     logger.log(name);
-    logger.indented(() => {
-      for (const [i, test] of enumerate(loadAnnotationTest(text), 1)) {
+    await logger.indented(async () => {
+      const text = await readText(name);
+
+      for (const [i, doc] of enumerate(loadStream(text, { version: '1.3' }), 1)) {
+        validationProvider.assertValid(validationProvider.getValidatorById('#evaluationTest'), doc);
+        const test = constructAnnotationTest(doc as RawEvaluationTest);
+
         const testName = test.name ?? i;
 
         const { status, diffs, error } = runAnnotationTest(test);

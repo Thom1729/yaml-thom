@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 
 import { Logger } from './logger';
 
-import { loadStream } from '@';
+import { loadStream, type LoadOptions } from '@';
 
 export const logger = new Logger(process.stdout);
 
@@ -26,12 +26,17 @@ export function writeText(filename: string | readonly string[], text: string) {
   return fs.writeFile(normalizeFilename(filename), text, { encoding: 'utf-8' });
 }
 
-export async function *readStream(filename: string | readonly string[]) {
+export async function *readStream(
+  filename: string | readonly string[],
+  options?: {
+    load?: LoadOptions,
+  },
+) {
   const computedFilename = normalizeFilename(filename);
 
   try {
     const text = await fs.readFile(computedFilename, { encoding: 'utf-8' });
-    for (const doc of loadStream(text)) {
+    for (const doc of loadStream(text, options?.load)) {
       yield doc;
     }
   } catch (e) {

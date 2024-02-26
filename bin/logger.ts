@@ -80,11 +80,15 @@ export class Logger {
     }
   }
 
-  indented(callback: () => void) {
+  indented(callback: () => Promise<void>): Promise<void>;
+  indented(callback: () => void): void;
+
+  async indented(callback: () => void | Promise<void>) {
     const priorIndent = this.level;
     this.level++;
     try {
-      callback();
+      const result = callback();
+      if (isThenable(result)) await result;
     } finally {
       this.level = priorIndent;
     }
@@ -97,4 +101,17 @@ function stringify(value: unknown) {
   } else {
     return inspect(value);
   }
+}
+
+type Thenable = {
+  then: (...args: never[]) => unknown;
+};
+
+function isThenable(value: unknown): value is Thenable {
+  return (
+    value !== null
+    && typeof value === 'object'
+    && 'then' in value
+    && typeof value.then === 'function'
+  );
 }
