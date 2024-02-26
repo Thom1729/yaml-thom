@@ -21,9 +21,9 @@ export function pathToString(path: PathEntry<SerializationNode>[]) {
     .join('/');
 }
 
-export function runTestSuite(testSuitePath: string, testNames: string[], verbose: boolean) {
-  const logger = new Logger(process.stdout);
+const logger = new Logger(process.stdout);
 
+export function runTestSuite(testSuitePath: string, testNames: string[], verbose: boolean) {
   const testLoader = new DirectoryTestLoader(testSuitePath);
   if (testNames.length === 0) testNames = testLoader.listTests();
   for (const testName of testNames) {
@@ -38,19 +38,20 @@ export function runTestSuite(testSuitePath: string, testNames: string[], verbose
         logger.log(`${test.id}: ${test.name}`);
 
         logger.indented(() => {
-          logger.log(chalk.gray(test.yaml));
+          if (result.inequal?.length) {
+            logger.log(chalk.gray(test.yaml));
 
-          for (const { path, expected, actual, message } of result.inequal ?? []) {
-            logger.log(`${pathToString(path)}: ${message}`);
-            logger.indented(() => {
-              logger.log('expected:', expected);
-              logger.log('actual  :', actual);
-            });
+            for (const { path, expected, actual, message } of result.inequal ?? []) {
+              logger.log(`${pathToString(path)}: ${message}`);
+              logger.indented(() => {
+                logger.log('expected:', expected);
+                logger.log('actual  :', actual);
+              });
+            }
           }
 
           if (result.error) {
             logger.log(chalk.red(inspect(result.error)));
-            // logger.log(chalk.red(result.error));
           }
         });
       }
