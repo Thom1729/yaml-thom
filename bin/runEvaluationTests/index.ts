@@ -3,19 +3,17 @@ import { inspect } from 'util';
 import chalk from 'chalk';
 
 import {
-  loadStream,
   RepresentationMapping, type RepresentationNode,
   evaluate,
   diff,
-} from '@/index';
+} from '@';
 
 import { extractTypedStringMap } from '@/helpers';
 
 import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';
-import { findTestFiles, readText, enumerate } from '../helpers';
+import { findTestFiles, readStream } from '../helpers';
 
-import { validationProvider } from '../validators';
 import type { EvaluationTest as RawEvaluationTest } from '@validators';
 
 interface AnnotationTest {
@@ -73,13 +71,13 @@ export async function runEvaluationTests(suiteNames: string[]) {
   for (const name of await findTestFiles(['test', 'annotations'], suiteNames)) {
     logger.log(name);
     await logger.indented(async () => {
-      const text = await readText(name);
+      for await (const { index, document } of readStream(name, {
+        load: { version: '1.3' },
+        validator: { ref: '#evaluationTest' },
+      })) {
+        const test = constructAnnotationTest(document as RawEvaluationTest);
 
-      for (const [i, doc] of enumerate(loadStream(text, { version: '1.3' }), 1)) {
-        validationProvider.assertValid({ ref: '#evaluationTest' }, doc);
-        const test = constructAnnotationTest(doc as RawEvaluationTest);
-
-        const testName = test.name ?? i;
+        const testName = test.name ?? index;
 
         const { status, diffs, error } = runAnnotationTest(test);
 

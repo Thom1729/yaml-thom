@@ -29,7 +29,7 @@ export function writeText(filename: string | readonly string[], text: string) {
 export async function *readStream(
   filename: string | readonly string[],
   options: {
-    load?: LoadOptions,
+    load?: Partial<LoadOptions>,
     validator?: Validator,
   } = {},
 ) {
@@ -38,7 +38,7 @@ export async function *readStream(
 
   try {
     const text = await fs.readFile(computedFilename, { encoding: 'utf-8' });
-    for (const [index, document] of enumerate(loadStream(text, options.load))) {
+    for (const [index, document] of enumerate(loadStream(text, options.load), 1)) {
       if (options.validator !== undefined) {
         validationProvider.validate(options.validator, document);
       }
