@@ -1,16 +1,16 @@
 import chalk from 'chalk';
 
-import { findTestFiles, enumerate, readText } from './helpers';
+import { findTestFiles, readStream } from './helpers';
 import { Logger } from './logger';
 import { validationProvider } from './validators';
 import type { PresentationTest as RawPresentationTest } from '@validators';
 
 import {
-  loadStream, dumpDocument,
+  dumpDocument,
   type RepresentationNode,
   defaultConstructor,
-  DumpOptions,
-} from '@/index';
+  type DumpOptions,
+} from '@';
 
 import { extractTypedStringMap } from '@/helpers';
 
@@ -44,12 +44,10 @@ function runTest(test: ReturnType<typeof constructTest>) {
 export async function runPresentTests(suiteNames: string[]) {
   const logger = new Logger(process.stdout);
   for (const name of await findTestFiles('test/present', suiteNames)) {
-    const text = await readText(name);
     logger.log(name);
-
-    logger.indented(() => {
-      for (const [index, doc] of enumerate(loadStream(text), 1)) {
-        const test = constructTest(doc);
+    await logger.indented(async () => {
+      for await (const { index, document } of readStream(name)) {
+        const test = constructTest(document);
 
         logger.write((test.name ?? index.toString()) + ' ');
 
