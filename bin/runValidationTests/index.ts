@@ -1,7 +1,6 @@
 import {
   command,
-  enumerate,
-  findTestFiles, readText,
+  findTestFiles, readStream,
   logger,
 } from '../helpers';
 
@@ -15,7 +14,6 @@ import type {
 } from '@validators';
 
 import {
-  loadStream,
   defaultConstructor,
   validate, constructValidator, type Validator, type ValidationFailure,
   type RepresentationNode,
@@ -137,12 +135,10 @@ export const runValidationTests = command<{
 }>(async ({ testName }) => {
   let status = 0;
   for (const name of await findTestFiles('test/validation', testName)) {
-    const text = await readText(name);
     logger.log(name);
-    logger.indented(() => {
-      for (const [index, doc] of enumerate(loadStream(text), 1)) {
-        validationProvider.assertValid({ ref: '#validationTest' }, doc);
-        const validationTest = constructValidationTest(doc as RawValidationTest);
+    await logger.indented(async () => {
+      for await (const { index, document } of readStream(name, { validator: { ref: '#validationTest' } })) {
+        const validationTest = constructValidationTest(document as RawValidationTest);
 
         const result = runValidationTest(validationTest);
 
