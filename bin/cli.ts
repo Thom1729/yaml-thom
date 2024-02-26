@@ -62,7 +62,7 @@ yargs(hideBin(process.argv))
       .positional('test-suite-path', { type: 'string', demandOption: true })
       .positional('test-name', { type: 'string', array: true, demandOption: true })
       .option('verbose', { type: 'boolean', default: false }),
-    args => runTestSuite(args['test-suite-path'], args['test-name'], args.verbose),
+    args => runTestSuite(args),
   )
   .command(
     'run-evaluation-tests [test-name..]',

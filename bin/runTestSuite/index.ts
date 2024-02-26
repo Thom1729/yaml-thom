@@ -1,11 +1,12 @@
 import chalk from 'chalk';
 import { inspect } from 'util';
 
-import { runTest, present, type PathEntry, type SerializationNode } from '@/index';
+import { runTest, present, type PathEntry, type SerializationNode } from '@';
 
 import { DirectoryTestLoader } from './DirectoryTestLoader';
 
 import { Logger } from '../logger';
+import { command } from '../helpers';
 
 export function pathToString(path: PathEntry<SerializationNode>[]) {
   return '/' + path
@@ -23,12 +24,21 @@ export function pathToString(path: PathEntry<SerializationNode>[]) {
 
 const logger = new Logger(process.stdout);
 
-export function runTestSuite(testSuitePath: string, testNames: string[], verbose: boolean) {
+export const runTestSuite = command<{
+  testSuitePath: string,
+  testName: string[],
+  verbose: boolean,
+}>(async ({
+  testSuitePath,
+  testName: testNames,
+  verbose,
+}) => {
   const testLoader = new DirectoryTestLoader(testSuitePath);
-  if (testNames.length === 0) testNames = testLoader.listTests();
+  if (testNames.length === 0) testNames = await testLoader.listTests();
+
   for (const testName of testNames) {
     const tests = testLoader.loadTest(testName);
-    for (const test of tests) {
+    for await (const test of tests) {
       const result = runTest(test);
 
       const bad = result.status !== 'success' && result.status !== 'skipped';
@@ -57,4 +67,4 @@ export function runTestSuite(testSuitePath: string, testNames: string[], verbose
       }
     }
   }
-}
+});

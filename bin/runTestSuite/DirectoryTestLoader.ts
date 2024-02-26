@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
 
 import { parseEvent, type TestCase } from '@/index';
 
@@ -14,7 +14,7 @@ const DIRECTORY_TEST_FILE_NAMES = {
   'lex.token': 'tokens',
 } as const;
 
-function foo(id: string, files: Record<string, string>): TestCase {
+function makeTestCase(id: string, files: Record<string, string>): TestCase {
   const {
     name,
     emit,
@@ -51,18 +51,18 @@ export class DirectoryTestLoader {
     this.basePath = basePath;
   }
 
-  loadTest(name: string): Iterable<TestCase> {
+  loadTest(name: string): AsyncIterable<TestCase> {
     return this.loadTestDirectory(name, path.join(this.basePath, name));
   }
 
-  private *loadTestDirectory(id: string, directoryPath: string): Iterable<TestCase> {
-    const files = fs.readdirSync(directoryPath);
-    if (fs.lstatSync(path.join(directoryPath, files[0])).isDirectory()) {
+  private async *loadTestDirectory(id: string, directoryPath: string): AsyncIterable<TestCase> {
+    const files = await fs.readdir(directoryPath);
+    if ((await fs.lstat(path.join(directoryPath, files[0]))).isDirectory()) {
       for (const f of files) {
         yield* this.loadTestDirectory(`${id} ${f}`, path.join(directoryPath, f));
       }
     } else {
-      const y = Object.fromEntries(
+      const y = Object.fromEntries(await Promise.all(
         files
           .filter(filename => {
             if (Object.hasOwn(DIRECTORY_TEST_FILE_NAMES, filename)) {
@@ -72,19 +72,19 @@ export class DirectoryTestLoader {
               return false;
             }
           })
-          .map(filename => {
+          .map(async filename => {
             return [
               DIRECTORY_TEST_FILE_NAMES[filename as keyof typeof DIRECTORY_TEST_FILE_NAMES],
-              fs.readFileSync(path.join(directoryPath, filename), { encoding: 'utf-8' })
+              await fs.readFile(path.join(directoryPath, filename), { encoding: 'utf-8' })
             ];
           }),
-      );
-      yield foo(id, y);
+      ));
+      yield makeTestCase(id, y);
     }
   }
 
-  listTests() {
-    return fs.readdirSync(path.join(this.basePath))
+  async listTests() {
+    return (await fs.readdir(path.join(this.basePath)))
       .filter(filename => filename === filename.toUpperCase());
   }
 }
