@@ -76,7 +76,7 @@ export async function runEvaluationTests(suiteNames: string[]) {
       const text = await readText(name);
 
       for (const [i, doc] of enumerate(loadStream(text, { version: '1.3' }), 1)) {
-        validationProvider.assertValid(validationProvider.getValidatorById('#evaluationTest'), doc);
+        validationProvider.assertValid({ ref: '#evaluationTest' }, doc);
         const test = constructAnnotationTest(doc as RawEvaluationTest);
 
         const testName = test.name ?? i;

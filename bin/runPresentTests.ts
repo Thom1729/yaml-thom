@@ -15,7 +15,7 @@ import {
 import { extractTypedStringMap } from '@/helpers';
 
 function constructTest(node: RepresentationNode) {
-  validationProvider.assertValid(validationProvider.getValidatorById('#presentationTest'), node);
+  validationProvider.assertValid({ ref: '#presentationTest' }, node);
   const x = extractTypedStringMap(node as RawPresentationTest);
 
   return {

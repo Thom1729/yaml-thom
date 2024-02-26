@@ -25,5 +25,5 @@ for (const text of VALIDATOR_TEXTS) {
 export function validateValidator(
   node: RepresentationNode,
 ): asserts node is RawValidator {
-  builtinValidationProvider.validate(builtinValidationProvider.getValidatorById('#validator'), node);
+  builtinValidationProvider.validate({ ref: '#validator' }, node);
 }

@@ -4,8 +4,6 @@ import type { Annotation as RawAnnotation } from '@validators';
 import { builtinValidationProvider } from '@/validator/validatorValidator';
 import { extractTypedStringMap } from '@/helpers';
 
-const annotationValidator = builtinValidationProvider.getValidatorById('#annotation');
-
 export interface Annotation {
   name: string,
   value: RepresentationNode,
@@ -15,7 +13,7 @@ export interface Annotation {
 export function validateAnnotation(
   node: RepresentationNode,
 ): asserts node is RawAnnotation {
-  builtinValidationProvider.validate(annotationValidator, node);
+  builtinValidationProvider.validate({ ref: '#annotation' }, node);
 }
 
 export function constructAnnotation(node: RawAnnotation): Annotation {

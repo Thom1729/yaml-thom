@@ -141,10 +141,7 @@ export const runValidationTests = command<{
     logger.log(name);
     logger.indented(() => {
       for (const [index, doc] of enumerate(loadStream(text), 1)) {
-        validationProvider.assertValid(
-          validationProvider.getValidatorById('#validationTest'),
-          doc,
-        );
+        validationProvider.assertValid({ ref: '#validationTest' }, doc);
         const validationTest = constructValidationTest(doc as RawValidationTest);
 
         const result = runValidationTest(validationTest);
