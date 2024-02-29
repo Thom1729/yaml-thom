@@ -1,12 +1,7 @@
-type BaseEntries = Iterable<readonly [PropertyKey, unknown]>;
-type FromEntries<T extends BaseEntries> = T extends Iterable<infer Pair>
-  ? [Pair] extends [readonly [infer Key extends PropertyKey, unknown]]
-    ? { [K in Key]: (Pair & [K, unknown])[1] }
-    : never
-  : never;
-
 export const strictFromEntries = Object.fromEntries as
-  <T extends BaseEntries>(entries: T) => FromEntries<T>;
+  <TPair extends readonly [PropertyKey, unknown]>(entries: Iterable<TPair>) => {
+    [K in TPair[0]]: (TPair & [K, unknown])[1]
+  };
 
 export const objectHasOwn = Object.hasOwn as
   <T extends object, K extends PropertyKey>(o: T, v: K) => v is K & keyof T;
