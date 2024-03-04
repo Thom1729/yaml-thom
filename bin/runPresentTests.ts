@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { findTestFiles, readStream } from './helpers';
 import { Logger } from './logger';
 import { validationProvider } from './validators';
-import type { PresentationTest as RawPresentationTest } from '@validators';
+import type { PresentationTest as RawPresentationTest } from './testValidators';
 
 import {
   dumpDocument,

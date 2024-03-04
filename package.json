@@ -10,8 +10,9 @@
     "yaml-util": "./dist-bin/cli.js"
   },
   "scripts": {
-    "build": "npm run build:validators && npm run build:ts",
+    "build": "npm run build:validators && npm run build:test-validators && npm run build:ts",
     "build:validators": "npx yaml-util validator-types ./validators/*.yaml --out ./validators/index.ts",
+    "build:test-validators": "npx yaml-util validator-types ./validators/*.yaml ./bin/testValidators/*.yaml --out ./bin/testValidators/index.ts",
     "build:ts": "rollup --config rollup.config.js",
     "build:docs": "typedoc --options ./docs-build/typedoc.json",
     "test": "npm run test:lint && npm run test:unit && npm run test:suite && npm run test:annotations && npm run test:validation && npm run test:presentation",

@@ -14,7 +14,7 @@ import { prettyPrint } from './prettyPrint';
 import { Logger } from '../logger';
 import { findTestFiles, readStream } from '../helpers';
 
-import type { EvaluationTest as RawEvaluationTest } from '@validators';
+import type { EvaluationTest as RawEvaluationTest } from '../testValidators';
 
 interface AnnotationTest {
   name?: string;

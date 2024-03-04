@@ -11,7 +11,7 @@ import type {
   ValidationTest as RawValidationTest,
   ValidationFailures,
   PathEntry as RawPathEntry,
-} from '@validators';
+} from '../testValidators';
 
 import {
   defaultConstructor,
