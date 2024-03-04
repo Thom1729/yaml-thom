@@ -59,20 +59,37 @@ export class ValidationProvider {
     () => new WeakMap(),
     () => new WeakMap(),
   );
-  readonly comparator = new NodeComparator();
+  readonly comparator = new NodeComparator(); // TODO accept as arg
 
-  add(validator: Validator) {
-    for (const child of iterateValidators(validator)) {
-      if (child.id !== undefined) {
-        this.validatorsById.set(child.id, child);
+  *[Symbol.iterator]() {
+    yield* this.validatorsById.entries();
+  }
+
+  add(...items: (Validator | ValidationProvider)[]) {
+    for (const item of items) {
+      if (item instanceof ValidationProvider) {
+        for (const [id, v] of item) {
+          this.defineValidatorForId(id, v);
+        }
+      } else {
+        for (const validator of iterateValidators(item)) {
+          if (validator.id !== undefined) {
+            this.defineValidatorForId(validator.id, validator);
+          }
+        }
       }
     }
   }
 
+  defineValidatorForId(id: string, validator: Validator) {
+    if (this.validatorsById.has(id)) {
+      throw new Error(`Duplicate validator ${id}`);
+    }
+    this.validatorsById.set(id, validator);
+  }
+
   getValidatorById(id: string) {
-    const validator = this.validatorsById.get(id);
-    assertNotUndefined(validator);
-    return validator;
+    return this.validatorsById.get(id);
   }
 
   validate(validator: Validator, node: RepresentationNode) {
@@ -139,6 +156,7 @@ export class ValidationProvider {
 
     if (validator.ref) {
       const child = this.getValidatorById(validator.ref);
+      assertNotUndefined(child, `No validator defined for ref ${JSON.stringify(validator.ref)}`);
       yield* this.validateNode(child, node, path);
     }
 

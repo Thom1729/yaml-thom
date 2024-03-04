@@ -11,6 +11,7 @@ import {
 
 import { ValidatorToTypeOperation } from './validatorToType';
 import { printTypes } from './printTypes';
+import { assertNotUndefined } from '@/util';
 
 export const validatorTypes = command<{
   filename: readonly string[],
@@ -33,7 +34,11 @@ export const validatorTypes = command<{
     }
   }
 
-  const op = new ValidatorToTypeOperation(provider.getValidatorById.bind(provider));
+  const op = new ValidatorToTypeOperation(id => {
+    const validator = provider.getValidatorById(id);
+    assertNotUndefined(validator);
+    return validator;
+  });
 
   for (const validator of validators) {
     op.recurse(validator);
