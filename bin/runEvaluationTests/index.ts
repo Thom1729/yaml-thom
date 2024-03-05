@@ -11,8 +11,7 @@ import {
 import { extractTypedStringMap } from '@/helpers';
 
 import { prettyPrint } from './prettyPrint';
-import { Logger } from '../logger';
-import { findTestFiles, readStream } from '../helpers';
+import { Logger, findTestFiles, readStream } from '../util';
 
 import type { EvaluationTest as RawEvaluationTest } from '../testValidators';
 

@@ -5,8 +5,7 @@ import { runTest, present, type PathEntry, type SerializationNode } from '@';
 
 import { DirectoryTestLoader } from './DirectoryTestLoader';
 
-import { Logger } from '../logger';
-import { command } from '../helpers';
+import { Logger, command } from '../util';
 
 export function pathToString(path: PathEntry<SerializationNode>[]) {
   return '/' + path

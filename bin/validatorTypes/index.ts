@@ -1,7 +1,7 @@
 import {
   command,
   readText, writeText,
-} from '../helpers';
+} from '../util';
 
 import {
   loadStream,

@@ -2,10 +2,7 @@ import {
   command,
   findTestFiles, readStream,
   logger,
-} from '../helpers';
-
-import { validationProvider } from '../validators';
-validationProvider;
+} from '../util';
 
 import type {
   ValidationTest as RawValidationTest,

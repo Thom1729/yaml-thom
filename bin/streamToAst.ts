@@ -6,7 +6,7 @@ import {
   type AstNode,
 } from '@/index';
 
-import { repeat } from './logger';
+import { repeat } from './util';
 
 export function streamToAst(filename: string, version: YamlVersion) {
   const text = readFileSync(filename, { encoding: 'utf-8' });
