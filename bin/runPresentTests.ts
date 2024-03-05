@@ -1,20 +1,18 @@
 import chalk from 'chalk';
 
-import { findTestFiles, readStream, Logger, validationProvider } from './util';
+import { findTestFiles, readStream, Logger } from './util';
 import type { PresentationTest as RawPresentationTest } from './testValidators';
 
 import {
   dumpDocument,
-  type RepresentationNode,
   defaultConstructor,
   type DumpOptions,
 } from '@';
 
 import { extractTypedStringMap } from '@/helpers';
 
-function constructTest(node: RepresentationNode) {
-  validationProvider.assertValid({ ref: '#presentationTest' }, node);
-  const x = extractTypedStringMap(node as RawPresentationTest);
+function constructTest(node: RawPresentationTest) {
+  const x = extractTypedStringMap(node);
 
   return {
     name: x.name?.content,
@@ -44,8 +42,8 @@ export async function runPresentTests(suiteNames: string[]) {
   for (const name of await findTestFiles('test/present', suiteNames)) {
     logger.log(name);
     await logger.indented(async () => {
-      for await (const { index, document } of readStream(name)) {
-        const test = constructTest(document);
+      for await (const { index, document } of readStream(name, { validator: { ref: '#presentationTest' } })) {
+        const test = constructTest(document as RawPresentationTest);
 
         logger.write((test.name ?? index.toString()) + ' ');
 
