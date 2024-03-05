@@ -33,6 +33,13 @@ export class RepresentationSequence<
 > extends ValueNode<TagType, ItemType[]> {
   readonly kind = 'sequence';
 
+  constructor(
+    tag: TagType,
+    content: Iterable<ItemType> = [],
+  ) {
+    super(tag, Array.from(content));
+  }
+
   *[Symbol.iterator]() {
     yield* this.content;
   }
@@ -57,7 +64,7 @@ export class RepresentationMapping<
 
   constructor(
     tag: TagType,
-    content: Iterable<PairType>,
+    content: Iterable<PairType> = [],
     comparator: NodeComparator | boolean = true,
   ) {
     super(tag, new NodeMap<PairType>(content, comparator));
@@ -147,3 +154,7 @@ export type UnresolvedNode =
 | RepresentationScalar<SerializationTag>
 | RepresentationSequence<SerializationTag, UnresolvedNode>
 | RepresentationMapping<SerializationTag, readonly [UnresolvedNode, UnresolvedNode], never>;
+
+export function isRepresentationNode(value: unknown): value is RepresentationNode {
+  return value instanceof ValueNode;
+}

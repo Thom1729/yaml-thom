@@ -1,5 +1,7 @@
-import {
+import type {
   RepresentationNode,
+  RepresentationScalar,
+  RepresentationSequence,
   RepresentationMapping,
 } from '@/nodes';
 
@@ -7,6 +9,17 @@ import { Evaluator } from './evaluate';
 export { EvaluationError, Evaluator } from './evaluate';
 
 import STDLIB from './stdlib';
+
+export type EvaluateFunction = (
+  node: RepresentationNode,
+  context: RepresentationMapping,
+) => RepresentationNode;
+
+export type AnnotationFunctionResult =
+| RepresentationNode
+| { kind: 'scalar', tag: string, content: string }
+| { kind: 'sequence', tag: string, content: (evaluate: EvaluateFunction) => Iterable<RepresentationNode> }
+| { kind: 'mapping', tag: string, content: (evaluate: EvaluateFunction) => Iterable<readonly [RepresentationNode, RepresentationNode]> };
 
 export interface Annotation {
   name: string,
@@ -19,7 +32,7 @@ export type AnnotationFunction = (
   value: RepresentationNode,
   args: readonly RepresentationNode[],
   context: RepresentationMapping,
-) => RepresentationNode;
+) => AnnotationFunctionResult;
 
 export type Library = Partial<Record<string, AnnotationFunction>>;
 
