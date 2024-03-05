@@ -17,9 +17,10 @@ export type EvaluateFunction = (
 
 export type AnnotationFunctionResult =
 | RepresentationNode
-| { kind: 'scalar', tag: string, content: string }
-| { kind: 'sequence', tag: string, content: (evaluate: EvaluateFunction) => Iterable<RepresentationNode> }
-| { kind: 'mapping', tag: string, content: (evaluate: EvaluateFunction) => Iterable<readonly [RepresentationNode, RepresentationNode]> };
+| {
+  value: RepresentationNode;
+  deferred: undefined | ((evaluate: EvaluateFunction) => void);
+};
 
 export interface Annotation {
   name: string,

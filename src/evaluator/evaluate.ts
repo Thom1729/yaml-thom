@@ -35,62 +35,41 @@ export class Evaluator {
     this.options = options;
   }
 
-  handleResult(
-    originalNode: RepresentationNode,
-    context: RepresentationMapping,
-    result: AnnotationFunctionResult,
-  ): RepresentationNode {
-    if (isRepresentationNode(result)) {
-      this.cache.set(originalNode, context, result);
-      return result;
-    } else {
-      if (result.kind === 'scalar') {
-        const node = new RepresentationScalar(result.tag, result.content);
-        this.cache.set(originalNode, context, node);
-        return node;
-      } else if (result.kind === 'sequence') {
-        const node = new RepresentationSequence(result.tag);
-        this.cache.set(originalNode, context, node);
-        for (const item of result.content(this.evaluate)) {
+  deferred<T extends RepresentationNode>(
+    value: T,
+    deferred: (value: T, evaluate: EvaluateFunction) => void,
+  ): AnnotationFunctionResult {
+    return {
+      value,
+      deferred: evaluate => { deferred(value, evaluate); },
+    };
+  }
+
+  scalar(tag: string, content: string): AnnotationFunctionResult {
+    return new RepresentationScalar(tag, content);
+  }
+
+  sequence(tag: string, content: (evaluate: EvaluateFunction) => Iterable<RepresentationNode>): AnnotationFunctionResult {
+    return this.deferred(
+      new RepresentationSequence(tag),
+      (node, evaluate) => {
+        for (const item of content(evaluate)) {
           node.content.push(item);
         }
-        return node;
-      } else if (result.kind === 'mapping') {
-        const node = new RepresentationMapping(result.tag);
-        this.cache.set(originalNode, context, node);
-        for (const pair of result.content(this.evaluate)) {
+      }
+    );
+  }
+
+  mapping(tag: string, content: (evaluate: EvaluateFunction) => Iterable<readonly [RepresentationNode, RepresentationNode]>): AnnotationFunctionResult {
+    return this.deferred(
+      new RepresentationMapping(tag),
+      (node, evaluate) => {
+        for (const pair of content(evaluate)) {
           node.content.pairs.push(pair);
         }
         node.content.pairs.sort((a, b) => this.comparator.compare(a[0], b[0]));
-        return node;
       }
-    }
-
-    throw new Error('unreachable');
-  }
-
-  scalar(tag: string, content: string) {
-    return {
-      kind: 'scalar' as const,
-      tag,
-      content,
-    };
-  }
-
-  sequence(tag: string, content: (evaluate: EvaluateFunction) => Iterable<RepresentationNode>) {
-    return {
-      kind: 'sequence' as const,
-      tag,
-      content,
-    };
-  }
-
-  mapping(tag: string, content: (evaluate: EvaluateFunction) => Iterable<readonly [RepresentationNode, RepresentationNode]>) {
-    return {
-      kind: 'mapping' as const,
-      tag,
-      content,
-    };
+    );
   }
 
   default(
@@ -147,4 +126,22 @@ export class Evaluator {
       return this.handleResult(node, context, this.default(node, context));
     }
   };
+
+  handleResult(
+    originalNode: RepresentationNode,
+    context: RepresentationMapping,
+    result: AnnotationFunctionResult,
+  ): RepresentationNode {
+    if (isRepresentationNode(result)) {
+      this.cache.set(originalNode, context, result);
+      return result;
+    } else {
+      const node = result.value;
+      this.cache.set(originalNode, context, node);
+      if (result.deferred !== undefined) {
+        result.deferred(this.evaluate);
+      }
+      return node;
+    }
+  }
 }
