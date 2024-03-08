@@ -6,12 +6,13 @@ import {
   RepresentationMapping, type RepresentationNode,
   evaluate,
   diff,
+  EvaluationError,
 } from '@';
 
 import { extractTypedStringMap } from '@/helpers';
 
 import { prettyPrint } from './prettyPrint';
-import { Logger, findTestFiles, readStream } from '../util';
+import { logger, findTestFiles, readStream } from '../util';
 
 import type { EvaluationTest as RawEvaluationTest } from '../testValidators';
 
@@ -36,7 +37,7 @@ function constructAnnotationTest(test: RawEvaluationTest): AnnotationTest {
 }
 
 function runAnnotationTest(test: AnnotationTest) {
-  let status: 'success' | 'failure' = 'success';
+  let status: 'success' | 'failure' | 'error' = 'success';
   let actual = null;
   let error = null;
 
@@ -45,7 +46,7 @@ function runAnnotationTest(test: AnnotationTest) {
     actual = evaluate(test.input, context);
   } catch (e) {
     error = e;
-    if (!test.error) status = 'failure';
+    if (!test.error) status = 'error';
   }
 
   const diffs = actual !== null && test.expected !== undefined
@@ -62,11 +63,40 @@ function runAnnotationTest(test: AnnotationTest) {
 const STATUS_COLORS = {
   success: 'green',
   failure: 'red',
+  error: 'red',
 } as const;
 
-export async function runEvaluationTests(suiteNames: string[]) {
-  const logger = new Logger(process.stdout);
+function printError(error: unknown) {
+  if (error instanceof EvaluationError) {
+    logger.log(chalk.red(error.message));
+    if (error.annotation) {
+      const { name, arguments: args, value } = error.annotation;
+      logger.log(`name: ${name}`);
+      if (args.length > 0) {
+        logger.log('arguments:');
+        logger.indented(() => {
+          for (const arg of args) {
+            prettyPrint(logger.write.bind(logger), arg);
+          }
+        });
+      }
+      logger.log('value:');
+      logger.indented(() => {
+        prettyPrint(logger.write.bind(logger), value);
+      });
+      if (error.cause) {
+        logger.log('cause:');
+        logger.indented(() => {
+          printError(error.cause);
+        });
+      }
+    }
+  } else {
+    logger.log(chalk.red(inspect(error)));
+  }
+}
 
+export async function runEvaluationTests(suiteNames: string[]) {
   for (const name of await findTestFiles(['test', 'annotations'], suiteNames)) {
     logger.log(name);
     await logger.indented(async () => {
@@ -84,7 +114,7 @@ export async function runEvaluationTests(suiteNames: string[]) {
         logger.log(chalk[STATUS_COLORS[status]](status));
 
         if (status !== 'success') {
-          if (error) logger.log(chalk.red(inspect(error)));
+          if (error) printError(error);
           if (diffs?.length) {
             for (const { path, actual, expected, message } of diffs) {
               logger.log(`${path}: ${message}`);
