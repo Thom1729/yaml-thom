@@ -1,9 +1,10 @@
 import type { AnnotationFunction } from '..';
 import { validateAnnotation, constructAnnotation } from '../annotation';
 
-import type { RepresentationNode } from '@/nodes';
+import { RepresentationNode, RepresentationSequence, RepresentationMapping } from '@/nodes';
 import { assertMap, isAnnotation } from '@/helpers';
-import { Y, assertNotUndefined } from '@/util';
+import { assertNotUndefined } from '@/util';
+import { transformer } from '@/constructor/transformer';
 
 import { simpleAnnotation, assertArgumentTypes } from '../signature';
 
@@ -31,20 +32,37 @@ export const _eval: AnnotationFunction = simpleAnnotation({}, [], function (valu
 
 export const quasiquote: AnnotationFunction = function (value, args, context) {
   assertArgumentTypes(args, []);
-  // TODO handle cycles
-  return Y<RepresentationNode, [RepresentationNode]>((rec, node): RepresentationNode => {
+
+  return transformer<RepresentationNode, RepresentationNode>((node, result) => {
     if (isAnnotation(node)) {
       validateAnnotation(node);
       const childAnnotation = constructAnnotation(node);
       if (childAnnotation.name === 'unquote') {
-        return this.evaluate(childAnnotation.value, context);
+        return result(this.evaluate(childAnnotation.value, context));
       }
     }
 
     switch (node.kind) {
-      case 'scalar': return node.clone();
-      case 'sequence': return node.map(rec);
-      case 'mapping': return node.map(rec);
+      case 'scalar': return result(node.clone());
+      case 'sequence': return result(
+        new RepresentationSequence(node.tag),
+        (seq, recurse) => {
+          for (const item of node) {
+            seq.content.push(recurse(item));
+          }
+        }
+      );
+      case 'mapping': return result(
+        new RepresentationMapping(node.tag),
+        (seq, recurse) => {
+          for (const [key, value] of node) {
+            seq.content.pairs.push([
+              recurse(key),
+              recurse(value),
+            ]);
+          }
+        }
+      );
     }
   })(value);
 };
