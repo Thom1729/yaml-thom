@@ -18,7 +18,12 @@ export const _let: AnnotationFunction = function (value, args, context) {
   let newContext = context;
   for (const arg of args) {
     assertMap(arg, 'let args should be maps');
-    newContext = newContext.merge(arg.map(node => this.evaluate(node, newContext)));
+    newContext = newContext.merge(
+      Array.from(arg).map(([key, value]) => [
+        this.evaluate(key, newContext),
+        this.evaluate(value, newContext),
+      ])
+    );
   }
   return this.evaluate(value, newContext);
 };

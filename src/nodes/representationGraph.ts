@@ -21,10 +21,6 @@ export class RepresentationScalar<
   readonly kind = 'scalar';
 
   get size() { return stringCodepointLength(this.content); }
-
-  clone() {
-    return new RepresentationScalar(this.tag, this.content);
-  }
 }
 
 export class RepresentationSequence<
@@ -48,10 +44,6 @@ export class RepresentationSequence<
 
   get(index: number) {
     return this.content[index];
-  }
-
-  map(callback: (item: ItemType) => ItemType) {
-    return new RepresentationSequence(this.tag, this.content.map(callback));
   }
 }
 
@@ -94,10 +86,6 @@ export class RepresentationMapping<
     comparator?: NodeComparator,
   ) {
     return this.content.get(key, comparator) as Get<PairType, KeyType>;
-  }
-
-  map(callback: (item: PairType[1]) => PairType[1]) {
-    return new RepresentationMapping(this.tag, this.content.pairs.map(([key, value]) => [callback(key), callback(value)]));
   }
 
   merge(
