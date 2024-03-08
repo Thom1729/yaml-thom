@@ -1,8 +1,17 @@
 import { NodeComparator } from './equality';
 import type { UnresolvedNode } from './representationGraph';
-import { cmpFirst, insertSortedExclusive } from '@/util';
+import { cmpFirst, insertSortedExclusive, unique, interleave } from '@/util';
 
 export class NodeMap<const PairType extends readonly [UnresolvedNode, unknown]> {
+  static mergePairs<TPairType extends readonly [UnresolvedNode, UnresolvedNode]>(
+    iterables: Iterable<TPairType>[]
+  ): Iterable<TPairType> {
+    const comparator = new NodeComparator();
+    const cmp = cmpFirst(comparator.compare.bind(comparator));
+
+    return unique(interleave(iterables, cmp), cmp);
+  }
+
   readonly pairs: PairType[] = [];
 
   constructor(

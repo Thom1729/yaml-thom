@@ -88,48 +88,14 @@ export class RepresentationMapping<
     return this.content.get(key, comparator) as Get<PairType, KeyType>;
   }
 
-  merge(
-    this: RepresentationMapping<TagType, readonly [RepresentationNode, RepresentationNode], never>,
-    other: Iterable<readonly [RepresentationNode, RepresentationNode]>,
-  ): RepresentationMapping<TagType, readonly [RepresentationNode, RepresentationNode], never> {
-    const content: (readonly [RepresentationNode, RepresentationNode])[] = [];
-
-    const
-      a = Array.from(this),
-      b = Array.from(other);
-
-    let i = 0, j = 0;
-
-    const comparator = new NodeComparator();
-
-    while (true) {
-      const x = a[i], y = b[j];
-
-      if (x === undefined && y === undefined) {
-        break;
-      } else if (x === undefined) {
-        content.push(y);
-        j++;
-      } else if (y === undefined) {
-        content.push(x);
-        i++;
-      } else {
-        const d = comparator.compare(x[0], y[0]);
-        if (d === 0) {
-          content.push(y);
-          i++;
-          j++;
-        } else if (d < 0) {
-          content.push(x);
-          i++;
-        } else {
-          content.push(y);
-          j++;
-        }
-      }
-    }
-
-    return new RepresentationMapping(this.tag, content, false);
+  merge<TPairs extends readonly [UnresolvedNode, UnresolvedNode]>(
+    other: Iterable<TPairs>,
+  ): RepresentationMapping<TagType, PairType | TPairs, never> {
+    return new RepresentationMapping(
+      this.tag,
+      NodeMap.mergePairs<PairType | TPairs>([this, other]),
+      false,
+    );
   }
 }
 

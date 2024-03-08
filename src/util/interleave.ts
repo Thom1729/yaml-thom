@@ -60,7 +60,7 @@ class PriorityQueue<T> {
 export function *interleave<T>(
   iterables: readonly Iterable<T>[],
   comparator: Comparator<T>,
-): Generator<T> {
+): Iterable<T> {
   const queue = new PriorityQueue<{
     value: T,
     iterator: Iterator<T>,
