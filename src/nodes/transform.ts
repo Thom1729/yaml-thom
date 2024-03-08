@@ -5,25 +5,30 @@ const IS_DEFERRED: unique symbol = Symbol();
 export interface DeferredResult<TReturn> {
   [IS_DEFERRED]: true;
   value: TReturn;
-  deferred: undefined | ((recurse: (value: RepresentationNode) => TReturn) => void);
+  deferred: (recurse: (value: RepresentationNode) => TReturn) => void;
 }
 
 function isDeferredResult<TResult>(
   result: TResult | DeferredResult<TResult>,
 ): result is DeferredResult<TResult> {
-  return (result as { [IS_DEFERRED]?: true })[IS_DEFERRED] ?? false;
+  if (
+    result !== null && typeof result === 'object'
+    && (result as { [IS_DEFERRED]?: true })[IS_DEFERRED]
+  ) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 export function makeResult<TReturn, U extends TReturn>(
   value: U,
-  deferred?: (value: U, recurse: (value: RepresentationNode) => TReturn) => void,
+  deferred: (value: U, recurse: (value: RepresentationNode) => TReturn) => void,
 ): DeferredResult<TReturn> {
   return {
     [IS_DEFERRED]: true,
     value,
-    deferred: deferred
-      ? (recurse: (value: RepresentationNode) => TReturn) => { deferred(value, recurse); }
-      : undefined,
+    deferred: (recurse: (value: RepresentationNode) => TReturn) => { deferred(value, recurse); },
   };
 }
 
