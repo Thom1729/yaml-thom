@@ -29,7 +29,8 @@ export function makeResult<TReturn, U extends TReturn>(
 
 const PENDING: unique symbol = Symbol();
 
-export function nodeTransformer<TReturn>(
+export function transformNode<TReturn>(
+  node: RepresentationNode,
   transformer: (node: RepresentationNode) => TReturn | DeferredResult<TReturn>,
 ) {
   const cache = new WeakMap<RepresentationNode, TReturn | typeof PENDING>();
@@ -56,5 +57,5 @@ export function nodeTransformer<TReturn>(
     }
   }
 
-  return recurse;
+  return recurse(node);
 }

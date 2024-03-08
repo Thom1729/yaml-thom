@@ -4,7 +4,7 @@ import { validateAnnotation, constructAnnotation } from '../annotation';
 import { RepresentationNode, RepresentationSequence, RepresentationMapping, RepresentationScalar } from '@/nodes';
 import { assertMap, isAnnotation } from '@/helpers';
 import { assertNotUndefined } from '@/util';
-import { nodeTransformer, makeResult } from '@/nodes';
+import { transformNode, makeResult } from '@/nodes';
 
 import { simpleAnnotation, assertArgumentTypes } from '../signature';
 
@@ -33,7 +33,7 @@ export const _eval: AnnotationFunction = simpleAnnotation({}, [], function (valu
 export const quasiquote: AnnotationFunction = function (value, args, context) {
   assertArgumentTypes(args, []);
 
-  return nodeTransformer<RepresentationNode>(node => {
+  return transformNode<RepresentationNode>(value, node => {
     if (isAnnotation(node)) {
       validateAnnotation(node);
       const childAnnotation = constructAnnotation(node);
@@ -54,15 +54,16 @@ export const quasiquote: AnnotationFunction = function (value, args, context) {
       );
       case 'mapping': return makeResult(
         new RepresentationMapping(node.tag),
-        (seq, recurse) => {
+        (map, recurse) => {
           for (const [key, value] of node) {
-            seq.content.pairs.push([
+            map.content.pairs.push([
               recurse(key),
               recurse(value),
             ]);
           }
+          map.content.pairs.sort((a, b) => this.comparator.compare(a[0], b[0]));
         }
       );
     }
-  })(value);
+  });
 };
