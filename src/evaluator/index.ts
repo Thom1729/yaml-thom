@@ -1,7 +1,5 @@
 import type {
   RepresentationNode,
-  RepresentationScalar,
-  RepresentationSequence,
   RepresentationMapping,
 } from '@/nodes';
 

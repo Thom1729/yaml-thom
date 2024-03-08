@@ -1,4 +1,4 @@
-import { iterator } from './collection';
+import { enumerate, iterate } from './collection';
 
 type Comparator<T> = (a: T, b: T) => number;
 
@@ -40,28 +40,67 @@ export function insertSortedExclusive<T>(
   array.push(value);
 }
 
+class PriorityQueue<T> {
+  readonly items: T[] = [];
+  readonly comparator: Comparator<T>;
+
+  constructor(comparator: Comparator<T>) {
+    this.comparator = comparator;
+  }
+
+  enqueue(item: T) {
+    insertSorted(this.items, item, this.comparator);
+  }
+
+  dequeue() {
+    return this.items.shift();
+  }
+}
+
 export function *interleave<T>(
   iterables: readonly Iterable<T>[],
   comparator: Comparator<T>,
 ): Generator<T> {
-  const c = cmpFirst(comparator);
-  const nextValues: (readonly [T, Iterator<T>])[] = [];
+  const queue = new PriorityQueue<{
+    value: T,
+    iterator: Iterator<T>,
+    index: number,
+  }>(
+    (a, b) => comparator(a.value, b.value) || (a.index - b.index)
+  );
 
-  function addNext(itr: Iterator<T>) {
-    const result = itr.next();
+  function addNext(iterator: Iterator<T>, index: number) {
+    const result = iterator.next();
     if (!result.done) {
-      insertSorted(nextValues, [result.value, itr], c);
+      queue.enqueue({ value: result.value, iterator, index });
     }
   }
 
-  for (const iterable of iterables) {
-    addNext(iterator(iterable));
+  for (const [index, iterable] of enumerate(iterables)) {
+    addNext(iterate(iterable), index);
   }
 
-  while (nextValues.length > 0) {
-    const [value, itr] = nextValues.shift() as [T, Iterator<T>];
+  while (true) {
+    const result = queue.dequeue();
+    if (result === undefined) return;
 
+    const { value, iterator, index } = result;
     yield value;
-    addNext(itr);
+    addNext(iterator, index);
   }
+}
+
+export function *unique<T>(iterable: Iterable<T>, comparator: Comparator<T>): Iterable<T> {
+  const iterator = iterate(iterable);
+  let result = iterator.next();
+  if (result.done) return;
+
+  let previousValue = result.value;
+  while (true) {
+    result = iterator.next();
+    if (result.done) break;
+    if (comparator(previousValue, result.value) !== 0) yield previousValue;
+    previousValue = result.value;
+  }
+  yield previousValue;
 }

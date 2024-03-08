@@ -1,4 +1,4 @@
-import { iterator } from './collection';
+import { iterate } from './collection';
 
 export type Zippable = readonly Iterable<unknown>[];
 
@@ -11,7 +11,7 @@ export function *zip<T extends Zippable>(
   ...iterables: T
 ) {
   if (iterables.length === 0) return;
-  const iterators = iterables.map(iterator);
+  const iterators = iterables.map(iterate);
 
   while (true) {
     const results = iterators.map(itr => itr.next());

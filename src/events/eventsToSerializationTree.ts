@@ -4,10 +4,10 @@ import {
 } from '@/nodes';
 
 import type { ParseEvent } from './parseEvent';
-import { iterator } from '@/util';
+import { iterate } from '@/util';
 
 export function *eventsToSerializationTrees(parsedEvents: Iterable<ParseEvent>) {
-  const itr = iterator(parsedEvents);
+  const itr = iterate(parsedEvents);
 
   function next() {
     const { done, value } = itr.next();
