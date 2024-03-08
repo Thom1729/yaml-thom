@@ -1,10 +1,10 @@
 import type { AnnotationFunction } from '..';
 import { validateAnnotation, constructAnnotation } from '../annotation';
 
-import { RepresentationNode, RepresentationSequence, RepresentationMapping } from '@/nodes';
+import { RepresentationNode, RepresentationSequence, RepresentationMapping, RepresentationScalar } from '@/nodes';
 import { assertMap, isAnnotation } from '@/helpers';
 import { assertNotUndefined } from '@/util';
-import { transformer } from '@/constructor/transformer';
+import { nodeTransformer, makeResult } from '@/nodes';
 
 import { simpleAnnotation, assertArgumentTypes } from '../signature';
 
@@ -33,18 +33,18 @@ export const _eval: AnnotationFunction = simpleAnnotation({}, [], function (valu
 export const quasiquote: AnnotationFunction = function (value, args, context) {
   assertArgumentTypes(args, []);
 
-  return transformer<RepresentationNode, RepresentationNode>((node, result) => {
+  return nodeTransformer<RepresentationNode>(node => {
     if (isAnnotation(node)) {
       validateAnnotation(node);
       const childAnnotation = constructAnnotation(node);
       if (childAnnotation.name === 'unquote') {
-        return result(this.evaluate(childAnnotation.value, context));
+        return this.evaluate(childAnnotation.value, context);
       }
     }
 
     switch (node.kind) {
-      case 'scalar': return result(node.clone());
-      case 'sequence': return result(
+      case 'scalar': return new RepresentationScalar(node.tag, node.content);
+      case 'sequence': return makeResult(
         new RepresentationSequence(node.tag),
         (seq, recurse) => {
           for (const item of node) {
@@ -52,7 +52,7 @@ export const quasiquote: AnnotationFunction = function (value, args, context) {
           }
         }
       );
-      case 'mapping': return result(
+      case 'mapping': return makeResult(
         new RepresentationMapping(node.tag),
         (seq, recurse) => {
           for (const [key, value] of node) {
