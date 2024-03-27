@@ -84,5 +84,3 @@ export type SerializationValueNode<TagType extends SerializationTag = Serializat
   | SerializationMapping<TagType>;
 
 export type SerializationNode = SerializationValueNode | Alias;
-
-export type UnresolvedSerializationNode = SerializationValueNode<NonSpecificTag>;

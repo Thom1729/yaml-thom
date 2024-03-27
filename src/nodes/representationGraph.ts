@@ -25,7 +25,7 @@ export class RepresentationScalar<
 
 export class RepresentationSequence<
   TagType extends SerializationTag = string,
-  ItemType extends UnresolvedNode = RepresentationNode,
+  ItemType extends RepresentationNode = RepresentationNode,
 > extends ValueNode<TagType, ItemType[]> {
   readonly kind = 'sequence';
 
@@ -49,7 +49,7 @@ export class RepresentationSequence<
 
 export class RepresentationMapping<
   TagType extends SerializationTag = string,
-  PairType extends readonly [UnresolvedNode, UnresolvedNode] = readonly [RepresentationNode, RepresentationNode],
+  PairType extends readonly [RepresentationNode, RepresentationNode] = readonly [RepresentationNode, RepresentationNode],
   in RequiredKeys extends PairType[0] = never,
 > extends ValueNode<TagType, NodeMap<PairType>> {
   readonly kind = 'mapping';
@@ -88,7 +88,7 @@ export class RepresentationMapping<
     return this.content.get(key, comparator) as Get<PairType, KeyType>;
   }
 
-  merge<TPairs extends readonly [UnresolvedNode, UnresolvedNode]>(
+  merge<TPairs extends readonly [RepresentationNode, RepresentationNode]>(
     other: Iterable<TPairs>,
   ): RepresentationMapping<TagType, PairType | TPairs, never> {
     return new RepresentationMapping(
@@ -103,11 +103,6 @@ export type RepresentationNode =
 | RepresentationScalar
 | RepresentationSequence
 | RepresentationMapping;
-
-export type UnresolvedNode =
-| RepresentationScalar<SerializationTag>
-| RepresentationSequence<SerializationTag, UnresolvedNode>
-| RepresentationMapping<SerializationTag, readonly [UnresolvedNode, UnresolvedNode], never>;
 
 export function isRepresentationNode(value: unknown): value is RepresentationNode {
   return value instanceof ValueNode;

@@ -1,9 +1,9 @@
 import { NodeComparator } from './equality';
-import type { UnresolvedNode } from './representationGraph';
+import type { RepresentationNode } from './representationGraph';
 import { cmpFirst, insertSortedExclusive, unique, interleave } from '@/util';
 
-export class NodeMap<const PairType extends readonly [UnresolvedNode, unknown]> {
-  static mergePairs<TPairType extends readonly [UnresolvedNode, UnresolvedNode]>(
+export class NodeMap<const PairType extends readonly [RepresentationNode, unknown]> {
+  static mergePairs<TPairType extends readonly [RepresentationNode, RepresentationNode]>(
     iterables: Iterable<TPairType>[]
   ): Iterable<TPairType> {
     const comparator = new NodeComparator();
@@ -82,7 +82,7 @@ export class NodeMap<const PairType extends readonly [UnresolvedNode, unknown]> 
   }
 }
 
-export class NodeSet<T extends UnresolvedNode> {
+export class NodeSet<T extends RepresentationNode> {
   readonly map = new NodeMap<readonly [T, undefined]>();
 
   constructor(items?: Iterable<T>) {
@@ -111,7 +111,7 @@ export class NodeSet<T extends UnresolvedNode> {
 }
 
 export type Get<
-  PairType extends readonly [UnresolvedNode, unknown],
+  PairType extends readonly [RepresentationNode, unknown],
   KeyType extends PairType[0],
 > =
   PairType extends readonly [infer PairKey, infer PairValue]
