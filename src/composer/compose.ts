@@ -5,12 +5,11 @@ import {
   type SerializationNode,
   type SerializationValueNode,
   type RepresentationNode,
-  type SerializationTag,
-  type UnresolvedNode,
 } from '@/nodes';
 
 import {
   coreSchema,
+  UnresolvedNodeInfo,
   type Schema,
 } from './schema';
 
@@ -19,10 +18,6 @@ import {
   type TagDefinitions,
 } from './tags';
 
-import {
-  Y,
-} from '@/util';
-
 import { NodeComparator } from '@/nodes';
 
 export interface ComposeOptions {
@@ -30,94 +25,69 @@ export interface ComposeOptions {
   tags: TagDefinitions,
 }
 
-const DEFAULT_COMPOSE_OPTIONS = {
+const DEFAULT_COMPOSE_OPTIONS: ComposeOptions = {
   schema: coreSchema,
   tags: CORE_TAGS,
 };
 
-export function compose(document: SerializationNode, options: Partial<ComposeOptions> = {}): RepresentationNode {
+export function compose(
+  document: SerializationNode,
+  options: Partial<ComposeOptions> = {},
+): RepresentationNode {
   const { schema, tags } = {...DEFAULT_COMPOSE_OPTIONS, ...options };
 
-  const unAliased = link(document);
-
-  resolve(unAliased, schema, tags);
-  return unAliased;
-}
-
-// Link aliases to anchors, converting a serialization tree to an unresolved representation graph.
-function link(node: SerializationNode) {
-  const anchoredNodes = new Map<string, UnresolvedNode>();
-  function setAnchor(node: SerializationValueNode, ret: UnresolvedNode) {
-    if (node.anchor !== null) anchoredNodes.set(node.anchor, ret);
+  const comparator = new NodeComparator();
+  const anchoredNodes = new Map<string, RepresentationNode>();
+  function setAnchor(
+    serializationNode: SerializationValueNode,
+    representationNode: RepresentationNode,
+  ) {
+    if (serializationNode.anchor !== null) {
+      anchoredNodes.set(serializationNode.anchor, representationNode);
+    }
   }
 
-  return Y<UnresolvedNode, [SerializationNode]>((rec, node) => {
+  function rec(node: SerializationNode): RepresentationNode {
     if (node.kind === 'alias') {
       const target = anchoredNodes.get(node.alias);
       if (target === undefined) throw new Error(`Unknown anchor ${node.alias}.`);
       return target;
     }
 
-    if (node.kind === 'scalar') {
-      const result = new RepresentationScalar(node.tag, node.content);
-      setAnchor(node, result);
-      return result;
-    } else if (node.kind === 'sequence') {
-      const result = new RepresentationSequence<SerializationTag, UnresolvedNode>(node.tag, []);
-      setAnchor(node, result);
-      for (const item of node) {
-        result.content.push(rec(item));
-      }
-      return result;
-    } else {
-      const result = new RepresentationMapping<SerializationTag, readonly [UnresolvedNode, UnresolvedNode]>(node.tag, []);
-      setAnchor(node, result);
-      for (const [key, value] of node) {
-        result.content.pairs.push([rec(key), rec(value)]);
-      }
-      return result;
-    }
-  })(node);
-}
+    const tag = typeof node.tag === 'symbol'
+      ? schema.resolveNode(node as UnresolvedNodeInfo)
+      : node.tag;
 
-// Resolve tags, canonicalize scalars, and sort mappings.
-function resolve(
-  node: UnresolvedNode,
-  schema: Schema,
-  tags: TagDefinitions,
-): asserts node is RepresentationNode {
-  const comparator = new NodeComparator();
-  const composedNodes = new Set<UnresolvedNode>();
-
-  Y<void, [UnresolvedNode]>((rec, node) => {
-    if (composedNodes.has(node)) return node;
-
-    composedNodes.add(node);
-
-    if (typeof node.tag === 'symbol') {
-      const resolved = schema.resolveNode(node);
-      if (resolved !== null) {
-        node.tag = resolved;
-      } else {
-        throw new Error(`could not resolve tag`);
-      }
-    }
+    if (tag === null) throw new Error('could not resolve tag');
 
     if (node.kind === 'scalar') {
-      const tagDefinition = tags[node.tag];
-      if (tagDefinition === undefined) throw new TypeError(`Unrecognized tag ${node.tag}`);
+      const tagDefinition = tags[tag];
+      if (tagDefinition === undefined) throw new TypeError(`Unrecognized tag ${tag}`);
 
       const canonicalContent = tagDefinition.canonicalForm(node.content);
-      if (canonicalContent === null) throw new Error(`Can't canonicalize ${node.tag} ${node.content}`);
+      if (canonicalContent === null) throw new Error(`Can't canonicalize ${tag} ${node.content}`);
 
-      node.content = canonicalContent;
-      
+      const result = new RepresentationScalar(tag, canonicalContent);
+      setAnchor(node, result);
+      return result;
     } else if (node.kind === 'sequence') {
-      for (const child of node) rec(child);
+      const result = new RepresentationSequence(tag);
+      setAnchor(node, result);
+      for (const child of node) {
+        result.content.push(rec(child));
+      }
+      return result;
     } else {
-      for (const [key, ] of node) rec(key);
-      node.content.pairs.sort((a, b) => comparator.compare(a[0] as RepresentationNode, b[0] as RepresentationNode));
-      for (const [, value] of node) rec(value);
+      const result = new RepresentationMapping(tag);
+      setAnchor(node, result);
+      const resolvedKeys = Array.from(node).map(([key, value]) => [rec(key), value] as const);
+      for (const [key, value] of resolvedKeys) {
+        result.content.pairs.push([key, rec(value)]);
+      }
+      result.content.pairs.sort((a, b) => comparator.compare(a[0], b[0]));
+      return result;
     }
-  })(node);
+  }
+
+  return rec(document);
 }

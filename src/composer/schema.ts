@@ -1,7 +1,19 @@
-import { NonSpecificTag, type UnresolvedNode } from '@/nodes';
+import { NonSpecificTag } from '@/nodes';
+
+export type UnresolvedNodeInfo =
+| {
+  tag: NonSpecificTag,
+  kind: 'scalar',
+  content: string,
+}
+| {
+  tag: NonSpecificTag,
+  kind: 'sequence' | 'mapping',
+};
 
 export interface Schema {
-  resolveNode(node: Pick<UnresolvedNode, 'tag' | 'kind' | 'content'>): string | null;
+  // TODO: Support key path
+  resolveNode(node: UnresolvedNodeInfo): string | null;
 }
 
 class PredicateSchema implements Schema {
@@ -22,16 +34,14 @@ class PredicateSchema implements Schema {
     }
   }
 
-  resolveNode(node: Pick<UnresolvedNode, 'tag' | 'kind' | 'content'>) {
+  resolveNode(node: UnresolvedNodeInfo) {
     switch (node.kind) {
       case 'sequence': return 'tag:yaml.org,2002:seq';
       case 'mapping': return 'tag:yaml.org,2002:map';
       case 'scalar': {
         switch (node.tag) {
           case NonSpecificTag.exclamation: return 'tag:yaml.org,2002:str';
-          case NonSpecificTag.question: return this.resolvePlainScalar(node.content as string);
-            // TODO: Figure out why Pick isn't distributing over the union
-          default: throw new Error(`unreachable`);
+          case NonSpecificTag.question: return this.resolvePlainScalar(node.content);
         }
       }
     }
