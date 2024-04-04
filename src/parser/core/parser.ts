@@ -49,7 +49,7 @@ interface ParseStackEntry {
 }
 
 export function parseAll<T extends string>(
-  lines: string[],
+  lines: readonly string[],
   startMark: Mark,
   lineEnd: number,
   grammar: Grammar,
@@ -76,14 +76,14 @@ export function parseAll<T extends string>(
 
 class ParseOperation {
   readonly grammar: Grammar;
-  readonly lines: string[];
+  readonly lines: readonly string[];
   readonly linesEnd: number;
 
   readonly backtrackCache = new Set<string>();
 
   readonly stack: ParseStackEntry[] = [];
 
-  constructor(grammar: Grammar, lines: string[], lineEnd: number) {
+  constructor(grammar: Grammar, lines: readonly string[], lineEnd: number) {
     this.grammar = grammar;
     this.lines = lines;
     this.linesEnd = lineEnd;

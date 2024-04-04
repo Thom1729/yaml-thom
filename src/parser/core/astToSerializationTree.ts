@@ -52,7 +52,14 @@ function groupNodes<const T extends string>(
   }, nodeText);
 }
 
-export class AstToSerializationTree {
+export function astToSerializationTree(
+  node: AstNode,
+  nodeText: (node: AstNode) => string,
+) {
+  return new AstToSerializationTree(nodeText).handleStream(node);
+}
+
+class AstToSerializationTree {
   // text: string;
   nodeText: (node: AstNode) => string;
 
