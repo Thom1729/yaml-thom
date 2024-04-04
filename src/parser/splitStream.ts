@@ -63,7 +63,7 @@ const STATES = {
   },
 } as const;
 
-export function *splitStream(lines: Iterator<string>): Generator<readonly [Mark, Mark]> {
+export function *splitStream(lines: Iterator<string>): Iterable<readonly [Mark, Mark]> {
   let state = State.start;
 
   let startMark = {
@@ -75,8 +75,10 @@ export function *splitStream(lines: Iterator<string>): Generator<readonly [Mark,
 
   let it = lines.next();
   while (!it.done) {
-    const [nextState, action] = STATES[state][classifyLine(it.value)];
-    state = nextState as State;
+    const stateAndAction: readonly [State, Action | null] = STATES[state][classifyLine(it.value)];
+
+    state = stateAndAction[0];
+    const action = stateAndAction[1];
 
     const nextMark = {
       index: currentMark.index + it.value.length,
