@@ -1,6 +1,7 @@
 export * from './applyStrategy';
 export * from './char';
 export * from './collection';
+export * from './CustomError';
 export * from './groupBy';
 export * from './interleave';
 export * from './nestedMap';
