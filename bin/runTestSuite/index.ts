@@ -1,29 +1,12 @@
 import chalk from 'chalk';
 import { inspect } from 'util';
 
-import {
-  present, parseStream, serializationTreeToEvents,
-  type PathEntry, type SerializationNode,
-} from '@';
+import { parseStream, serializationTreeToEvents } from '@';
 
 import { DirectoryTestLoader, type TestCase } from './DirectoryTestLoader';
 import { Logger, command, deepEquals } from '../util';
 
 const logger = new Logger(process.stdout);
-
-export function pathToString(path: PathEntry<SerializationNode>[]) {
-  return '/' + path
-    .map(entry => {
-      if (entry.type === 'key') {
-        return 'key';
-      } else if (entry.type === 'index') {
-        return entry.index;
-      } else {
-        return present(entry.key);
-      }
-    })
-    .join('/');
-}
 
 export const runTestSuite = command<{
   testSuitePath: string,
