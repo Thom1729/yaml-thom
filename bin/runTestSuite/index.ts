@@ -1,11 +1,15 @@
 import chalk from 'chalk';
 import { inspect } from 'util';
 
-import { runTest, present, type PathEntry, type SerializationNode } from '@';
+import {
+  present, parseStream, serializationTreeToEvents,
+  type PathEntry, type SerializationNode,
+} from '@';
 
-import { DirectoryTestLoader } from './DirectoryTestLoader';
+import { DirectoryTestLoader, type TestCase } from './DirectoryTestLoader';
+import { Logger, command, deepEquals } from '../util';
 
-import { Logger, command } from '../util';
+const logger = new Logger(process.stdout);
 
 export function pathToString(path: PathEntry<SerializationNode>[]) {
   return '/' + path
@@ -20,8 +24,6 @@ export function pathToString(path: PathEntry<SerializationNode>[]) {
     })
     .join('/');
 }
-
-const logger = new Logger(process.stdout);
 
 export const runTestSuite = command<{
   testSuitePath: string,
@@ -47,18 +49,6 @@ export const runTestSuite = command<{
         logger.log(`${test.id}: ${test.name}`);
 
         logger.indented(() => {
-          if (result.inequal?.length) {
-            logger.log(chalk.gray(test.yaml));
-
-            for (const { path, expected, actual, message } of result.inequal ?? []) {
-              logger.log(`${pathToString(path)}: ${message}`);
-              logger.indented(() => {
-                logger.log('expected:', expected);
-                logger.log('actual  :', actual);
-              });
-            }
-          }
-
           if (result.error) {
             logger.log(chalk.red(inspect(result.error)));
           }
@@ -67,3 +57,43 @@ export const runTestSuite = command<{
     }
   }
 });
+
+export interface TestResult {
+  status: 'success' | 'failure' | 'error' | 'skipped';
+  test: TestCase;
+  error?: unknown;
+}
+
+export function runTest(test: TestCase): TestResult {
+  function makeResult(status: 'success' | 'failure' | 'error' | 'skipped', rest: Partial<TestResult> = {}) {
+    return {
+      status,
+      test,
+      ...rest,
+    };
+  }
+
+  if (test.skip) return makeResult('skipped');
+  if (test.fail) return makeResult('skipped'); // TODO
+  if (test.tree === undefined) return makeResult('skipped'); // TODO
+
+  try {
+    const expectedEvents = test.tree;
+    const serializationTree = parseStream(test.yaml, { version: '1.3' });
+    const actualEvents = Array.from(serializationTreeToEvents(serializationTree));
+
+    if (expectedEvents.length !== actualEvents.length) {
+      console.error(`Expected ${expectedEvents.length} events but got ${actualEvents.length}`);
+    }
+
+    if (!deepEquals(expectedEvents, actualEvents)) {
+      console.log('expected', expectedEvents);
+      console.log('actual', actualEvents);
+      return makeResult('failure');
+    } else {
+      return makeResult('success');
+    }
+  } catch (error) {
+    return makeResult('error', { error });
+  }
+}

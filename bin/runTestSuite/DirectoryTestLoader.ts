@@ -1,7 +1,23 @@
 import path from 'path';
 import fs from 'fs/promises';
 
-import { parseEvent, type TestCase } from '@/index';
+import { parseEvent, type ParseEvent } from '@/index';
+
+export interface TestCase {
+  id: string;
+
+  name: string | undefined;
+  from: string | undefined;
+  tags: Set<string> | undefined;
+  fail: boolean;
+  skip: boolean;
+
+  yaml: string;
+  tree: ParseEvent[] | undefined;
+  json: string | undefined;
+  dump: string | undefined;
+  emit: string | undefined;
+}
 
 const DIRECTORY_TEST_FILE_NAMES = {
   '===': 'name',
