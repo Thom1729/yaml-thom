@@ -60,16 +60,11 @@ export function astToSerializationTree(
 }
 
 class AstToSerializationTree {
-  // text: string;
   nodeText: (node: AstNode) => string;
 
   constructor(nodeText: (node: AstNode) => string) {
     this.nodeText = nodeText;
   }
-
-  // nodeText = (node: AstNode) => {
-  //   return this.text.slice(node.range[0].index, node.range[1].index);
-  // };
 
   *handleStream(node: AstNode) {
     for (const document of iterateAst(node.content, ['document'])) {
