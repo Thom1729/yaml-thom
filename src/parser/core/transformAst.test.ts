@@ -13,9 +13,7 @@ describe(groupNodes, () => {
   ]);
 
   test('', () => {
-    const result = groupNodes(ast.content, {
-      return: { 'bar+': ['bar'] },
-    });
+    const result = groupNodes(ast.content, { 'bar+': ['bar'] });
 
     expect(result.bar).toEqual([
       node('bar'),
@@ -24,22 +22,11 @@ describe(groupNodes, () => {
   });
 
   test('', () => {
-    const result = groupNodes([ast], {
-      return: { foo: ['foo'] },
-    });
+    const result = groupNodes([ast], { foo: ['foo'] });
 
     expect(result.foo).toEqual(node('foo', [
       node('bar'),
       node('bar'),
     ]));
-  });
-
-  test('', () => {
-    const result = groupNodes([ast], {
-      return: { 'bar*': ['bar'] },
-      ignore: ['foo'],
-    });
-
-    expect(result.bar).toEqual([]);
   });
 });

@@ -12,22 +12,13 @@ function *_iterateAst<
   TThisName extends TName,
 >(
   nodes: Iterable<AstNode<TName>>,
-  names: {
-    return: readonly TThisName[],
-    recurse?: readonly string[] | undefined,
-    ignore?: readonly string[] | undefined,
-  },
+  names: readonly TThisName[],
 ): Generator<AstNode<TName, TThisName>> {
   for (const node of nodes) {
-    if ((names.return as readonly string[]).includes(node.name)) {
+    if ((names as readonly string[]).includes(node.name)) {
       yield node as AstNode<TName, TThisName>;
-    } else if (names.ignore?.includes(node.name)) {
-      // pass
-    } else if (names.recurse?.includes(node.name)) {
-      yield* _iterateAst(node.content, names);
     } else {
       yield* _iterateAst(node.content, names);
-      // throw new Error(`Encountered unexpected AST node named ${node.name}`);
     }
   }
 }
@@ -37,11 +28,7 @@ export function iterateAst<
   TThisName extends TName,
 >(
   nodes: Iterable<AstNode<TName>>,
-  names: {
-    return: readonly TThisName[],
-    recurse?: readonly string[] | undefined,
-    ignore?: readonly string[] | undefined,
-  },
+  names: readonly TThisName[],
 ) {
   return Array.from(_iterateAst(nodes, names));
 }
@@ -94,22 +81,18 @@ export function groupNodes<
   const TReturnMap extends { [K in string]: readonly TName[] },
 >(
   nodes: readonly AstNode<TName>[],
-  transformation: {
-    return: TReturnMap,
-    recurse?: readonly string[],
-    ignore?: readonly string[],
-  },
-  nodeText?: (node: AstNode) => string,
+  transformation: TReturnMap,
+  nodeText?: (node: AstNode<TName>) => string,
 ) {
   type TReturn = string & keyof TReturnMap;
-  const returnSpecs = strictKeys(transformation.return) as readonly TReturn[];
+  const returnSpecs = strictKeys(transformation) as readonly TReturn[];
 
   if (nodeText === undefined && returnSpecs.some(q => q.endsWith('%'))) {
     throw new TypeError('text not given');
   }
 
   const returnNameForNodeName = strictFromEntries(
-    strictEntries(transformation.return).flatMap(([className, nodeNames]) =>
+    strictEntries(transformation).flatMap(([className, nodeNames]) =>
       nodeNames.map(nodeName => [nodeName, unquantify(className as string)] as const)
     )
   );
@@ -118,11 +101,7 @@ export function groupNodes<
     returnSpecs.map(s => [unquantify(s) as string, [] as AstNode[]])
   );
 
-  for (const node of iterateAst(nodes, {
-    return: strictValues(transformation.return).flatMap(a => a),
-    recurse: transformation.recurse,
-    ignore: transformation.ignore,
-  })) {
+  for (const node of iterateAst(nodes, strictValues(transformation).flatMap(a => a))) {
     byName[returnNameForNodeName[node.name]].push(node);
   }
 

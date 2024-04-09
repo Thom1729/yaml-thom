@@ -1,4 +1,4 @@
-import { AstNode, ChompingBehavior } from '../core/ast';
+import { ChompingBehavior } from '../core/ast';
 
 import {
   Alias,
@@ -24,11 +24,11 @@ import {
   handleBlockScalarContent,
 } from '../core/scalarContent';
 
-import { iterateAst as oldIterateAst, groupNodes as oldGroupNodes } from '../core/transformAst';
+import { iterateAst, groupNodes } from '../core/transformAst';
 
 import {
   CONTENT_CLASS_NAMES, ContentNodeClass, NODE_PROPERTY_CLASS_NAMES,
-  type NodeClass, type NodePropertyClass, type NormalizedAst,
+  type NodePropertyClass, type NormalizedAst,
 } from './normalizeAst';
 
 const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
@@ -41,39 +41,17 @@ const CHOMPING_BEHAVIOR_LOOKUP = {
   '': ChompingBehavior.CLIP,
 };
 
-function iterateAst<
-  TThisName extends NodeClass,
->(
-  nodes: readonly NormalizedAst<TThisName>[],
-  nodeClasses: readonly NodeClass[],
-) {
-  return oldIterateAst(nodes, { return: nodeClasses });
-}
-
-function groupNodes<
-  TName extends NodeClass,
-  const TReturnMap extends { [K in string]: readonly NodeClass[] },
->(
-  nodes: readonly NormalizedAst<TName>[],
-  nodeClasses: TReturnMap,
-  nodeText?: (node: AstNode) => string,
-) {
-  return oldGroupNodes(nodes, {
-    return: nodeClasses,
-  }, nodeText);
-}
-
 export function astToSerializationTree(
   node: NormalizedAst,
-  nodeText: (node: AstNode) => string,
+  nodeText: (node: NormalizedAst) => string,
 ) {
   return new AstToSerializationTree(nodeText).handleStream(node);
 }
 
 class AstToSerializationTree {
-  readonly nodeText: (node: AstNode) => string;
+  readonly nodeText: (node: NormalizedAst) => string;
 
-  constructor(nodeText: (node: AstNode) => string) {
+  constructor(nodeText: (node: NormalizedAst) => string) {
     this.nodeText = nodeText;
   }
 

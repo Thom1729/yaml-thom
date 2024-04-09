@@ -45,14 +45,10 @@ export function astToGrammar(ast: AstNode, text: string): Grammar {
         parameters,
         alternation,
       } = groupNodes(productionNode.content, {
-        return: {
-          'productionNumber?%': ['productionNumber'],
-          'name%': ['productionName'],
-          'parameters*%': ['parameter'],
-          'alternation': ['alternation'],
-        },
-        recurse: ['productionRef', 'productionParameters'],
-        ignore: ['space'],
+        'productionNumber?%': ['productionNumber'],
+        'name%': ['productionName'],
+        'parameters*%': ['parameter'],
+        'alternation': ['alternation'],
       }, nodeText);
 
       const number = (productionNumber !== null) ? parseDecimal(productionNumber.slice(1, -1)) : null;
@@ -135,7 +131,8 @@ function parseBody(body: AstNode, text: string) {
 
       case 'quantified': {
         const { atom, quantifier } = groupNodes(node.content, {
-          return: { atom: ['atom'], 'quantifier*%': ['quantifier'] },
+          atom: ['atom'],
+          'quantifier*%': ['quantifier'],
         }, nodeText);
 
         let ret = rec(atom);
@@ -163,14 +160,13 @@ function parseBody(body: AstNode, text: string) {
       case 'atom': return rec(single(node.content));
 
       case 'parenthesized': return rec(groupNodes(node.content, {
-        return: { alternation: ['alternation'] },
-        ignore: ['space'],
+        alternation: ['alternation'],
       }).alternation);
 
       case 'hexChar': return charSet(parseHex(nodeText(node).slice(1)));
 
       case 'charRange': {
-        const { hexChar } = groupNodes(node.content, { return: { 'hexChar+%': ['hexChar'] } }, nodeText);
+        const { hexChar } = groupNodes(node.content, { 'hexChar+%': ['hexChar'] }, nodeText);
 
         const range = hexChar.map(c => parseHex(c.slice(1))) as [number, number];
 
@@ -191,12 +187,9 @@ function parseBody(body: AstNode, text: string) {
 
       case 'lookaround': {
         const { lookaroundType, lookaroundOperator, alternation } = groupNodes(node.content, {
-          return: {
-            'lookaroundType%': ['lookaroundType'],
-            'lookaroundOperator%': ['lookaroundOperator'],
-            'alternation': ['alternation'],
-          },
-          ignore: ['space'],
+          'lookaroundType%': ['lookaroundType'],
+          'lookaroundOperator%': ['lookaroundOperator'],
+          'alternation': ['alternation'],
         }, nodeText);
 
         const child = rec(alternation);
@@ -218,11 +211,8 @@ function parseBody(body: AstNode, text: string) {
 
       case 'productionRef': {
         const { name, parameters } = groupNodes(node.content, {
-          return: {
-            'name%': ['productionName'],
-            'parameters*%': ['parameter']
-          },
-          recurse: ['productionParameters'],
+          'name%': ['productionName'],
+          'parameters*%': ['parameter']
         }, nodeText);
 
         const parameterFunctions = strictFromEntries(
