@@ -26,7 +26,10 @@ import {
 
 import { iterateAst as oldIterateAst, groupNodes as oldGroupNodes } from '../core/transformAst';
 
-import { CONTENT_CLASS_NAMES, NODE_PROPERTY_CLASS_NAMES, type NodeClass } from './normalizeAst';
+import {
+  CONTENT_CLASS_NAMES, ContentNodeClass, NODE_PROPERTY_CLASS_NAMES,
+  type NodeClass, type NodePropertyClass, type NormalizedAst,
+} from './normalizeAst';
 
 const YAML_VERSION_EXPR = /^(\d+)\.(\d+)$/;
 const TAG_HANDLE_EXPR = /^!([-A-Za-z0-9]*!)?$/;
@@ -38,13 +41,21 @@ const CHOMPING_BEHAVIOR_LOOKUP = {
   '': ChompingBehavior.CLIP,
 };
 
-function iterateAst<T extends NodeClass>(nodes: readonly AstNode[], nodeClasses: readonly T[]) {
+function iterateAst<
+  TThisName extends NodeClass,
+>(
+  nodes: readonly NormalizedAst<TThisName>[],
+  nodeClasses: readonly NodeClass[],
+) {
   return oldIterateAst(nodes, { return: nodeClasses });
 }
 
-function groupNodes<const T extends string>(
-  nodes: readonly AstNode[],
-  nodeClasses: { [K in T]: readonly string[] },
+function groupNodes<
+  TName extends NodeClass,
+  const TReturnMap extends { [K in string]: readonly NodeClass[] },
+>(
+  nodes: readonly NormalizedAst<TName>[],
+  nodeClasses: TReturnMap,
   nodeText?: (node: AstNode) => string,
 ) {
   return oldGroupNodes(nodes, {
@@ -53,20 +64,20 @@ function groupNodes<const T extends string>(
 }
 
 export function astToSerializationTree(
-  node: AstNode,
+  node: NormalizedAst,
   nodeText: (node: AstNode) => string,
 ) {
   return new AstToSerializationTree(nodeText).handleStream(node);
 }
 
 class AstToSerializationTree {
-  nodeText: (node: AstNode) => string;
+  readonly nodeText: (node: AstNode) => string;
 
   constructor(nodeText: (node: AstNode) => string) {
     this.nodeText = nodeText;
   }
 
-  *handleStream(node: AstNode) {
+  *handleStream(node: NormalizedAst) {
     for (const document of iterateAst(node.content, ['document'])) {
       const { directive, nodeWithProperties } = groupNodes(document.content, {
         'directive*': ['directive'],
@@ -125,7 +136,7 @@ class AstToSerializationTree {
     return tagHandles;
   }
 
-  buildNode(body: AstNode, tagHandles: Map<string, string>): SerializationNode {
+  buildNode(body: NormalizedAst, tagHandles: Map<string, string>): SerializationNode {
     if (body === undefined) throw new Error();
     const { contentNode, nodeProperty } = groupNodes([body], {
       contentNode: CONTENT_CLASS_NAMES,
@@ -162,14 +173,14 @@ class AstToSerializationTree {
   }
 
   handleNodeProperties(
-    nodeProperties: readonly AstNode[],
+    nodeProperties: readonly NormalizedAst<NodePropertyClass>[],
     tagHandles: Map<string, string>,
   ): {
     tag: SerializationTag | null,
     anchor: string | null,
     annotations: {
       annotationName: string,
-      annotationArguments: AstNode | null,
+      annotationArguments: NormalizedAst | null,
       anchor: string | null,
     }[],
   } {
@@ -177,11 +188,11 @@ class AstToSerializationTree {
     let anchor: string | null = null;
     const annotations: {
       annotationName: string,
-      annotationArguments: AstNode | null,
+      annotationArguments: NormalizedAst | null,
       anchor: string | null,
     }[] = [];
 
-    for (const property of (nodeProperties as AstNode[])) {
+    for (const property of nodeProperties) {
       const nodeClass = property.name;
       if (nodeClass === 'tagProperty') {
         if (tag !== null) throw new Error(`multiple tag properties`);
@@ -191,14 +202,14 @@ class AstToSerializationTree {
         anchor = this.nodeText(property).slice(1);
       } else if (nodeClass === 'annotationProperty') {
         if (tag !== null) throw new Error(`tag property before annotation property`);
-        const stuff = groupNodes(property.content, {
+        const annotationInfo = groupNodes(property.content, {
           'annotationName%': ['annotationName'],
           'annotationArguments?': ['annotationArguments'],
         }, this.nodeText);
-        annotations.unshift({ ...stuff, anchor });
+        annotations.unshift({ ...annotationInfo, anchor });
         anchor = null;
       } else {
-        throw new TypeError(property.name);
+        throw new TypeError(nodeClass);
       }
     }
 
@@ -206,7 +217,7 @@ class AstToSerializationTree {
   }
 
   buildContent(
-    contentNode: AstNode,
+    contentNode: NormalizedAst<ContentNodeClass>,
     tagHandles: Map<string, string>,
     tag: SerializationTag | null,
     anchor: string | null,
@@ -300,7 +311,7 @@ class AstToSerializationTree {
         });
       }
 
-      default: throw new TypeError(`Unexpected node ${contentNode.name}`);
+      default: throw new TypeError(`Unexpected node ${nodeClass}`);
     }
   }
 }

@@ -22,8 +22,8 @@ export const NODE_PROPERTY_CLASS_NAMES = [
   'annotationProperty',
 ] as const;
 
-type ContentNodeClass = (typeof CONTENT_CLASS_NAMES)[number];
-type NodePropertyClass = (typeof NODE_PROPERTY_CLASS_NAMES)[number];
+export type ContentNodeClass = (typeof CONTENT_CLASS_NAMES)[number];
+export type NodePropertyClass = (typeof NODE_PROPERTY_CLASS_NAMES)[number];
 
 export type NodeClass =
 | ContentNodeClass
@@ -40,16 +40,17 @@ export type NodeClass =
 | 'annotationName'
 | 'annotationArguments';
 
+export type NormalizedAst<TThisName extends NodeClass = NodeClass> = AstNode<NodeClass, TThisName>;
 export type NodeClasses = Record<NodeClass, readonly string[]>;
 
-export function normalizeAst(node: AstNode, nodeClasses: NodeClasses) {
+export function normalizeAst(node: AstNode, nodeClasses: NodeClasses): Iterable<NormalizedAst> {
   const nodeNameToClass = new Map(strictEntries(nodeClasses)
     .flatMap(([nodeClass, nodeNames]) =>
       nodeNames.map(name => [name, nodeClass])
     )
   );
 
-  function *rec(nodes: readonly AstNode[]): Generator<AstNode<NodeClass>> {
+  function *rec(nodes: readonly AstNode[]): Generator<NormalizedAst> {
     for (const node of nodes) {
       const { name, parameters, content, range } = node;
       const nodeClass = nodeNameToClass.get(name);

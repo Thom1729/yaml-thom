@@ -4,10 +4,10 @@ export interface Mark {
   column: number;
 }
 
-export interface AstNode<T = string> {
-  name: T;
+export interface AstNode<TName = string, TThisName extends TName = TName> {
+  name: TThisName;
   parameters: Parameters,
-  content: readonly AstNode[];
+  content: readonly AstNode<TName>[];
   range: readonly [Mark, Mark],
 }
 

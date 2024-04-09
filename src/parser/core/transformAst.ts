@@ -7,17 +7,20 @@ import {
 
 ////
 
-function *_iterateAst<T extends string>(
-  nodes: Iterable<AstNode>,
+function *_iterateAst<
+  TName extends string,
+  TThisName extends TName,
+>(
+  nodes: Iterable<AstNode<TName>>,
   names: {
-    return: readonly T[],
+    return: readonly TThisName[],
     recurse?: readonly string[] | undefined,
     ignore?: readonly string[] | undefined,
   },
-): Generator<AstNode<T>> {
+): Generator<AstNode<TName, TThisName>> {
   for (const node of nodes) {
     if ((names.return as readonly string[]).includes(node.name)) {
-      yield node as AstNode<T>;
+      yield node as AstNode<TName, TThisName>;
     } else if (names.ignore?.includes(node.name)) {
       // pass
     } else if (names.recurse?.includes(node.name)) {
@@ -29,10 +32,13 @@ function *_iterateAst<T extends string>(
   }
 }
 
-export function iterateAst<T extends string>(
-  nodes: Iterable<AstNode>,
+export function iterateAst<
+  TName extends string,
+  TThisName extends TName,
+>(
+  nodes: Iterable<AstNode<TName>>,
   names: {
-    return: readonly T[],
+    return: readonly TThisName[],
     recurse?: readonly string[] | undefined,
     ignore?: readonly string[] | undefined,
   },
@@ -83,17 +89,20 @@ function helper(name: string, nodes: readonly unknown[], quantifier: string) {
   }
 }
 
-export function groupNodes<const T extends string>(
-  nodes: readonly AstNode[],
+export function groupNodes<
+  TName extends string,
+  const TReturnMap extends { [K in string]: readonly TName[] },
+>(
+  nodes: readonly AstNode<TName>[],
   transformation: {
-    return: { [K in T]: readonly string[] },
+    return: TReturnMap,
     recurse?: readonly string[],
     ignore?: readonly string[],
   },
-  // text?: string,
   nodeText?: (node: AstNode) => string,
 ) {
-  const returnSpecs = strictKeys(transformation.return);
+  type TReturn = string & keyof TReturnMap;
+  const returnSpecs = strictKeys(transformation.return) as readonly TReturn[];
 
   if (nodeText === undefined && returnSpecs.some(q => q.endsWith('%'))) {
     throw new TypeError('text not given');
@@ -101,13 +110,12 @@ export function groupNodes<const T extends string>(
 
   const returnNameForNodeName = strictFromEntries(
     strictEntries(transformation.return).flatMap(([className, nodeNames]) =>
-      nodeNames.map(nodeName => [nodeName, unquantify(className)] as const)
+      nodeNames.map(nodeName => [nodeName, unquantify(className as string)] as const)
     )
   );
 
   const byName = strictFromEntries(
-    strictKeys(transformation.return)
-      .map(s => [unquantify(s), [] as AstNode[]])
+    returnSpecs.map(s => [unquantify(s) as string, [] as AstNode[]])
   );
 
   for (const node of iterateAst(nodes, {
@@ -125,22 +133,39 @@ export function groupNodes<const T extends string>(
       const { name, quantifier = '', string } = m.groups;
 
       const nodesOrText = string
-        ? byName[name as Unquantify<T>].map(nodeText as (node: AstNode) => string)
-        : byName[name as Unquantify<T>];
+        ? byName[name as Unquantify<TReturn>].map(nodeText as (node: AstNode) => string)
+        : byName[name as Unquantify<TReturn>];
 
       const ret = helper(name, nodesOrText, quantifier);
 
       return [name, ret];
     })
-  ) as {
-    [K in T as Unquantify<K>]:
-      K extends `${string}?%` ? string | null :
-      K extends `${string}*%` ? readonly string[] :
-      K extends `${string}+%` ? readonly [string, ...string[]] :
-      K extends `${string}%` ? string :
-      K extends `${string}?` ? AstNode | null :
-      K extends `${string}*` ? readonly AstNode[] :
-      K extends `${string}+` ? readonly [AstNode, ...AstNode[]] :
-      AstNode
-  };
+  ) as GroupedNodes<TName, TReturnMap>;
 }
+
+type GroupedNodes<
+  TName extends string,
+  TReturnMap extends { [K in string]: readonly TName[] },
+> = {
+  [K in (string & keyof TReturnMap) as Unquantify<K>]:
+    HandleStringification<TName, TReturnMap, K>
+};
+
+type HandleStringification<
+  TName extends string,
+  TReturnMap extends { [K in string]: readonly TName[] },
+  K extends string & keyof TReturnMap,
+> = K extends `${infer S extends string}%`
+  ? HandleQuantification<S, string>
+  : HandleQuantification<K, AstNode<TName, TReturnMap[K][number]>>;
+
+type HandleQuantification<
+  K extends string,
+  TValue,
+> =
+  K extends `${string}%` ? TValue :
+  K extends `${string}?` ? TValue | null :
+  K extends `${string}*` ? readonly TValue[] :
+  K extends `${string}+` ? readonly [TValue, ...TValue[]] :
+  TValue
+;
