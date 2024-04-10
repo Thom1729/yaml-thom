@@ -13,7 +13,7 @@ function *_iterateAst<
 >(
   nodes: Iterable<AstNode<TName>>,
   names: readonly TThisName[],
-): Generator<AstNode<TName, TThisName>> {
+): Iterable<AstNode<TName, TThisName>> {
   for (const node of nodes) {
     if ((names as readonly string[]).includes(node.name)) {
       yield node as AstNode<TName, TThisName>;

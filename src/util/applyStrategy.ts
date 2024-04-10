@@ -39,7 +39,7 @@ function *iterateStrategies<
 >(
   aliases: Record<TAlias, TStrategy>,
   value: _StrategyOptions<TStrategy, TAlias>,
-): Generator<TStrategy> {
+): Iterable<TStrategy> {
   if (isArray(value)) {
     for (const item of value) {
       yield* iterateStrategies(aliases, item);

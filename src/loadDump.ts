@@ -15,7 +15,7 @@ import type { RepresentationNode } from './nodes';
  *
  * @description Load a YAML stream.
  */
-export function *loadStream(text: string, options: Partial<LoadOptions> = {}): Generator<RepresentationNode> {
+export function *loadStream(text: string, options: Partial<LoadOptions> = {}): Iterable<RepresentationNode> {
   for (const serialization of parseStream(text, options)) {
     yield compose(serialization, options);
   }

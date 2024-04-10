@@ -13,7 +13,7 @@ import type {
 } from '@/index';
 `.trimStart();
 
-export function printTypes(types: Map<Validator, TypeInfo>): Generator<string> {
+export function printTypes(types: Map<Validator, TypeInfo>): Iterable<string> {
   return stringifyTokens(
     new PrintTypesOperation(types).printAll(),
     '  ',

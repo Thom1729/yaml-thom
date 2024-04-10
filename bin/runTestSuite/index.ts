@@ -8,6 +8,18 @@ import { Logger, command, deepEquals } from '../util';
 
 const logger = new Logger(process.stdout);
 
+async function *loadTests(
+  testSuitePath: string,
+  testNames: readonly string[],
+) {
+  const testLoader = new DirectoryTestLoader(testSuitePath);
+  if (testNames.length === 0) testNames = await testLoader.listTests();
+
+  for (const testName of testNames) {
+    yield* testLoader.loadTest(testName);
+  }
+}
+
 export const runTestSuite = command<{
   testSuitePath: string,
   testName: string[],
@@ -17,26 +29,20 @@ export const runTestSuite = command<{
   testName: testNames,
   verbose,
 }) => {
-  const testLoader = new DirectoryTestLoader(testSuitePath);
-  if (testNames.length === 0) testNames = await testLoader.listTests();
+  for await (const test of loadTests(testSuitePath, testNames)) {
+    const result = runTest(test);
 
-  for (const testName of testNames) {
-    const tests = testLoader.loadTest(testName);
-    for await (const test of tests) {
-      const result = runTest(test);
+    const bad = result.status !== 'success' && result.status !== 'skipped';
 
-      const bad = result.status !== 'success' && result.status !== 'skipped';
+    if (verbose || bad) {
+      logger.log();
+      logger.log(`${test.id}: ${test.name}`);
 
-      if (verbose || bad) {
-        logger.log();
-        logger.log(`${test.id}: ${test.name}`);
-
-        logger.indented(() => {
-          if (result.error) {
-            logger.log(chalk.red(inspect(result.error)));
-          }
-        });
-      }
+      logger.indented(() => {
+        if (result.error) {
+          logger.log(chalk.red(inspect(result.error)));
+        }
+      });
     }
   }
 });

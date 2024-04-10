@@ -115,7 +115,6 @@ class AstToSerializationTree {
   }
 
   buildNode(body: NormalizedAst, tagHandles: Map<string, string>): SerializationNode {
-    if (body === undefined) throw new Error();
     const { contentNode, nodeProperty } = groupNodes([body], {
       contentNode: CONTENT_CLASS_NAMES,
       'nodeProperty*': NODE_PROPERTY_CLASS_NAMES,
@@ -191,7 +190,7 @@ class AstToSerializationTree {
       }
     }
 
-    return { tag, anchor, annotations } as const;
+    return { tag, anchor, annotations };
   }
 
   buildContent(

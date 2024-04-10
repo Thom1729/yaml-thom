@@ -6,7 +6,7 @@ export type Tokens = Iterable<
 
 import { repeat } from './string';
 
-export function *stringifyTokens(itr: Tokens, indent: string = ' '): Generator<string> {
+export function *stringifyTokens(itr: Tokens, indent: string = ' '): Iterable<string> {
   let isSpaced = true;
   let spaceRequested = false;
   for (const token of itr) {

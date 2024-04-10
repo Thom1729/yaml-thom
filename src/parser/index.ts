@@ -1,6 +1,6 @@
 export { type AstNode } from './core/ast';
-
 import { parseAll } from './core/parser';
+
 import { normalizeAst } from './core/normalizeAst';
 import { splitStream } from './splitStream';
 import { astToSerializationTree } from './core/astToSerializationTree';
@@ -8,6 +8,7 @@ import { astToSerializationTree } from './core/astToSerializationTree';
 import versions from './versions';
 import { iterate, single } from '@/util';
 import type { AstNode, Mark } from './core/ast';
+import type { SerializationNode } from '@/nodes';
 
 export type YamlVersion = keyof typeof versions;
 
@@ -41,7 +42,10 @@ function _parseDocument(
   return single(astToSerializationTree(normalized, nodeText.bind(undefined, lines)));
 }
 
-export function *parseStream(text: string, options?: Partial<ParseOptions>) {
+export function *parseStream(
+  text: string,
+  options?: Partial<ParseOptions>,
+): Iterable<SerializationNode> {
   const combinedOptions = { ...DEFAULT_OPTIONS, ...options };
   const lines = text.split(/^/gm);
 
@@ -54,7 +58,10 @@ export function *parseStream(text: string, options?: Partial<ParseOptions>) {
   // yield* new AstToSerializationTree(nodeText).handleStream(normalized);
 }
 
-export function parseSingleDocument(text: string, options?: Partial<ParseOptions>) {
+export function parseSingleDocument(
+  text: string,
+  options?: Partial<ParseOptions>,
+): SerializationNode {
   const combinedOptions = { ...DEFAULT_OPTIONS, ...options };
   const lines = text.split(/^/gm);
 

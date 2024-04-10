@@ -50,7 +50,7 @@ export function normalizeAst(node: AstNode, nodeClasses: NodeClasses): Iterable<
     )
   );
 
-  function *rec(nodes: readonly AstNode[]): Generator<NormalizedAst> {
+  function *rec(nodes: readonly AstNode[]): Iterable<NormalizedAst> {
     for (const node of nodes) {
       const { name, parameters, content, range } = node;
       const nodeClass = nodeNameToClass.get(name);
