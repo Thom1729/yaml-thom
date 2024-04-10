@@ -1,7 +1,8 @@
 import type { AstNode } from './ast';
 
 import {
-  strictEntries, strictFromEntries, strictKeys, strictValues,
+  assertNotEmpty, assertNotNull, single, singleOrNull,
+  groupBy, strictEntries, strictFromEntries,
   type TypedRegExp,
 } from '@/util';
 
@@ -35,46 +36,7 @@ export function iterateAst<
 
 ////
 
-export type Quantify<T extends string> = `${T}${'?' | '*' | '+' | ''}${'%' | ''}`;
-
-type Unquantify<T extends string> =
-  T extends `${infer U extends string}${'?' | '*' | '+' | ''}${'%' | ''}`
-    ? U
-    : T;
-
 const QUANTIFIED_EXPR = /^(?<name>.*?)(?<quantifier>[?*+])?(?<string>%)?$/ as TypedRegExp<'name'|'quantifier'|'string'>;
-
-export function unquantify<T extends string>(string: T) {
-  return string.replace(/[?*+]?%?$/, '') as Unquantify<T>;
-}
-
-function helper(name: string, nodes: readonly unknown[], quantifier: string) {
-  switch (quantifier) {
-    case '': {
-      switch (nodes.length) {
-        case 1: return nodes[0];
-        default: throw new Error(`Expected one ${name} node but got ${nodes.length}`);
-      }
-    }
-    case '?': {
-      switch (nodes.length) {
-        case 0: return null;
-        case 1: return nodes[0];
-        default: throw new Error(`Expected one ${name} node but got ${nodes.length}`);
-      }
-    }
-    case '*': {
-      return nodes;
-    }
-    case '+': {
-      switch (nodes.length) {
-        case 0: throw new Error(`Expected one or more ${name} node but got ${nodes.length}`);
-        default: return nodes;
-      }
-    }
-    default: throw new TypeError(`Unexpected quantifier ${quantifier}`);
-  }
-}
 
 export function groupNodes<
   TName extends string,
@@ -84,50 +46,55 @@ export function groupNodes<
   transformation: TReturnMap,
   nodeText?: (node: AstNode<TName>) => string,
 ) {
-  type TReturn = string & keyof TReturnMap;
-  const returnSpecs = strictKeys(transformation) as readonly TReturn[];
-
-  if (nodeText === undefined && returnSpecs.some(q => q.endsWith('%'))) {
-    throw new TypeError('text not given');
-  }
+  const specs = strictEntries(transformation).map(([spec, names]) => {
+    const m = QUANTIFIED_EXPR.exec(spec as string);
+    assertNotNull(m);
+    return {
+      ...m.groups,
+      names,
+    };
+  });
 
   const returnNameForNodeName = strictFromEntries(
-    strictEntries(transformation).flatMap(([className, nodeNames]) =>
-      nodeNames.map(nodeName => [nodeName, unquantify(className as string)] as const)
-    )
+    specs.flatMap(spec => spec.names.map(name => [name, spec.name]))
   );
 
-  const byName = strictFromEntries(
-    returnSpecs.map(s => [unquantify(s) as string, [] as AstNode[]])
+  const byName = groupBy(
+    iterateAst(nodes, specs.flatMap(spec => spec.names)),
+    node => returnNameForNodeName[node.name],
   );
-
-  for (const node of iterateAst(nodes, strictValues(transformation).flatMap(a => a))) {
-    byName[returnNameForNodeName[node.name]].push(node);
-  }
 
   return Object.fromEntries(
-    returnSpecs.map(quantified => {
-      const m = QUANTIFIED_EXPR.exec(quantified);
-      if (m === null) throw new TypeError(`Invalid name ${quantified}`);
-      const { name, quantifier = '', string } = m.groups;
+    specs.map(spec => {
+      const nodes = byName.get(spec.name) ?? [];
 
-      const nodesOrText = string
-        ? byName[name as Unquantify<TReturn>].map(nodeText as (node: AstNode) => string)
-        : byName[name as Unquantify<TReturn>];
+      const nodesOrText = spec.string
+        ? nodes.map(nodeText as (node: AstNode) => string)
+        : nodes;
 
-      const ret = helper(name, nodesOrText, quantifier);
-
-      return [name, ret];
+      return [spec.name, handleQuantifier(spec.name, nodesOrText, spec.quantifier ?? '')];
     })
   ) as GroupedNodes<TName, TReturnMap>;
+}
+
+function handleQuantifier(name: string, nodes: readonly unknown[], quantifier: string) {
+  switch (quantifier) {
+    case '': return single(nodes, `Expected one ${name} node but got ${nodes.length}`);
+    case '?': return singleOrNull(nodes, `Expected one or zero ${name} nodes but got ${nodes.length}`);
+    case '*': return nodes;
+    case '+': {
+      assertNotEmpty(nodes, `Expected one or more ${name} node but got none`);
+      return nodes;
+    }
+    default: throw new TypeError(`Unexpected quantifier ${quantifier}`);
+  }
 }
 
 type GroupedNodes<
   TName extends string,
   TReturnMap extends { [K in string]: readonly TName[] },
 > = {
-  [K in (string & keyof TReturnMap) as Unquantify<K>]:
-    HandleStringification<TName, TReturnMap, K>
+  [KV in HandleStringification<TName, TReturnMap, string & keyof TReturnMap> as KV[0]]: KV[1]
 };
 
 type HandleStringification<
@@ -142,9 +109,9 @@ type HandleQuantification<
   K extends string,
   TValue,
 > =
-  K extends `${string}%` ? TValue :
-  K extends `${string}?` ? TValue | null :
-  K extends `${string}*` ? readonly TValue[] :
-  K extends `${string}+` ? readonly [TValue, ...TValue[]] :
-  TValue
+  K extends `${infer L extends string}%` ? [L, TValue] :
+  K extends `${infer L extends string}?` ? [L, TValue | null] :
+  K extends `${infer L extends string}*` ? [L, readonly TValue[]] :
+  K extends `${infer L extends string}+` ? [L, readonly [TValue, ...TValue[]]] :
+  [K, TValue]
 ;
