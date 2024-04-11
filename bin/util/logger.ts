@@ -1,5 +1,10 @@
-import { inspect, type InspectOptions } from 'util';
+import { inspect, type InspectOptions, type InspectOptionsStylized } from 'util';
 import chalk from 'chalk';
+
+import {
+  RepresentationScalar, RepresentationSequence, RepresentationMapping,
+  type RepresentationNode,
+} from '@/index';
 
 const INVISIBLES = {
   ' ': '·',
@@ -12,31 +17,22 @@ export function repeat(count: number, s: string) {
   return new Array(count + 1).join(s);
 }
 
-import { RepresentationScalar, RepresentationSequence, RepresentationMapping } from '@/index';
-
-type InspectType = typeof inspect;
-
-function defineInspector<T extends object>(
-  obj: T,
-  inspector: (
-    this: T,
-    depth: number,
-    opts: InspectOptions,
-    inspect: InspectType,
-  ) => string,
+function inspectNode(
+  this: RepresentationNode,
+  depth: number,
+  opts: InspectOptionsStylized,
+  recurse: typeof inspect,
 ) {
-  Object.defineProperty(obj, inspect.custom, { value: inspector });
+  const type = opts.stylize(this.constructor.name, 'special');
+  const tag = opts.stylize(this.tag, 'string');
+  const content: unknown = this.kind === 'scalar' ? this.content : Array.from(this as any);
+
+  return `${type}<${tag}> ${recurse(content, opts)}`;
 }
 
-defineInspector(RepresentationScalar.prototype, function (depth, opts, inspect) {
-  return `RepresentationScalar<${inspect(this.tag, opts)}> ${inspect(this.content, opts)}`;
-});
-defineInspector(RepresentationSequence.prototype, function (depth, opts, inspect) {
-  return `RepresentationSequence<${inspect(this.tag, opts)}> ${inspect(this.content, opts)}`;
-});
-defineInspector(RepresentationMapping.prototype, function (depth, opts, inspect) {
-  return `RepresentationMapping<${inspect(this.tag, opts)}> ${inspect(this.content, opts)}`;
-});
+for (const cls of [RepresentationScalar, RepresentationSequence, RepresentationMapping]) {
+  Object.defineProperty(cls.prototype, inspect.custom, { value: inspectNode });
+}
 
 const DEFAULT_OPTIONS = {
   depth: Infinity,

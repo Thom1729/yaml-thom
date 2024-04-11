@@ -10,6 +10,7 @@ import { validatorTypes } from './validatorTypes';
 import { runEvaluationTests } from './runEvaluationTests';
 import { runValidationTests } from './runValidationTests';
 import { runPresentTests } from './runPresentTests';
+import { prettyPrint } from './prettyPrint';
 
 yargs(hideBin(process.argv))
   .option('yaml-version', {
@@ -84,5 +85,12 @@ yargs(hideBin(process.argv))
     yargs => yargs
       .positional('test-name', { type: 'string', array: true, demandOption: true }),
     args => runPresentTests(args['test-name']),
+  )
+  .command(
+    'pp [file]',
+    '',
+    yargs => yargs
+      .positional('file', { type: 'string', demandOption: true }),
+    args => prettyPrint(args),
   )
   .parse();
