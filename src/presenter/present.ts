@@ -208,37 +208,6 @@ class PresentOperation {
     }
   }
 
-  *presentBlockMapping(node: SerializationMapping, context: PresentationContext): Tokens {
-    this.presentAnchor(node.anchor);
-    yield* this.presentTag(node.tag);
-
-    const childContext = {
-      level: context.level + this.options.indentation,
-      flow: false,
-    };
-    for (const [key, value] of node.content) {
-      yield '\n';
-      yield context.level;
-
-      if (this.implicitKey(key)) {
-        yield* this.presentNode(key, {
-          level: context.level,
-          flow: true,
-        });
-        yield ':';
-        yield* this.presentNode(value, childContext);
-      } else {
-        yield '?';
-        yield* this.presentNode(key, childContext);
-
-        yield '\n';
-        yield context.level;
-        yield ':';
-        yield* this.presentNode(value, childContext);
-      }
-    }
-  }
-
   *presentFlowSequence(node: SerializationSequence, context: PresentationContext): Tokens {
     yield* this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag);
@@ -272,6 +241,37 @@ class PresentOperation {
       yield* this.presentFlowMapping(node, context);
     } else {
       yield* this.presentBlockMapping(node, context);
+    }
+  }
+
+  *presentBlockMapping(node: SerializationMapping, context: PresentationContext): Tokens {
+    this.presentAnchor(node.anchor);
+    yield* this.presentTag(node.tag);
+
+    const childContext = {
+      level: context.level + this.options.indentation,
+      flow: false,
+    };
+    for (const [key, value] of node.content) {
+      yield '\n';
+      yield context.level;
+
+      if (this.implicitKey(key)) {
+        yield* this.presentNode(key, {
+          level: context.level,
+          flow: true,
+        });
+        yield ':';
+        yield* this.presentNode(value, childContext);
+      } else {
+        yield '?';
+        yield* this.presentNode(key, childContext);
+
+        yield '\n';
+        yield context.level;
+        yield ':';
+        yield* this.presentNode(value, childContext);
+      }
     }
   }
 
