@@ -60,6 +60,7 @@ export const doubleQuoteEscapeStrategies = {
 export interface PresentOptions {
   indentation: number;
   flow: boolean;
+  compact: boolean,
 
   versionDirective: boolean;
   startMarker: boolean;
@@ -77,6 +78,7 @@ export interface PresentOptions {
 export const DEFAULT_PRESENT_OPTIONS = {
   indentation: 2,
   flow: false,
+  compact: true,
 
   versionDirective: true,
   startMarker: true,

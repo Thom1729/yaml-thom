@@ -13,7 +13,7 @@ import {
 import {
   assertNotUndefined, type CodePoint,
   applyStrategy,
-  stringifyTokens, type Tokens,
+  stringifyTokens, type Tokens, enumerate,
 } from '@/util';
 
 import { isDoubleSafe, canBePlainScalar } from '@/scalar';
@@ -36,6 +36,7 @@ export function present(document: SerializationNode, options: Partial<PresentOpt
 
 interface PresentationContext {
   level: number;
+  kind: 'sequence' | 'mapping' | null;
   flow: boolean;
 }
 
@@ -55,7 +56,7 @@ class PresentOperation {
     if (atLeastOneDirective || this.options.startMarker) {
       yield '---';
     }
-    yield* this.presentNode(node, { level: 0, flow: this.options.flow });
+    yield* this.presentNode(node, { level: 0, kind: null, flow: this.options.flow });
     if (this.options.endMarker) {
       yield '\n...';
     }
@@ -99,7 +100,9 @@ class PresentOperation {
     if (anchor !== null) {
       yield null;
       yield '&' + anchor;
+      return true;
     }
+    return false;
   }
 
   *presentTag(tag: SerializationTag, exclamationContext: boolean = false) {
@@ -109,17 +112,21 @@ class PresentOperation {
       if (!exclamationContext) {
         yield null;
         yield '!';
+        return true;
       }
     } else {
       const shorthand = this.findTagShorthand(tag);
       if (shorthand !== undefined) {
         yield null;
         yield shorthand;
+        return true;
       } else {
         yield null;
         yield '!<' + tag + '>';
+        return true;
       }
     }
+    return false;
   }
 
   findTagShorthand(tag: string) {
@@ -193,16 +200,24 @@ class PresentOperation {
   }
 
   *presentBlockSequence(node: SerializationSequence, context: PresentationContext): Tokens {
-    yield* this.presentAnchor(node.anchor);
-    yield* this.presentTag(node.tag);
+    const hasAnchor = yield* this.presentAnchor(node.anchor);
+    const hasTag = yield* this.presentTag(node.tag);
 
-    const childContext = {
+    const compact = this.options.compact && context.kind === 'sequence' && !hasAnchor && !hasTag;
+
+    const childContext: PresentationContext = {
       level: context.level + this.options.indentation,
+      kind: 'sequence',
       flow: false,
     };
-    for (const item of node.content) {
-      yield '\n';
-      yield context.level;
+
+    for (const [i, item] of enumerate(node.content)) {
+      if (compact && i === 0) {
+        yield null;
+      } else {
+        yield '\n';
+        yield context.level;
+      }
       yield '-';
       yield* this.presentNode(item, childContext);
     }
@@ -214,10 +229,12 @@ class PresentOperation {
 
     yield null;
 
-    const childContext = {
+    const childContext: PresentationContext = {
       level: context.level + this.options.indentation,
+      kind: 'sequence',
       flow: true,
     };
+
     if (node.content.length === 0) {
       yield '[]';
     } else {
@@ -248,8 +265,9 @@ class PresentOperation {
     this.presentAnchor(node.anchor);
     yield* this.presentTag(node.tag);
 
-    const childContext = {
+    const childContext: PresentationContext = {
       level: context.level + this.options.indentation,
+      kind: 'mapping',
       flow: false,
     };
     for (const [key, value] of node.content) {
@@ -259,6 +277,7 @@ class PresentOperation {
       if (this.implicitKey(key)) {
         yield* this.presentNode(key, {
           level: context.level,
+          kind: 'mapping',
           flow: true,
         });
         yield ':';
@@ -285,10 +304,12 @@ class PresentOperation {
     } else {
       yield '{';
 
-      const childContext = {
+      const childContext: PresentationContext = {
         level: context.level + this.options.indentation,
+        kind: 'mapping',
         flow: true,
       };
+
       for (const [key, value] of node.content) {
         if (this.implicitKey(key)) {
           yield '\n';
