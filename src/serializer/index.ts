@@ -53,6 +53,7 @@ export interface SerializeOptions {
   schema: Schema;
   anchorNames: () => Generator<string>;
   unresolve: UnresolveOptions,
+  preserveKeyOrder: boolean,
 }
 
 const DEFAULT_OPTIONS = {
@@ -63,6 +64,7 @@ const DEFAULT_OPTIONS = {
     }
   },
   unresolve: ['?', '!'],
+  preserveKeyOrder: true,
 } satisfies SerializeOptions;
 
 export function serialize(doc: RepresentationNode, options: Partial<SerializeOptions> = {}) {
@@ -109,7 +111,17 @@ class SerializeOperation {
     } else if (node.kind === 'mapping') {
       const ret = new SerializationMapping(tag, []);
       this.cache.set(node, ret);
-      for (const [key, value] of node) {
+
+      let pairs;
+      if (this.options.preserveKeyOrder) {
+        pairs = Array.from(node).sort((a, b) =>
+          (a[0].presentation.index ?? Infinity) - (b[0].presentation.index ?? Infinity)
+        );
+      } else {
+        pairs = node;
+      }
+
+      for (const [key, value] of pairs) {
         ret.content.push([this.serialize(key), this.serialize(value)]);
       }
       return ret;

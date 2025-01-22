@@ -28,8 +28,8 @@ options: {}
 expected: |
   %YAML 1.2
   ---
-  - baz: xyzzy
-    foo: bar
+  - foo: bar
+    baz: xyzzy
   ...
 
 
