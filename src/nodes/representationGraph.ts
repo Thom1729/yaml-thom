@@ -4,13 +4,19 @@ import { NodeMap, type Get } from './nodeMap';
 
 import { stringCodepointLength } from '@/util';
 
+export interface RepresentationNodePresentationInfo {
+  index?: number;
+}
+
 abstract class ValueNode<TagType, ContentType> {
   tag: TagType;
   content: ContentType;
+  presentation: RepresentationNodePresentationInfo;
 
   constructor(tag: TagType, content: ContentType) {
     this.tag = tag;
     this.content = content;
+    this.presentation = {};
   }
 }
 

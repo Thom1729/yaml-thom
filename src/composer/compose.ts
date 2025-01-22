@@ -19,7 +19,7 @@ import {
   type TagDefinitions,
 } from './tags';
 
-import { CustomError } from '@/util';
+import { CustomError, enumerate } from '@/util';
 
 export class BaseCompositionError extends CustomError {
   node: SerializationNode;
@@ -107,7 +107,8 @@ export function compose(
       const result = new RepresentationMapping(tag);
       setAnchor(node, result);
       const resolvedKeys = Array.from(node).map(([key, value]) => [rec(key), value] as const);
-      for (const [key, value] of resolvedKeys) {
+      for (const [index, [key, value]] of enumerate(resolvedKeys)) {
+        key.presentation.index = index;
         result.content.pairs.push([key, rec(value)]);
       }
       result.content.pairs.sort((a, b) => comparator.compare(a[0], b[0]));

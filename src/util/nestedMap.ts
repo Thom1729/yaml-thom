@@ -1,5 +1,7 @@
 interface BasicMapping {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  has: (key: any) => boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get: (key: any) => any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   set: (key: any, value: any) => void;
@@ -18,6 +20,17 @@ export class NestedMap<TKey extends readonly [unknown, ...unknown[]], TValue> {
     const [rootFactory, ...childFactories] = mapFactories as (() => BasicMapping)[];
     this.rootMap = rootFactory();
     this.childFactories = childFactories;
+  }
+
+  has(...key: TKey): boolean {
+    let x = this.rootMap;
+
+    for (const k of key) {
+      if (!x.has(k)) return false;
+      x = x.get(k);
+    }
+
+    return true;
   }
 
   get(...key: TKey) {
