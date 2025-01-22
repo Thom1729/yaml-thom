@@ -31,3 +31,16 @@ expected: |
   - baz: xyzzy
     foo: bar
   ...
+
+
+---
+name: Sequence in compact
+input:
+  [foo]: [bar]
+options: {}
+expected: |
+  %YAML 1.2
+  ---
+  ? - foo
+  : - bar
+  ...
