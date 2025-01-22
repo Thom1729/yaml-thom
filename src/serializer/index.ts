@@ -18,6 +18,7 @@ import { canBePlainScalar } from '@/scalar';
 
 import {
   applyStrategy, type Strategies, type StrategyOptions,
+  iterate,
 } from '@/util';
 
 //////////
@@ -51,18 +52,18 @@ type UnresolveOptions = StrategyOptions<typeof unresolveStrategies>;
 
 export interface SerializeOptions {
   schema: Schema;
-  anchorNames: () => Generator<string>;
+  anchorNames: Iterable<string>;
   unresolve: UnresolveOptions,
   preserveKeyOrder: boolean,
 }
 
-const DEFAULT_OPTIONS = {
+const DEFAULT_OPTIONS: SerializeOptions = {
   schema: coreSchema,
-  anchorNames: function*() {
+  anchorNames: { *[Symbol.iterator]() {
     for (let i = 0;; i++) {
       yield i.toString();
     }
-  },
+  } },
   unresolve: ['?', '!'],
   preserveKeyOrder: true,
 } satisfies SerializeOptions;
@@ -76,12 +77,12 @@ export function serialize(doc: RepresentationNode, options: Partial<SerializeOpt
 
 class SerializeOperation {
   readonly options: SerializeOptions;
-  readonly anchorNameGenerator: Generator<string>;
+  readonly anchorNameGenerator: Iterator<string>;
   readonly cache = new Map<RepresentationNode, SerializationValueNode>();
 
   constructor(options: SerializeOptions) {
     this.options = options;
-    this.anchorNameGenerator = this.options.anchorNames();
+    this.anchorNameGenerator = iterate(this.options.anchorNames);
   }
 
   serialize(node: RepresentationNode): SerializationNode {
