@@ -1,0 +1,84 @@
+---
+name: Empty Sequence
+input:
+  []
+options: {}
+expected: |
+  %YAML 1.2
+  --- []
+  ...
+
+---
+name: Single element
+input:
+  [1]
+options: {}
+expected: |
+  %YAML 1.2
+  ---
+  - 1
+  ...
+
+---
+name: Multiple elements
+input:
+  [1, 2]
+options: {}
+expected: |
+  %YAML 1.2
+  ---
+  - 1
+  - 2
+  ...
+
+---
+name: Nested
+input:
+  [1, [2]]
+options:
+  compact: false
+expected: |
+  %YAML 1.2
+  ---
+  - 1
+  -
+    - 2
+  ...
+
+---
+name: Compact
+input:
+  [1, [2, 3]]
+options: {}
+expected: |
+  %YAML 1.2
+  ---
+  - 1
+  - - 2
+    - 3
+  ...
+
+---
+name: Compact Nested
+input:
+  [[[1]]]
+options: {}
+expected: |
+  %YAML 1.2
+  ---
+  - - - 1
+  ...
+
+---
+name: Tag
+input:
+  - !foo []
+  - !foo [1]
+options: {}
+expected: |
+  %YAML 1.2
+  ---
+  - !foo []
+  - !foo
+    - 1
+  ...

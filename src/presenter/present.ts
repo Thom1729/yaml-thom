@@ -13,7 +13,7 @@ import {
 import {
   assertNotUndefined, type CodePoint,
   applyStrategy,
-  stringifyTokens, type Tokens, enumerate,
+  stringifyTokens, type Tokens,
 } from '@/util';
 
 import { isDoubleSafe, canBePlainScalar } from '@/scalar';
@@ -203,7 +203,7 @@ class PresentOperation {
     const hasAnchor = yield* this.presentAnchor(node.anchor);
     const hasTag = yield* this.presentTag(node.tag);
 
-    const compact = this.options.compact && context.kind === 'sequence' && !hasAnchor && !hasTag;
+    let compact = this.options.compact && context.kind === 'sequence' && !hasAnchor && !hasTag;
 
     const childContext: PresentationContext = {
       level: context.level + this.options.indentation,
@@ -211,9 +211,10 @@ class PresentOperation {
       flow: false,
     };
 
-    for (const [i, item] of enumerate(node.content)) {
-      if (compact && i === 0) {
+    for (const item of node.content) {
+      if (compact) {
         yield null;
+        compact = false;
       } else {
         yield '\n';
         yield context.level;
@@ -262,17 +263,25 @@ class PresentOperation {
   }
 
   *presentBlockMapping(node: SerializationMapping, context: PresentationContext): Tokens {
-    this.presentAnchor(node.anchor);
-    yield* this.presentTag(node.tag);
+    const hasAnchor = yield* this.presentAnchor(node.anchor);
+    const hasTag = yield* this.presentTag(node.tag);
+
+    let compact = this.options.compact && context.kind === 'sequence' && !hasAnchor && !hasTag;
 
     const childContext: PresentationContext = {
       level: context.level + this.options.indentation,
       kind: 'mapping',
       flow: false,
     };
+
     for (const [key, value] of node.content) {
-      yield '\n';
-      yield context.level;
+      if (compact) {
+        yield null;
+        compact = false;
+      } else {
+        yield '\n';
+        yield context.level;
+      }
 
       if (this.implicitKey(key)) {
         yield* this.presentNode(key, {
@@ -313,7 +322,7 @@ class PresentOperation {
       for (const [key, value] of node.content) {
         if (this.implicitKey(key)) {
           yield '\n';
-          yield context.level + this.options.indentation;
+          yield childContext.level;
           yield* this.presentNode(key, childContext);
 
           yield ':';

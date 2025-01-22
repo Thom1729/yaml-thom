@@ -1,0 +1,33 @@
+---
+name: Empty Mapping
+input:
+  {}
+options: {}
+expected: |
+  %YAML 1.2
+  --- {}
+  ...
+
+---
+name: Single element
+input:
+  foo: bar
+options: {}
+expected: |
+  %YAML 1.2
+  ---
+  foo: bar
+  ...
+
+---
+name: Compact in sequence
+input:
+  - foo: bar
+    baz: xyzzy
+options: {}
+expected: |
+  %YAML 1.2
+  ---
+  - baz: xyzzy
+    foo: bar
+  ...
