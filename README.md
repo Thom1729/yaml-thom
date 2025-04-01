@@ -2,7 +2,7 @@
 
 An experimental YAML loader/dumper implementation.
 
-#### Primary objectives:
+#### Primary objectives
 
 - Precisely implement the YAML 1.2 spec.
 - Run (and pass) the [YAML test suite](https://github.com/yaml/yaml-test-suite).
